@@ -15,6 +15,8 @@ Freetype implementation supports specifying a FT_Memory handle which is a pointe
   };
   ```
 
+This library (seems) to perform best if the text commands are fed in 'whitespace aware chunks', where instead of feeding it entire blobs of text, the user identfies the "words" in the text and feeding the visible and whitespce chunks derived from this to draw_text as separate calls. This improves the caching of the text shapes. The downside is there has to be a time where the text is parsed into tokens beforehand so that the this iteration does not have to occur continously.
+
 ### startup
 
 Initializes a provided context.

@@ -661,34 +661,6 @@ flush_glyph_buffer_to_atlas :: proc( ctx : ^Context )
 	}
 }
 
-// flush_glyph_buffer_to_atlas :: proc( ctx : ^Context )
-// {
-// 	// profile(#procedure)
-// 	// Flush drawcalls to draw list
-// 	if len(ctx.glyph_buffer.clear_draw_list.calls) > 0 {
-// 		merge_draw_list( & ctx.draw_list, & ctx.glyph_buffer.clear_draw_list)
-// 		clear_draw_list( & ctx.glyph_buffer.clear_draw_list)
-// 	}
-
-// 	if len(ctx.glyph_buffer.draw_list.calls) > 0 {
-// 		merge_draw_list( & ctx.draw_list, & ctx.glyph_buffer.draw_list)
-// 		clear_draw_list( & ctx.glyph_buffer.draw_list)
-// 	}
-
-// 	// Clear glyph_update_FBO
-// 	if ctx.glyph_buffer.batch_x != 0
-// 	{
-// 			call := DrawCall {
-// 				pass              = .Glyph,
-// 				start_index       = 0,
-// 				end_index         = 0,
-// 				clear_before_draw = true,
-// 			}
-// 			append( & ctx.draw_list.calls, call)
-// 			ctx.glyph_buffer.batch_x = 0
-// 	}
-// }
-
 // ve_fontcache_merge_drawlist
 merge_draw_list :: proc( dst, src : ^DrawList )
 {
