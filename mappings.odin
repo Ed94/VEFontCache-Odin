@@ -23,10 +23,10 @@ import "core:mem"
 	Arena           :: mem.Arena
 	arena_allocator :: mem.arena_allocator
 	arena_init      :: mem.arena_init
-// import "codebase:grime"
-	// log                :: grime.log
-	// logf               :: grime.logf
-	// profile            :: grime.profile
+import "codebase:grime"
+	log                :: grime.log
+	logf               :: grime.logf
+	profile            :: grime.profile
 
 //#region("Proc overload mappings")
 

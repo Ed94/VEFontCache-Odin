@@ -86,68 +86,110 @@ atlas_bbox :: proc( atlas : ^Atlas, region : AtlasRegionKind, local_idx : i32 ) 
 	return
 }
 
-decide_codepoint_region :: proc( ctx : ^Context, entry : ^Entry, glyph_index : Glyph
+// decide_codepoint_region :: proc( ctx : ^Context, entry : ^Entry, glyph_index : Glyph
+// ) -> (region_kind : AtlasRegionKind, region : ^AtlasRegion, over_sample : Vec2)
+// {
+// 	if parser_is_glyph_empty( & entry.parser_info, glyph_index ) {
+// 		region_kind = .None
+// 	}
+
+// 	bounds_0, bounds_1 := parser_get_glyph_box( & entry.parser_info, glyph_index )
+// 	bounds_width  := f32(bounds_1.x - bounds_0.x)
+// 	bounds_height := f32(bounds_1.y - bounds_0.y)
+
+// 	atlas        := & ctx.atlas
+// 	glyph_buffer := & ctx.glyph_buffer
+
+// 	glyph_padding := f32(atlas.glyph_padding) * 2
+
+// 	bounds_width_scaled  := cast(u32) (bounds_width  * entry.size_scale + glyph_padding)
+// 	bounds_height_scaled := cast(u32) (bounds_height * entry.size_scale + glyph_padding)
+
+// 	if bounds_width_scaled <= atlas.region_a.width && bounds_height_scaled <= atlas.region_a.height
+// 	{
+// 		// Region A for small glyphs. These are good for things such as punctuation.
+// 		region_kind = .A
+// 		region      = & atlas.region_a
+// 	}
+// 	else if bounds_width_scaled <= atlas.region_b.width && bounds_height_scaled <= atlas.region_b.height
+// 	{
+// 		// Region B for tall glyphs. These are good for things such as european alphabets.
+// 		region_kind = .B
+// 		region      = & atlas.region_b
+// 	}
+// 	else if bounds_width_scaled <= atlas.region_c.width && bounds_height_scaled <= atlas.region_c.height
+// 	{
+// 		// Region C for big glyphs. These are good for things such as asian typography.
+// 		region_kind = .C
+// 		region      = & atlas.region_c
+// 	}
+// 	else if bounds_width_scaled <= atlas.region_d.width && bounds_height_scaled <= atlas.region_d.height
+// 	{
+// 		// Region D for huge glyphs. These are good for things such as titles and 4k.
+// 		region_kind = .D
+// 		region      = & atlas.region_d
+// 	}
+// 	else if bounds_width_scaled <= glyph_buffer.width && bounds_height_scaled <= glyph_buffer.height
+// 	{
+// 		// Region 'E' for massive glyphs. These are rendered uncached and un-oversampled.
+// 		region_kind = .E
+// 		region      = nil
+// 		if bounds_width_scaled <= glyph_buffer.width / 2 && bounds_height_scaled <= glyph_buffer.height / 2 {
+// 			over_sample = { 2.0, 2.0 }
+// 		}
+// 		else {
+// 			over_sample = { 1.0, 1.0 }
+// 		}
+// 		return
+// 	}
+// 	else {
+// 		region_kind = .None
+// 		return
+// 	}
+
+// 	over_sample = glyph_buffer.over_sample
+// 	assert(region != nil)
+// 	return
+// }
+
+decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Glyph
 ) -> (region_kind : AtlasRegionKind, region : ^AtlasRegion, over_sample : Vec2)
 {
-	if parser_is_glyph_empty( & entry.parser_info, glyph_index ) {
-		region_kind = .None
+	if parser_is_glyph_empty(&entry.parser_info, glyph_index) {
+		return .None, nil, {}
 	}
 
-	bounds_0, bounds_1 := parser_get_glyph_box( & entry.parser_info, glyph_index )
-	bounds_width  := f32(bounds_1.x - bounds_0.x)
-	bounds_height := f32(bounds_1.y - bounds_0.y)
+	bounds_0, bounds_1 := parser_get_glyph_box(&entry.parser_info, glyph_index)
+	bounds_width       := f32(bounds_1.x - bounds_0.x)
+	bounds_height      := f32(bounds_1.y - bounds_0.y)
 
-	atlas        := & ctx.atlas
-	glyph_buffer := & ctx.glyph_buffer
+	atlas         := & ctx.atlas
+	glyph_buffer  := & ctx.glyph_buffer
+	glyph_padding := f32( atlas.glyph_padding ) * 2
 
-	glyph_padding := f32(atlas.glyph_padding) * 2
+	bounds_width_scaled  := u32(bounds_width  * entry.size_scale + glyph_padding)
+	bounds_height_scaled := u32(bounds_height * entry.size_scale + glyph_padding)
 
-	bounds_width_scaled  := cast(u32) (bounds_width  * entry.size_scale + glyph_padding)
-	bounds_height_scaled := cast(u32) (bounds_height * entry.size_scale + glyph_padding)
-
-	if bounds_width_scaled <= atlas.region_a.width && bounds_height_scaled <= atlas.region_a.height
-	{
-		// Region A for small glyphs. These are good for things such as punctuation.
-		region_kind = .A
-		region      = & atlas.region_a
-	}
-	else if bounds_width_scaled <= atlas.region_b.width && bounds_height_scaled <= atlas.region_b.height
-	{
-		// Region B for tall glyphs. These are good for things such as european alphabets.
-		region_kind = .B
-		region      = & atlas.region_b
-	}
-	else if bounds_width_scaled <= atlas.region_c.width && bounds_height_scaled <= atlas.region_c.height
-	{
-		// Region C for big glyphs. These are good for things such as asian typography.
-		region_kind = .C
-		region      = & atlas.region_c
-	}
-	else if bounds_width_scaled <= atlas.region_d.width && bounds_height_scaled <= atlas.region_d.height
-	{
-		// Region D for huge glyphs. These are good for things such as titles and 4k.
-		region_kind = .D
-		region      = & atlas.region_d
-	}
-	else if bounds_width_scaled <= glyph_buffer.width && bounds_height_scaled <= glyph_buffer.height
-	{
-		// Region 'E' for massive glyphs. These are rendered uncached and un-oversampled.
-		region_kind = .E
-		region      = nil
-		if bounds_width_scaled <= glyph_buffer.width / 2 && bounds_height_scaled <= glyph_buffer.height / 2 {
-			over_sample = { 2.0, 2.0 }
-		}
-		else {
-			over_sample = { 1.0, 1.0 }
-		}
-		return
-	}
-	else {
-		region_kind = .None
-		return
+	// Use a lookup table for faster region selection
+	region_lookup := [4]struct { kind: AtlasRegionKind, region: ^AtlasRegion } {
+			{ .A, & atlas.region_a },
+			{ .B, & atlas.region_b },
+			{ .C, & atlas.region_c },
+			{ .D, & atlas.region_d },
 	}
 
-	over_sample = glyph_buffer.over_sample
-	assert(region != nil)
-	return
+	for region in region_lookup do if bounds_width_scaled <= region.region.width && bounds_height_scaled <= region.region.height {
+		return region.kind, region.region, glyph_buffer.over_sample
+	}
+
+	if bounds_width_scaled  <= glyph_buffer.width \
+	&& bounds_height_scaled <= glyph_buffer.height {
+		over_sample = \
+			bounds_width_scaled  <= glyph_buffer.width  / 2 &&
+			bounds_height_scaled <= glyph_buffer.height / 2 ? \
+			  {2.0, 2.0} \
+			: {1.0, 1.0}
+		return .E, nil, over_sample
+	}
+	return .None, nil, {}
 }
