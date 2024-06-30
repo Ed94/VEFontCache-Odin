@@ -1,6 +1,6 @@
 # VE Font Cache : Odin Port
 
-This is a port of the library based on [fork](https://github.com/hypernewbie/VEFontCache)
+This is a port of the [VEFontCache](https://github.com/hypernewbie/VEFontCache) library.
 
 Its original purpose was for use in game engines, however its rendeirng quality and performance is more than adequate for many other applications.
 
