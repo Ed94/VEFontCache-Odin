@@ -20,12 +20,12 @@ PoolList :: struct {
 	free_list : [dynamic]PoolListIter,
 	front     : PoolListIter,
 	back      : PoolListIter,
-	size      : u32,
-	capacity  : u32,
+	size      : i32,
+	capacity  : i32,
 	dbg_name  : string,
 }
 
-pool_list_init :: proc( pool : ^PoolList, capacity : u32, dbg_name : string = "" )
+pool_list_init :: proc( pool : ^PoolList, capacity : i32, dbg_name : string = "" )
 {
 	error : AllocatorError
 	pool.items, error = make( [dynamic]PoolListItem, int(capacity) )
@@ -53,13 +53,11 @@ pool_list_init :: proc( pool : ^PoolList, capacity : u32, dbg_name : string = ""
 	back  = -1
 }
 
-pool_list_free :: proc( pool : ^PoolList )
-{
+pool_list_free :: proc( pool : ^PoolList ) {
 	// TODO(Ed): Implement
 }
 
-pool_list_reload :: proc( pool : ^PoolList, allocator : Allocator )
-{
+pool_list_reload :: proc( pool : ^PoolList, allocator : Allocator ) {
 	reload_array( & pool.items, allocator )
 	reload_array( & pool.free_list, allocator )
 }
@@ -160,13 +158,13 @@ LRU_Link :: struct {
 }
 
 LRU_Cache :: struct {
-	capacity  : u32,
-	num       : u32,
+	capacity  : i32,
+	num       : i32,
 	table     :  map[u64]LRU_Link,
 	key_queue : PoolList,
 }
 
-LRU_init :: proc( cache : ^LRU_Cache, capacity : u32, dbg_name : string = "" ) {
+LRU_init :: proc( cache : ^LRU_Cache, capacity : i32, dbg_name : string = "" ) {
 	error : AllocatorError
 	cache.capacity     = capacity
 	cache.table, error = make( map[u64]LRU_Link, uint(capacity) )
@@ -175,21 +173,13 @@ LRU_init :: proc( cache : ^LRU_Cache, capacity : u32, dbg_name : string = "" ) {
 	pool_list_init( & cache.key_queue, capacity, dbg_name = dbg_name )
 }
 
-LRU_free :: proc( cache : ^LRU_Cache )
-{
+LRU_free :: proc( cache : ^LRU_Cache ) {
 	// TODO(Ed): Implement
 }
 
-LRU_reload :: #force_inline proc( cache : ^LRU_Cache, allocator : Allocator )
-{
+LRU_reload :: #force_inline proc( cache : ^LRU_Cache, allocator : Allocator ) {
 	reload_map( & cache.table, allocator )
 	pool_list_reload( & cache.key_queue, allocator )
-}
-
-LRU_hash_key :: #force_inline proc( key : u64 ) -> ( hash : u64 ) {
-	bytes := transmute( [8]byte ) key
-	hash   = fnv64a( bytes[:] )
-	return
 }
 
 LRU_find :: #force_inline proc "contextless" ( cache : ^LRU_Cache, key : u64, must_find := false ) -> (LRU_Link, bool) {
@@ -205,8 +195,7 @@ LRU_get :: #force_inline proc( cache: ^LRU_Cache, key : u64 ) -> i32 {
 	return -1
 }
 
-LRU_get_next_evicted :: #force_inline proc ( cache : ^LRU_Cache ) -> u64
-{
+LRU_get_next_evicted :: #force_inline proc ( cache : ^LRU_Cache ) -> u64 {
 	if cache.key_queue.size >= cache.capacity {
 		evict := pool_list_peek_back( & cache.key_queue )
 		return evict

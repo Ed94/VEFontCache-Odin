@@ -1,14 +1,11 @@
 /*
 A port of (https://github.com/hypernewbie/VEFontCache) to Odin.
 
-Status:
-This port is heavily tied to the grime package in SectrPrototype.
-
 Changes:
 - Font Parser & Glyph Shaper are abstracted to their own interface
 - Font Face parser info stored separately from entries
 - ve_fontcache_loadfile not ported (just use odin's core:os or os2), then call load_font
-- Macro defines have been made into runtime parameters
+- Macro defines have been made (mostly) into runtime parameters
 */
 package VEFontCache
 
@@ -20,12 +17,13 @@ FontID  :: distinct i64
 Glyph   :: distinct i32
 
 Entry :: struct {
-	parser_info : ParserFontInfo,
-	shaper_info : ShaperInfo,
-	id          : FontID,
-	used        : b32,
-	size        : f32,
-	size_scale  : f32,
+	parser_info   : ParserFontInfo,
+	shaper_info   : ShaperInfo,
+	id            : FontID,
+	used          : b32,
+	curve_quality : f32,
+	size          : f32,
+	size_scale    : f32,
 }
 
 Entry_Default :: Entry {
@@ -46,15 +44,13 @@ Context :: struct {
 
 	temp_path               : [dynamic]Vertex,
 	temp_codepoint_seen     : map[u64]bool,
-	temp_codepoint_seen_num : u32,
+	temp_codepoint_seen_num : int,
 
-	snap_width  : u32,
-	snap_height : u32,
+	snap_width  : f32,
+	snap_height : f32,
 
 	colour     : Colour,
 	cursor_pos : Vec2,
-
-	// draw_cursor_pos : Vec2,
 
 	draw_layer : struct {
 		vertices_offset : int,
@@ -67,8 +63,8 @@ Context :: struct {
 	glyph_buffer : GlyphDrawBuffer,
 	shape_cache  : ShapedTextCache,
 
-	curve_quality  : u32,
-	text_shape_adv : b32,
+	default_curve_quality : i32,
+	text_shape_adv        : b32,
 
 	debug_print         : b32,
 	debug_print_verbose : b32,
@@ -116,7 +112,7 @@ InitAtlasParams_Default :: InitAtlasParams {
 }
 
 InitGlyphDrawParams :: struct {
-	over_sample   : Vec2,
+	over_sample   : Vec2i,
 	buffer_batch  : u32,
 	draw_padding  : u32,
 }
@@ -133,8 +129,8 @@ InitShapeCacheParams :: struct {
 }
 
 InitShapeCacheParams_Default :: InitShapeCacheParams {
-	capacity       = 2048,
-	reserve_length = 2048,
+	capacity       =  8 * 1024,
+	reserve_length =  1 * 1024,
 }
 
 // ve_fontcache_init
@@ -143,7 +139,7 @@ startup :: proc( ctx : ^Context, parser_kind : ParserKind,
 	atlas_params                := InitAtlasParams_Default,
 	glyph_draw_params           := InitGlyphDrawParams_Default,
 	shape_cache_params          := InitShapeCacheParams_Default,
-	curve_quality               : u32 = 3,
+	default_curve_quality       : u32 = 3,
 	entires_reserve             : u32 = 512,
 	temp_path_reserve           : u32 = 1024,
 	temp_codepoint_seen_reserve : u32 = 2048,
@@ -155,10 +151,10 @@ startup :: proc( ctx : ^Context, parser_kind : ParserKind,
 	ctx.backing       = allocator
 	context.allocator = ctx.backing
 
-	if curve_quality == 0 {
-		curve_quality = 3
+	if default_curve_quality == 0 {
+		default_curve_quality = 3
 	}
-	ctx.curve_quality = curve_quality
+	ctx.default_curve_quality = default_curve_quality
 
 	error : AllocatorError
 	entries, error = make( [dynamic]Entry, len = 0, cap = entires_reserve )
@@ -184,8 +180,8 @@ startup :: proc( ctx : ^Context, parser_kind : ParserKind,
 		using region
 
 		next_idx = 0;
-		width    = region_params.width
-		height   = region_params.height
+		width    = i32(region_params.width)
+		height   = i32(region_params.height)
 		size = {
 			i32(params.width)  / factor.x,
 			i32(params.height) / factor.y,
@@ -197,28 +193,26 @@ startup :: proc( ctx : ^Context, parser_kind : ParserKind,
 		assert( capacity.x * capacity.y == expected_cap )
 
 		error : AllocatorError
-		// state.cache, error = make( HMapChained(LRU_Link), uint(capacity.x * capacity.y) )
-		// assert( error == .None, "VEFontCache.init_atlas_region : Failed to allocate state.cache")
-		LRU_init( & state, u32(capacity.x * capacity.y) )
+		LRU_init( & state, capacity.x * capacity.y )
 	}
 	init_atlas_region( & atlas.region_a, atlas_params, atlas_params.region_a, { 4, 2}, 1024 )
 	init_atlas_region( & atlas.region_b, atlas_params, atlas_params.region_b, { 4, 2}, 512 )
 	init_atlas_region( & atlas.region_c, atlas_params, atlas_params.region_c, { 4, 1}, 512 )
 	init_atlas_region( & atlas.region_d, atlas_params, atlas_params.region_d, { 2, 1}, 256 )
 
-	atlas.width         = atlas_params.width
-	atlas.height        = atlas_params.height
-	atlas.glyph_padding = atlas_params.glyph_padding
+	atlas.width         = i32(atlas_params.width)
+	atlas.height        = i32(atlas_params.height)
+	atlas.glyph_padding = i32(atlas_params.glyph_padding)
 
 	atlas.region_a.offset   = {0, 0}
 	atlas.region_b.offset.x = 0
 	atlas.region_b.offset.y = atlas.region_a.size.y
 	atlas.region_c.offset.x = atlas.region_a.size.x
 	atlas.region_c.offset.y = 0
-	atlas.region_d.offset.x = i32(atlas.width) / 2
+	atlas.region_d.offset.x = atlas.width / 2
 	atlas.region_d.offset.y = 0
 
-	LRU_init( & shape_cache.state, shape_cache_params.capacity )
+	LRU_init( & shape_cache.state, i32(shape_cache_params.capacity) )
 
 	shape_cache.storage, error = make( [dynamic]ShapedText, shape_cache_params.capacity )
 	assert(error == .None, "VEFontCache.init : Failed to allocate shape_cache.storage")
@@ -245,11 +239,11 @@ startup :: proc( ctx : ^Context, parser_kind : ParserKind,
 	// Note(From original author): We can actually go over VE_FONTCACHE_GLYPHDRAW_BUFFER_BATCH batches due to smart packing!
 	{
 		using glyph_buffer
-		over_sample   = glyph_draw_params.over_sample
-		batch         = glyph_draw_params.buffer_batch
-		width         = atlas.region_d.width  * u32(over_sample.x) * batch
-		height        = atlas.region_d.height * u32(over_sample.y)
-		draw_padding  = glyph_draw_params.draw_padding
+		over_sample   = vec2(glyph_draw_params.over_sample)
+		batch         = cast(i32) glyph_draw_params.buffer_batch
+		width         = atlas.region_d.width  * i32(over_sample.x) * batch
+		height        = atlas.region_d.height * i32(over_sample.y)
+		draw_padding  = cast(i32) glyph_draw_params.draw_padding
 
 		draw_list.calls, error = make( [dynamic]DrawCall, len = 0, cap = glyph_draw_params.buffer_batch * 2 )
 		assert( error == .None, "VEFontCache.init : Failed to allocate calls for draw_list" )
@@ -295,7 +289,7 @@ hot_reload :: proc( ctx : ^Context, allocator : Allocator )
 	LRU_reload( & atlas.region_d.state, allocator)
 
 	LRU_reload( & shape_cache.state, allocator )
-	for idx : u32 = 0; idx < u32(len(shape_cache.storage)); idx += 1 {
+	for idx : i32 = 0; idx < i32(len(shape_cache.storage)); idx += 1 {
 		stroage_entry := & shape_cache.storage[idx]
 		using stroage_entry
 
@@ -332,7 +326,7 @@ shutdown :: proc( ctx : ^Context )
 }
 
 // ve_fontcache_load
-load_font :: proc( ctx : ^Context, label : string, data : []byte, size_px : f32 ) -> (font_id : FontID)
+load_font :: proc( ctx : ^Context, label : string, data : []byte, size_px : f32, glyph_curve_quality : u32 = 0 ) -> (font_id : FontID)
 {
 	assert( ctx != nil )
 	assert( len(data) > 0 )
@@ -355,19 +349,25 @@ load_font :: proc( ctx : ^Context, label : string, data : []byte, size_px : f32 
 	entry := & entries[ id ]
 	{
 		using entry
+		used = true
 
 		parser_info = parser_load_font( & parser_ctx, label, data )
 		// assert( parser_info != nil, "VEFontCache.load_font: Failed to load font info from parser" )
+
+		shaper_info = shaper_load_font( & shaper_ctx, label, data, transmute(rawptr) id )
+		// assert( shaper_info != nil, "VEFontCache.load_font: Failed to load font from shaper")
 
 		size = size_px
 		size_scale = size_px < 0.0 ?                               \
 			parser_scale_for_pixel_height( & parser_info, -size_px ) \
 		: parser_scale_for_mapping_em_to_pixels( & parser_info, size_px )
 
-		used = true
-
-		shaper_info = shaper_load_font( & shaper_ctx, label, data, transmute(rawptr) id )
-		// assert( shaper_info != nil, "VEFontCache.load_font: Failed to load font from shaper")
+		if glyph_curve_quality == 0 {
+			curve_quality = f32(ctx.default_curve_quality)
+		}
+		else {
+			curve_quality = f32(glyph_curve_quality)
+		}
 	}
 	entry.id = FontID(id)
 	ctx.entries[ id ].id = FontID(id)
@@ -398,8 +398,8 @@ unload_font :: proc( ctx : ^Context, font : FontID )
 // ve_fontcache_configure_snap
 configure_snap :: #force_inline proc( ctx : ^Context, snap_width, snap_height : u32 ) {
 	assert( ctx != nil )
-	ctx.snap_width  = snap_width
-	ctx.snap_height = snap_height
+	ctx.snap_width  = f32(snap_width)
+	ctx.snap_height = f32(snap_height)
 }
 
 get_cursor_pos :: #force_inline proc "contextless" ( ctx : ^Context                  ) -> Vec2 { return ctx.cursor_pos }
@@ -413,13 +413,11 @@ draw_text :: proc( ctx : ^Context, font : FontID, text_utf8 : string, position, 
 
 	ctx.cursor_pos = {}
 
-	position    := position
-	snap_width  := f32(ctx.snap_width)
-	snap_height := f32(ctx.snap_height)
-	if ctx.snap_width  > 0 do position.x = cast(f32) cast(u32) (position.x * snap_width  + 0.5) / snap_width
-	if ctx.snap_height > 0 do position.y = cast(f32) cast(u32) (position.y * snap_height + 0.5) / snap_height
+	position := position
+	if ctx.snap_width  > 0 do position.x = cast(f32) cast(u32) (position.x * ctx.snap_width  + 0.5) / ctx.snap_width
+	if ctx.snap_height > 0 do position.y = cast(f32) cast(u32) (position.y * ctx.snap_height + 0.5) / ctx.snap_height
 
-	entry  := & ctx.entries[ font ]
+	entry := & ctx.entries[ font ]
 
 	ChunkType   :: enum u32 { Visible, Formatting }
 	chunk_kind  : ChunkType
@@ -432,7 +430,7 @@ draw_text :: proc( ctx : ^Context, font : FontID, text_utf8 : string, position, 
 	text_chunk = transmute(string) text_utf8_bytes[ : ]
 	if len(text_chunk) > 0 {
 		shaped        := shape_text_cached( ctx, font, text_chunk, entry )
-		ctx.cursor_pos = draw_text_shape( ctx, font, entry, shaped, position, scale, snap_width, snap_height )
+		ctx.cursor_pos = draw_text_shape( ctx, font, entry, shaped, position, scale, ctx.snap_width, ctx.snap_height )
 	}
 	return true
 }

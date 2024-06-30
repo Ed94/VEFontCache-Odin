@@ -19,24 +19,24 @@ vec2i_from_vec2   :: #force_inline proc "contextless" ( v2     : Vec2  ) -> Vec2
 @(require_results) ceil_vec2 :: proc "contextless" ( v : Vec2 ) -> Vec2 { return { ceil_f32(v.x), ceil_f32(v.y) } }
 
 // This buffer is used below excluisvely to prevent any allocator recusion when verbose logging from allocators.
-// This means a single line is limited to 32k buffer (increase naturally if this SOMEHOW becomes a bottleneck...)
-// Logger_Allocator_Buffer : [32 * Kilobyte]u8
+// This means a single line is limited to 4k buffer
+Logger_Allocator_Buffer : [4 * Kilobyte]u8
 
-// log :: proc( msg : string, level := core_log.Level.Info, loc := #caller_location ) {
-// 	temp_arena : Arena; arena_init(& temp_arena, Logger_Allocator_Buffer[:])
-// 	context.allocator      = arena_allocator(& temp_arena)
-// 	context.temp_allocator = arena_allocator(& temp_arena)
+log :: proc( msg : string, level := core_log.Level.Info, loc := #caller_location ) {
+	temp_arena : Arena; arena_init(& temp_arena, Logger_Allocator_Buffer[:])
+	context.allocator      = arena_allocator(& temp_arena)
+	context.temp_allocator = arena_allocator(& temp_arena)
 
-// 	core_log.log( level, msg, location = loc )
-// }
+	core_log.log( level, msg, location = loc )
+}
 
-// logf :: proc( fmt : string, args : ..any,  level := core_log.Level.Info, loc := #caller_location  ) {
-// 	temp_arena : Arena; arena_init(& temp_arena, Logger_Allocator_Buffer[:])
-// 	context.allocator      = arena_allocator(& temp_arena)
-// 	context.temp_allocator = arena_allocator(& temp_arena)
+logf :: proc( fmt : string, args : ..any,  level := core_log.Level.Info, loc := #caller_location  ) {
+	temp_arena : Arena; arena_init(& temp_arena, Logger_Allocator_Buffer[:])
+	context.allocator      = arena_allocator(& temp_arena)
+	context.temp_allocator = arena_allocator(& temp_arena)
 
-// 	core_log.logf( level, fmt, ..args, location = loc )
-// }
+	core_log.logf( level, fmt, ..args, location = loc )
+}
 
 reload_array :: proc( self : ^[dynamic]$Type, allocator : Allocator ) {
 	raw          := transmute( ^runtime.Raw_Dynamic_Array) self

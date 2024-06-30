@@ -6,9 +6,17 @@ Its original purpose was for use in game engines, however its rendeirng quality 
 
 See: [docs/Readme.md](docs/Readme.md) for the library's interface
 
+## Changes from orignal
+
+* Font Parser & Glyph shaper are abstracted to their own interface
+* Font face parser info encapsulated in parser_info struct.
+* ve_fontcache_loadfile not ported (ust use core:os or os2, then call load_font)
+* Macro defines have been coverted (mostly) to runtime parameters
+* Support for hot_reloading
+
 ## TODOs
 
-### (Making it a more idiomatic library):
+### Thirdparty support:
 
 * Setup freetype, harfbuzz, depedency management within the library
 
@@ -28,6 +36,7 @@ See: [docs/Readme.md](docs/Readme.md) for the library's interface
 * Support for harfbuzz
 * Ability to set a draw transform, viewport and projection
   * By default the library's position is in unsigned normalized render space
+  * Could implement a similar design to sokol_gp's interface
 * Allow curve_quality to be set on a per-font basis
 
 ### Optimization:
@@ -43,9 +52,10 @@ See: [docs/Readme.md](docs/Readme.md) for the library's interface
       * glyph_draw_buffer
       * shape_cache
     * This would need to converge to the singlar draw_list on a per layer basis (then user reqeusts a draw_list layer there could a yield to wait for the jobs to finish); if the interface expects the user to issue the commands single-threaded unless, we just assume the user is going to feed the gpu the commands & data through separate threads as well (not ideal ux).
+  * How the contexts are given jobs should be left up to the user (can recommend a screen quadrant based approach in demo examples)
 
 Failed Attempts:
 
 * Attempted to chunk the text to more granular 'shapes' from `draw_list` before doing the actual call to `draw_text_shape`. This lead to a larger performance cost due to the additional iteration across the text string.
-* Attempted to cache the shape draw_list for future calls. Led to larger performance cost due to additional iteration in the `merge_draw_list`. 
+* Attempted to cache the shape draw_list for future calls. Led to larger performance cost due to additional iteration in the `merge_draw_list`.
   * The shapes glyphs must still be traversed to identify if the glyph is cached. This arguably could be handled in `shape_text_uncached`, however that would require a significan't amount of refactoring to identify... (and would be more unergonomic when shapers libs are processing the text)

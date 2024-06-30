@@ -73,8 +73,7 @@ parser_init :: proc( ctx : ^ParserContext )
 	// assert( error == .None, "VEFontCache.parser_init: Failed to allocate fonts array" )
 }
 
-parser_shutdown :: proc( ctx : ^ParserContext )
-{
+parser_shutdown :: proc( ctx : ^ParserContext ) {
 	// TODO(Ed): Implement
 }
 

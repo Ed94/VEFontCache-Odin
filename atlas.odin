@@ -13,21 +13,21 @@ AtlasRegionKind :: enum u8 {
 AtlasRegion :: struct {
 	state : LRU_Cache,
 
-	width  : u32,
-	height : u32,
+	width  : i32,
+	height : i32,
 
 	size     : Vec2i,
 	capacity : Vec2i,
 	offset   : Vec2i,
 
-	next_idx : u32,
+	next_idx : i32,
 }
 
 Atlas :: struct {
-	width  : u32,
-	height : u32,
+	width  : i32,
+	height : i32,
 
-	glyph_padding : u32,
+	glyph_padding : i32,
 
 	region_a : AtlasRegion,
 	region_b : AtlasRegion,
@@ -43,8 +43,8 @@ atlas_bbox :: proc( atlas : ^Atlas, region : AtlasRegionKind, local_idx : i32 ) 
 			size.x = f32(atlas.region_a.width)
 			size.y = f32(atlas.region_a.height)
 
-			position.x = cast(f32) (( local_idx % atlas.region_a.capacity.x ) * i32(atlas.region_a.width))
-			position.y = cast(f32) (( local_idx / atlas.region_a.capacity.x ) * i32(atlas.region_a.height))
+			position.x = cast(f32) (( local_idx % atlas.region_a.capacity.x ) * atlas.region_a.width)
+			position.y = cast(f32) (( local_idx / atlas.region_a.capacity.x ) * atlas.region_a.height)
 
 			position.x += f32(atlas.region_a.offset.x)
 			position.y += f32(atlas.region_a.offset.y)
@@ -53,8 +53,8 @@ atlas_bbox :: proc( atlas : ^Atlas, region : AtlasRegionKind, local_idx : i32 ) 
 			size.x = f32(atlas.region_b.width)
 			size.y = f32(atlas.region_b.height)
 
-			position.x = cast(f32) (( local_idx % atlas.region_b.capacity.x ) * i32(atlas.region_b.width))
-			position.y = cast(f32) (( local_idx / atlas.region_b.capacity.x ) * i32(atlas.region_b.height))
+			position.x = cast(f32) (( local_idx % atlas.region_b.capacity.x ) * atlas.region_b.width)
+			position.y = cast(f32) (( local_idx / atlas.region_b.capacity.x ) * atlas.region_b.height)
 
 			position.x += f32(atlas.region_b.offset.x)
 			position.y += f32(atlas.region_b.offset.y)
@@ -63,8 +63,8 @@ atlas_bbox :: proc( atlas : ^Atlas, region : AtlasRegionKind, local_idx : i32 ) 
 			size.x = f32(atlas.region_c.width)
 			size.y = f32(atlas.region_c.height)
 
-			position.x = cast(f32) (( local_idx % atlas.region_c.capacity.x ) * i32(atlas.region_c.width))
-			position.y = cast(f32) (( local_idx / atlas.region_c.capacity.x ) * i32(atlas.region_c.height))
+			position.x = cast(f32) (( local_idx % atlas.region_c.capacity.x ) * atlas.region_c.width)
+			position.y = cast(f32) (( local_idx / atlas.region_c.capacity.x ) * atlas.region_c.height)
 
 			position.x += f32(atlas.region_c.offset.x)
 			position.y += f32(atlas.region_c.offset.y)
@@ -73,8 +73,8 @@ atlas_bbox :: proc( atlas : ^Atlas, region : AtlasRegionKind, local_idx : i32 ) 
 			size.x = f32(atlas.region_d.width)
 			size.y = f32(atlas.region_d.height)
 
-			position.x = cast(f32) (( local_idx % atlas.region_d.capacity.x ) * i32(atlas.region_d.width))
-			position.y = cast(f32) (( local_idx / atlas.region_d.capacity.x ) * i32(atlas.region_d.height))
+			position.x = cast(f32) (( local_idx % atlas.region_d.capacity.x ) * atlas.region_d.width)
+			position.y = cast(f32) (( local_idx / atlas.region_d.capacity.x ) * atlas.region_d.height)
 
 			position.x += f32(atlas.region_d.offset.x)
 			position.y += f32(atlas.region_d.offset.y)
@@ -101,8 +101,8 @@ decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Gl
 	glyph_buffer  := & ctx.glyph_buffer
 	glyph_padding := f32( atlas.glyph_padding ) * 2
 
-	bounds_width_scaled  := u32(bounds_width  * entry.size_scale + glyph_padding)
-	bounds_height_scaled := u32(bounds_height * entry.size_scale + glyph_padding)
+	bounds_width_scaled  := i32(bounds_width  * entry.size_scale + glyph_padding)
+	bounds_height_scaled := i32(bounds_height * entry.size_scale + glyph_padding)
 
 	// Use a lookup table for faster region selection
 	region_lookup := [4]struct { kind: AtlasRegionKind, region: ^AtlasRegion } {
