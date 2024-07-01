@@ -65,8 +65,6 @@ shape_text_uncached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, 
 	assert( ctx != nil )
 	assert( font >= 0 && int(font) < len(ctx.entries) )
 
-	use_full_text_shape := ctx.text_shape_adv
-
 	clear( & output.glyphs )
 	clear( & output.positions )
 
@@ -76,7 +74,7 @@ shape_text_uncached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, 
 	line_gap    := f32(line_gap_i32)
 	line_height := (ascent - descent + line_gap) * entry.size_scale
 
-	if use_full_text_shape
+	if ctx.text_shape_adv
 	{
 		// assert( entry.shaper_info != nil )
 		shaper_shape_from_text( & ctx.shaper_ctx, & entry.shaper_info, output, text_utf8, ascent_i32, descent_i32, line_gap_i32, entry.size, entry.size_scale )

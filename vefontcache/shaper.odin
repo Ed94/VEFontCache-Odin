@@ -79,10 +79,14 @@ shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output
 	descent  := f32(descent)
 	line_gap := f32(line_gap)
 
+	max_line_width := f32(0)
+	line_count     := 1
+	line_height    := (ascent - descent + line_gap) * size_scale
+
 	position, vertical_position : f32
 	shape_run :: proc( buffer : harfbuzz.Buffer, script : harfbuzz.Script, font : harfbuzz.Font, output : ^ShapedText,
-		position, vertical_position : ^f32,
-		ascent, descent, line_gap, size, size_scale : f32 )
+		position, vertical_position, max_line_width: ^f32, line_count: ^int,
+		ascent, descent, line_gap, size, size_scale: f32 )
 	{
 		// Set script and direction. We use the system's default langauge.
 		// script = HB_SCRIPT_LATIN
@@ -99,6 +103,8 @@ shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output
 		glyph_infos     := harfbuzz.buffer_get_glyph_infos( buffer, & glyph_count )
 		glyph_positions := harfbuzz.buffer_get_glyph_positions( buffer, & glyph_count )
 
+		line_height := (ascent - descent + line_gap) * size_scale
+
 		for index : i32; index < i32(glyph_count); index += 1
 		{
 			hb_glyph     := glyph_infos[ index ]
@@ -107,9 +113,11 @@ shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output
 
 			if hb_glyph.cluster > 0
 			{
+				(max_line_width^)     = max( max_line_width^, position^ )
 				(position^)           = 0.0
-				(vertical_position^) -= (ascent - descent + line_gap) * size_scale
+				(vertical_position^) -= line_height
 				(vertical_position^)  = cast(f32) i32(vertical_position^ + 0.5)
+				(line_count^)         += 1
 				continue
 			}
 			if abs( size ) <= Advance_Snap_Smallfont_Size
@@ -129,6 +137,7 @@ shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output
 
 			(position^)          += f32(hb_gposition.x_advance) * size_scale
 			(vertical_position^) += f32(hb_gposition.y_advance) * size_scale
+			(max_line_width^)     = max(max_line_width^, position^)
 		}
 
 		output.end_cursor_pos.x = position^
@@ -157,12 +166,16 @@ shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output
 		}
 
 		// End current run since we've encountered a script change.
-		shape_run( ctx.hb_buffer, current_script, info.font, output, & position, & vertical_position, ascent, descent, line_gap, size, size_scale )
+		shape_run( ctx.hb_buffer, current_script, info.font, output, & position, & vertical_position, & max_line_width, & line_count, ascent, descent, line_gap, size, size_scale )
 		harfbuzz.buffer_add( ctx.hb_buffer, hb_codepoint, codepoint == '\n' ? 1 : 0 )
 		current_script = script
 	}
 
 	// End the last run if needed
-	shape_run( ctx.hb_buffer, current_script, info.font, output, & position, & vertical_position, ascent, descent, line_gap, size, size_scale )
+	shape_run( ctx.hb_buffer, current_script, info.font, output, & position, & vertical_position, & max_line_width, & line_count, ascent, descent, line_gap, size, size_scale )
+
+	// Set the final size
+	output.size.x = max_line_width
+	output.size.y = f32(line_count) * line_height
 	return
 }
