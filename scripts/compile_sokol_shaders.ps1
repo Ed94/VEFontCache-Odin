@@ -24,7 +24,6 @@ $flag_format_odin = '--format=sokol_odin'
 $flag_module      = '--module'
 
 push-location $path_backend_sokol
-& $sokol_shdc --input $shadersrc_simple_font_glyph --output $shaderout_simple_font_glyph --slang 'hlsl4' $flag_format_odin
 & $sokol_shdc --input $shadersrc_blit_atlas        --output $shaderout_blit_atlas        --slang 'hlsl4' $flag_format_odin $flag_module='blit_atlas'
 & $sokol_shdc --input $shadersrc_render_glyph      --output $shaderout_render_glyph      --slang 'hlsl4' $flag_format_odin $flag_module='render_glyph'
 & $sokol_shdc --input $shadersrc_draw_text         --output $shaderout_draw_text         --slang 'hlsl4' $flag_format_odin $flag_module='draw_text'

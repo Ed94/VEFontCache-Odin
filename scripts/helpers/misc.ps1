@@ -8,6 +8,25 @@ function clone-gitrepo { param( [string] $path, [string] $url )
 	}
 }
 
+function Get-IniContent { param([ string]$filePath )
+	$ini            = @{}
+	$currentSection = $null
+	switch -regex -file $filePath
+	{
+		"^\[(.+)\]$" {
+			$currentSection       = $matches[1].Trim()
+			$ini[$currentSection] = @{}
+		}
+		"^(.+?)\s*=\s*(.*)" {
+			$key, $value = $matches[1].Trim(), $matches[2].Trim()
+			if ($null -ne $currentSection) {
+				$ini[$currentSection][$key] = $value
+			}
+		}
+	}
+	return $ini
+}
+
 # TODO(Ed): This is garbage for odin's output..
 function Invoke-WithColorCodedOutput { param( [scriptblock] $command )
 	& $command 2>&1 | ForEach-Object {
