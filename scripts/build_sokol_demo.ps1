@@ -98,7 +98,7 @@ function build-SokolBackendDemo
 	# $build_args += $flag_optimize_minimal
 	# $build_args += $flag_optimize_speed
 	$build_args += $falg_optimize_aggressive
-	# $build_args += $flag_debug
+	$build_args += $flag_debug
 	$build_args += $flag_pdb_name + $pdb
 	$build_args += $flag_subsystem + 'windows'
 	# $build_args += ($flag_extra_linker_flags + $linker_args )

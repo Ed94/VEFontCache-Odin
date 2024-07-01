@@ -91,6 +91,7 @@ shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output
 		harfbuzz.buffer_set_language( buffer, harfbuzz.language_get_default() )
 
 		// Perform the actual shaping of this run using HarfBuzz.
+		harfbuzz.buffer_set_content_type( buffer, harfbuzz.Buffer_Content_Type.UNICODE )
 		harfbuzz.shape( font, buffer, nil, 0 )
 
 		// Loop over glyphs and append to output buffer.
@@ -141,21 +142,23 @@ shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output
 
 	for codepoint, byte_offset in text_utf8
 	{
-		script := harfbuzz.unicode_script( hb_ucfunc, cast(harfbuzz.Codepoint) codepoint )
+		hb_codepoint := cast(harfbuzz.Codepoint) codepoint
+
+		script := harfbuzz.unicode_script( hb_ucfunc, hb_codepoint )
 
 		// Can we continue the current run?
 		ScriptKind :: harfbuzz.Script
 
 		special_script : b32 = script == ScriptKind.UNKNOWN || script == ScriptKind.INHERITED || script == ScriptKind.COMMON
-		if special_script || script == current_script {
-			harfbuzz.buffer_add( ctx.hb_buffer, cast(harfbuzz.Codepoint) codepoint, codepoint == '\n' ? 1 : 0 )
+		if special_script || script == current_script || byte_offset == 0 {
+			harfbuzz.buffer_add( ctx.hb_buffer, hb_codepoint, codepoint == '\n' ? 1 : 0 )
 			current_script = special_script ? current_script : script
 			continue
 		}
 
 		// End current run since we've encountered a script change.
 		shape_run( ctx.hb_buffer, current_script, info.font, output, & position, & vertical_position, ascent, descent, line_gap, size, size_scale )
-		harfbuzz.buffer_add( ctx.hb_buffer, cast(harfbuzz.Codepoint) codepoint, codepoint == '\n' ? 1 : 0 )
+		harfbuzz.buffer_add( ctx.hb_buffer, hb_codepoint, codepoint == '\n' ? 1 : 0 )
 		current_script = script
 	}
 

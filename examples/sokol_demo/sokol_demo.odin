@@ -271,7 +271,7 @@ init :: proc "c" ()
 		case .DUMMY: fmt.println(">> using dummy backend")
 	}
 
-	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, snap_shape_position = false )
+	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, snap_shape_position = false, use_advanced_text_shaper = true )
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 1024 * 1024, index_cap = 1024 * 1024 )
 
 	error : mem.Allocator_Error
@@ -478,10 +478,10 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			draw_text_string_pos_norm("그들의 장비와 기구는 모두 살아 있다.", font_demo_korean, 36, {0.3, current_scroll - (section_start + 0.92)}, COLOR_WHITE)
 
 			draw_text_string_pos_norm("Arabic", font_print, 19, {0.2, current_scroll - (section_start + 0.96)}, COLOR_WHITE)
-			draw_text_string_pos_norm("حب السماء لا تمطر غير الأحلام. This one needs HarfBuzz to work!", font_demo_arabic, 24, {0.3, current_scroll - (section_start + 0.96)}, COLOR_WHITE)
+			draw_text_string_pos_norm("حب السماء لا تمطر غير الأحلام.    (This one needs HarfBuzz to work!)", font_demo_arabic, 24, {0.3, current_scroll - (section_start + 0.96)}, COLOR_WHITE)
 
 			draw_text_string_pos_norm("Hebrew", font_print, 19, {0.2, current_scroll - (section_start + 1.0)}, COLOR_WHITE)
-			draw_text_string_pos_norm("אז הגיע הלילה של כוכב השביט הראשון. This one needs HarfBuzz to work!", font_demo_hebrew, 22, {0.3, current_scroll - (section_start + 1.0)}, COLOR_WHITE)
+			draw_text_string_pos_norm("אז הגיע הלילה של כוכב השביט הראשון.    (This one needs HarfBuzz to work!)", font_demo_hebrew, 22, {0.3, current_scroll - (section_start + 1.0)}, COLOR_WHITE)
 		}
 
 		// Zoom Test

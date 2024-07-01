@@ -152,6 +152,7 @@ startup :: proc( ctx : ^Context, parser_kind : ParserKind,
 	context.allocator = ctx.backing
 
 	snap_shape_pos = snap_shape_position
+	text_shape_adv = use_advanced_text_shaper
 
 	if default_curve_quality == 0 {
 		default_curve_quality = 3
