@@ -51,8 +51,16 @@ Update-GitRepo -path $path_sokol    -url $url_sokol     -build_command $sokol_bu
 Update-GitRepo -path $path_harfbuzz -url $url_harfbuzz  -build_command '.\scripts\build.ps1'
 
 push-location $path_thirdparty
-	$path_sokol_dlls = $path_sokol
+	$path_sokol_dlls    = $path_sokol
+	$path_harfbuzz_dlls = join-path $path_harfbuzz 'lib/win64'
+
 	$third_party_dlls = Get-ChildItem -Path $path_sokol_dlls -Filter '*.dll'
+	foreach ($dll in $third_party_dlls) {
+		$destination = join-path $path_build $dll.Name
+		Copy-Item $dll.FullName -Destination $destination -Force
+	}
+
+	$third_party_dlls = Get-ChildItem -path $path_harfbuzz_dlls -Filter '*.dll'
 	foreach ($dll in $third_party_dlls) {
 		$destination = join-path $path_build $dll.Name
 		Copy-Item $dll.FullName -Destination $destination -Force
