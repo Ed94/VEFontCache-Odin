@@ -35,7 +35,7 @@ shaper_init :: proc( ctx : ^ShaperContext )
 shaper_shutdown :: proc( ctx : ^ShaperContext )
 {
 	if ctx.hb_buffer != nil {
-		harfbuzz.buffer_destory( ctx.hb_buffer )
+		harfbuzz.buffer_destroy( ctx.hb_buffer )
 	}
 
 	// delete(& ctx.infos)
