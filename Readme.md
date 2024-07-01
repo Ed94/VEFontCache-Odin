@@ -13,6 +13,7 @@ See: [docs/Readme.md](docs/Readme.md) for the library's interface
 * ve_fontcache_loadfile not ported (ust use core:os or os2, then call load_font)
 * Macro defines have been coverted (mostly) to runtime parameters
 * Support for hot_reloading
+* Curve quality step granularity for glyph rendering can be set on a per font basis.
 
 ## TODOs
 
@@ -29,15 +30,15 @@ See: [docs/Readme.md](docs/Readme.md) for the library's interface
 
 * Port over the original demo utilizing sokol libraries instead
 * Provide a sokol_gfx backend package
+* Provide alternative build scripts
 
 ### Additional Features:
 
-* Support for freetype
-* Support for harfbuzz
+* Support for freetype (WIP, Untested)
+* Support for harfbuzz (WIP, Untested)
 * Ability to set a draw transform, viewport and projection
   * By default the library's position is in unsigned normalized render space
   * Could implement a similar design to sokol_gp's interface
-* Allow curve_quality to be set on a per-font basis
 
 ### Optimization:
 
