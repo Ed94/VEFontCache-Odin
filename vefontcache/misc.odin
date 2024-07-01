@@ -184,59 +184,6 @@ else
 		return Vec2{ simd.extract(v, 0), simd.extract(v, 1) }
 	}
 
-	vec2_add_simd :: #force_inline proc "contextless" (a, b: Vec2) -> Vec2 {
-		simd_a := vec2_to_simd(a)
-		simd_b := vec2_to_simd(b)
-		result := simd.add(simd_a, simd_b)
-		return simd_to_vec2(result)
-	}
-
-	vec2_sub_simd :: #force_inline proc "contextless" (a, b: Vec2) -> Vec2 {
-		simd_a := vec2_to_simd(a)
-		simd_b := vec2_to_simd(b)
-		result := simd.sub(simd_a, simd_b)
-		return simd_to_vec2(result)
-	}
-
-	vec2_mul_simd :: #force_inline proc "contextless" (a: Vec2, s: f32) -> Vec2 {
-		simd_a := vec2_to_simd(a)
-		simd_s := Vec2_SIMD{s, s, s, s}
-		result := simd.mul(simd_a, simd_s)
-		return simd_to_vec2(result)
-	}
-
-	vec2_div_simd :: #force_inline proc "contextless" (a: Vec2, s: f32) -> Vec2 {
-		simd_a := vec2_to_simd(a)
-		simd_s := Vec2_SIMD{s, s, s, s}
-		result := simd.div(simd_a, simd_s)
-		return simd_to_vec2(result)
-	}
-
-	vec2_dot_simd :: #force_inline proc "contextless" (a, b: Vec2) -> f32 {
-		simd_a := vec2_to_simd(a)
-		simd_b := vec2_to_simd(b)
-		result := simd.mul(simd_a, simd_b)
-		return simd.reduce_add_ordered(result)
-	}
-
-	vec2_length_sqr_simd :: #force_inline proc "contextless" (a: Vec2) -> f32 {
-		return vec2_dot_simd(a, a)
-	}
-
-	vec2_length_simd :: #force_inline proc "contextless" (a: Vec2) -> f32 {
-		return math.sqrt(vec2_length_sqr_simd(a))
-	}
-
-	vec2_normalize_simd :: #force_inline proc "contextless" (a: Vec2) -> Vec2 {
-		len := vec2_length_simd(a)
-		if len > 0 {
-			inv_len := 1.0 / len
-			return vec2_mul_simd(a, inv_len)
-		}
-		return a
-	}
-
-	// SIMD-optimized version of eval_point_on_bezier3
 	eval_point_on_bezier3 :: #force_inline proc "contextless" (p0, p1, p2: Vec2, alpha: f32) -> Vec2
 	{
 		simd_p0 := vec2_to_simd(p0)
