@@ -12,6 +12,16 @@ import "core:math"
 	ceil_f64   :: math.ceil_f64
 	ceil_f64le :: math.ceil_f64le
 	ceil_f64be :: math.ceil_f64be
+
+	floor_f16   :: math.floor_f16
+	floor_f16le :: math.floor_f16le
+	floor_f16be :: math.floor_f16be
+	floor_f32   :: math.floor_f32
+	floor_f32le :: math.floor_f32le
+	floor_f32be :: math.floor_f32be
+	floor_f64   :: math.floor_f64
+	floor_f64le :: math.floor_f64le
+	floor_f64be :: math.floor_f64be
 import "core:math/linalg"
 import "core:mem"
 	Kilobyte  :: mem.Kilobyte
@@ -23,10 +33,6 @@ import "core:mem"
 	Arena           :: mem.Arena
 	arena_allocator :: mem.arena_allocator
 	arena_init      :: mem.arena_init
-// import "codebase:grime"
-// 	log                :: grime.log
-// 	logf               :: grime.logf
-// 	profile            :: grime.profile
 
 //#region("Proc overload mappings")
 
@@ -52,6 +58,20 @@ ceil :: proc {
 
 clear :: proc {
 	clear_dynamic_array,
+}
+
+floor :: proc {
+	math.floor_f16,
+	math.floor_f16le,
+	math.floor_f16be,
+	math.floor_f32,
+	math.floor_f32le,
+	math.floor_f32be,
+	math.floor_f64,
+	math.floor_f64le,
+	math.floor_f64be,
+
+	floor_vec2,
 }
 
 make :: proc {

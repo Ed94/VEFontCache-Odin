@@ -16,7 +16,8 @@ vec2_64_from_vec2 :: #force_inline proc "contextless" ( v2     : Vec2  ) -> Vec2
 vec2_from_vec2i   :: #force_inline proc "contextless" ( v2i    : Vec2i ) -> Vec2    { return { f32(v2i.x), f32(v2i.y) }}
 vec2i_from_vec2   :: #force_inline proc "contextless" ( v2     : Vec2  ) -> Vec2i   { return { i32(v2.x), i32(v2.y) }}
 
-@(require_results) ceil_vec2 :: proc "contextless" ( v : Vec2 ) -> Vec2 { return { ceil_f32(v.x), ceil_f32(v.y) } }
+@(require_results) ceil_vec2  :: proc "contextless" ( v : Vec2 ) -> Vec2 { return { ceil_f32(v.x), ceil_f32(v.y) } }
+@(require_results) floor_vec2 :: proc "contextless" ( v : Vec2 ) -> Vec2 { return { floor_f32(v.x), floor_f32(v.y) } }
 
 // This buffer is used below excluisvely to prevent any allocator recusion when verbose logging from allocators.
 // This means a single line is limited to 4k buffer
