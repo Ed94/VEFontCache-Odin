@@ -341,7 +341,7 @@ frame :: proc "c" ()
 		using demo_ctx
 
 		// Smooth scrolling implementation
-		@static demo_autoscroll   := true
+		@static demo_autoscroll   := false
 		@static current_scroll    : f32 =  0.0
 		@static mouse_down_pos    : f32 = -1.0
 		@static mouse_down_scroll : f32 = -1.0
@@ -354,8 +354,8 @@ frame :: proc "c" ()
 		mouse_down_pos   = -1.0
 		substep_dt      := frame_duration / 4.0
 		for _ in 0 ..< 4 {
-			scroll_velocity *= math.exp(-3.5 * substep_dt)
-			current_scroll += scroll_velocity * substep_dt * 18.0
+			scroll_velocity *= math.exp(-3.0 * substep_dt)
+			current_scroll += scroll_velocity * substep_dt * 10.0
 		}
 		if demo_autoscroll {
 			current_scroll += 0.05 * frame_duration
@@ -363,7 +363,7 @@ frame :: proc "c" ()
 		mouse_scroll = {}  // Reset mouse scroll
 
 		// Clamp scroll value if needed
-		current_scroll = clamp(current_scroll, 0, 5.2)  // Adjust max value as needed
+		current_scroll = clamp(current_scroll, 0, 6.1)  // Adjust max value as needed
 
 		// Frametime display
 		frametime_text := fmt.tprintf("Frametime %v", frame_duration)
@@ -484,81 +484,9 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			draw_text_string_pos_norm("אז הגיע הלילה של כוכב השביט הראשון. This one needs HarfBuzz to work!", font_demo_hebrew, 22, {0.3, current_scroll - (section_start + 1.0)}, COLOR_WHITE)
 		}
 
-		// Raincode Demo
-		section_start = 2.1
-		section_end   = section_start + 2.23
-		if current_scroll > section_start && current_scroll < section_end
-		{
-			GRID_W        :: 80
-			GRID_H        :: 50
-			NUM_RAINDROPS :: GRID_W / 3
-
-			@static init_grid   := false
-			@static grid        : [ GRID_W * GRID_H ]int
-			@static grid_age    : [ GRID_W * GRID_H ]f32
-			@static raindropsX  : [ NUM_RAINDROPS   ]int
-			@static raindropsY  : [ NUM_RAINDROPS   ]int
-			@static code_colour : RGBA8
-
-			@static codes := [?]string {
-				" ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Z", "T", "H", "E", "｜", "¦", "日",
-				"ﾊ", "ﾐ", "ﾋ", "ｰ", "ｳ", "ｼ", "ﾅ", "ﾓ", "ﾆ", "ｻ", "ﾜ", "ﾂ", "ｵ", "ﾘ", "ｱ", "ﾎ", "ﾃ", "ﾏ",
-				"ｹ", "ﾒ", "ｴ", "ｶ", "ｷ", "ﾑ", "ﾕ", "ﾗ", "ｾ", "ﾈ", "ｽ", "ﾂ", "ﾀ", "ﾇ", "ﾍ", ":", "・", ".",
-				"\"", "=", "*", "+", "-", "<", ">", "ç", "ﾘ", "ｸ", "ｺ", "ﾁ", "ﾔ", "ﾙ", "ﾝ", "C", "O", "D"
-			}
-
-			if !init_grid {
-				for idx in 0..<NUM_RAINDROPS do raindropsY[idx] = GRID_H
-				init_grid = true
-			}
-
-			@static fixed_timestep_passed : f32 = 0.0
-			fixed_timestep        : f32 = (1.0 / 60.0)
-			fixed_timestep_passed += frame_duration
-			for fixed_timestep_passed > fixed_timestep
-			{
-				for idx in 0 ..< (GRID_W * GRID_H) do grid_age[idx] += frame_duration
-				for idx in 0 ..< NUM_RAINDROPS {
-					raindropsY[idx] += 1
-					if raindropsY[idx] < 0 do continue
-					if raindropsY[idx] >= GRID_H {
-						raindropsY[idx] = -5 - rand.int_max(40)
-						raindropsX[idx] = rand.int_max(GRID_W)
-						continue
-					}
-					grid    [ raindropsY[idx] * GRID_W + raindropsX[idx] ] = rand.int_max(len(codes))
-					grid_age[ raindropsY[idx] * GRID_W + raindropsX[idx] ] = 0.0
-				}
-				fixed_timestep_passed = 0
-			}
-
-			// Draw grid
-			draw_text_string_pos_norm("Raincode demo", font_title, 92, { 0.2, current_scroll - (section_start + 0.2) }, COLOR_WHITE)
-			for y in 0 ..< GRID_H do for x in 0 ..< GRID_W
-			{
-				pos_x := 0.2 + f32(x) * 0.007
-				pos_y := current_scroll - (section_start + 0.24 + f32(y) * 0.018)
-				age   := grid_age[y * GRID_W + x]
-
-				code_colour = {255, 255, 255, 255}
-				if age > 0.0 {
-					code_colour = {
-						51 + 30,
-						77 + 30,
-						102 + 30,
-						u8(clamp((1.0 - age) * 255, 0, 255) ) }
-					if code_colour.a == 0 do continue
-				}
-
-				draw_text_string_pos_norm(codes[grid[y * GRID_W + x]], font_demo_raincode, 20, {pos_x, pos_y}, code_colour)
-			}
-
-			ve.set_colour(&ve_ctx, {1.0, 1.0, 1.0, 1.0})
-		}
-
 		// Zoom Test
-		section_start = 3.3
-		section_end = 4.8
+		section_start = 2.3
+		section_end   = section_start + 2.23
 		if current_scroll > section_start && current_scroll < section_end
 		{
 			zoom_text := `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
@@ -607,9 +535,81 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			draw_text_zoomed_norm(zoom_text, font_firacode, zoomed_text_base_size, zoomed_text_pos, current_zoom, COLOR_WHITE)
 		}
 
+		// Raincode Demo
+		section_start = 3.6
+		section_end   = 5.4
+		if current_scroll > section_start && current_scroll < section_end
+		{
+			GRID_W        :: 80
+			GRID_H        :: 50
+			NUM_RAINDROPS :: GRID_W / 3
+
+			@static init_grid   := false
+			@static grid        : [ GRID_W * GRID_H ]int
+			@static grid_age    : [ GRID_W * GRID_H ]f32
+			@static raindropsX  : [ NUM_RAINDROPS   ]int
+			@static raindropsY  : [ NUM_RAINDROPS   ]int
+			@static code_colour : RGBA8
+
+			@static codes := [?]string {
+				" ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Z", "T", "H", "E", "｜", "¦", "日",
+				"ﾊ", "ﾐ", "ﾋ", "ｰ", "ｳ", "ｼ", "ﾅ", "ﾓ", "ﾆ", "ｻ", "ﾜ", "ﾂ", "ｵ", "ﾘ", "ｱ", "ﾎ", "ﾃ", "ﾏ",
+				"ｹ", "ﾒ", "ｴ", "ｶ", "ｷ", "ﾑ", "ﾕ", "ﾗ", "ｾ", "ﾈ", "ｽ", "ﾂ", "ﾀ", "ﾇ", "ﾍ", ":", "・", ".",
+				"\"", "=", "*", "+", "-", "<", ">", "ç", "ﾘ", "ｸ", "ｺ", "ﾁ", "ﾔ", "ﾙ", "ﾝ", "C", "O", "D"
+			}
+
+			if !init_grid {
+				for idx in 0..<NUM_RAINDROPS do raindropsY[idx] = GRID_H
+				init_grid = true
+			}
+
+			@static fixed_timestep_passed : f32 = 0.0
+			fixed_timestep        : f32 = (1.0 / 30.0)
+			fixed_timestep_passed += frame_duration
+			for fixed_timestep_passed > fixed_timestep
+			{
+				for idx in 0 ..< (GRID_W * GRID_H) do grid_age[idx] += frame_duration
+				for idx in 0 ..< NUM_RAINDROPS {
+					raindropsY[idx] += 1
+					if raindropsY[idx] < 0 do continue
+					if raindropsY[idx] >= GRID_H {
+						raindropsY[idx] = -5 - rand.int_max(40)
+						raindropsX[idx] = rand.int_max(GRID_W)
+						continue
+					}
+					grid    [ raindropsY[idx] * GRID_W + raindropsX[idx] ] = rand.int_max(len(codes))
+					grid_age[ raindropsY[idx] * GRID_W + raindropsX[idx] ] = 0.0
+				}
+				fixed_timestep_passed = 0
+			}
+
+			// Draw grid
+			draw_text_string_pos_norm("Raincode demo", font_title, 92, { 0.2, current_scroll - (section_start + 0.2) }, COLOR_WHITE)
+			for y in 0 ..< GRID_H do for x in 0 ..< GRID_W
+			{
+				pos_x := 0.2 + f32(x) * 0.007
+				pos_y := current_scroll - (section_start + 0.24 + f32(y) * 0.018)
+				age   := grid_age[y * GRID_W + x]
+
+				code_colour = {255, 255, 255, 255}
+				if age > 0.0 {
+					code_colour = {
+						51 + 30,
+						77 + 30,
+						102 + 30,
+						u8(clamp((1.0 - age) * 255, 0, 255) ) }
+					if code_colour.a == 0 do continue
+				}
+
+				draw_text_string_pos_norm(codes[grid[y * GRID_W + x]], font_demo_raincode, 20, {pos_x, pos_y}, code_colour)
+			}
+
+			ve.set_colour(&ve_ctx, {1.0, 1.0, 1.0, 1.0})
+		}
+
 		// Cache pressure test
-		section_start = 4.3
-		section_end   = 5.3
+		section_start = 5.3
+		section_end   = 6.2
 		if current_scroll > section_start && current_scroll < section_end && true
 		{
 			GRID_W  :: 30
@@ -627,7 +627,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			@static fixed_timestep_passed : f32 = 0.0
 
 			fixed_timestep_passed += frame_duration
-			fixed_timestep        := f32(1.0 / 60.0)
+			fixed_timestep        := f32(1.0 / 30.0)
 			for fixed_timestep_passed > fixed_timestep
 			{
 				rotate_current = (rotate_current + 1) % 4
@@ -705,7 +705,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 
 cleanup :: proc "c" () {
 	context = runtime.default_context()
-	ve.shutdown( & demo_ctx.ve_ctx )
+	// ve.shutdown( & demo_ctx.ve_ctx )
 	gfx.shutdown()
 }
 
