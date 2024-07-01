@@ -476,7 +476,7 @@ draw_text_batch :: proc(ctx: ^Context, entry: ^Entry, shaped: ^ShapedText,
 		bounds_size := Vec2 { vbounds_1.x - vbounds_0.x, vbounds_1.y - vbounds_0.y }
 
 		shaped_position := shaped.positions[index]
-		glyph_translate := position + shaped_position * scale
+		glyph_translate := position + (shaped_position) * scale
 
 		if region_kind == .E
 		{

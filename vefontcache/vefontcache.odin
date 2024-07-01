@@ -45,6 +45,7 @@ Context :: struct {
 	snap_width  : f32,
 	snap_height : f32,
 
+
 	colour     : Colour,
 	cursor_pos : Vec2,
 
@@ -61,6 +62,7 @@ Context :: struct {
 
 	default_curve_quality : i32,
 	text_shape_adv        : b32,
+	snap_shape_pos        : b32,
 
 	debug_print         : b32,
 	debug_print_verbose : b32,
@@ -135,6 +137,8 @@ startup :: proc( ctx : ^Context, parser_kind : ParserKind,
 	atlas_params                := InitAtlasParams_Default,
 	glyph_draw_params           := InitGlyphDrawParams_Default,
 	shape_cache_params          := InitShapeCacheParams_Default,
+	use_advanced_text_shaper    : b32 = true,
+	snap_shape_position         : b32 = true,
 	default_curve_quality       : u32 = 3,
 	entires_reserve             : u32 = 512,
 	temp_path_reserve           : u32 = 1024,
@@ -146,6 +150,8 @@ startup :: proc( ctx : ^Context, parser_kind : ParserKind,
 
 	ctx.backing       = allocator
 	context.allocator = ctx.backing
+
+	snap_shape_pos = snap_shape_position
 
 	if default_curve_quality == 0 {
 		default_curve_quality = 3

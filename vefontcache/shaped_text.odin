@@ -106,7 +106,7 @@ shape_text_uncached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, 
 				max_line_width = max(max_line_width, position.x)
 				position.x     = 0.0
 				position.y    -= line_height
-				position.y     = ceil(position.y)
+				position.y     = position.y
 				prev_codepoint = rune(0)
 				continue
 			}
@@ -117,19 +117,22 @@ shape_text_uncached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, 
 			append( & output.glyphs, parser_find_glyph_index( & entry.parser_info, codepoint ))
 			advance, _ := parser_get_codepoint_horizontal_metrics( & entry.parser_info, codepoint )
 
+			if ctx.snap_shape_pos do position.x = ceil(position.x)
+
 			append( & output.positions, Vec2 {
-				ceil(position.x),
+				position.x,
 				position.y
 			})
 
-			position.x    += ceil(f32(advance) * entry.size_scale)
+			position.x += f32(advance) * entry.size_scale
+			if ctx.snap_shape_pos do position.x = ceil(position.x)
 			prev_codepoint = codepoint
 		}
 
 		output.end_cursor_pos = position
 		max_line_width        = max(max_line_width, position.x)
 
-		output.size.x = ceil(max_line_width)
+		output.size.x = max_line_width
 		output.size.y = f32(line_count) * line_height
 	}
 }
