@@ -39,11 +39,11 @@ You'll find this used immediately in draw_text it acts as a way to snap the posi
 
 If snapping is not desired, set the snap_width and height before calling draw_text to 0.
 
-## get_cursor_pos
+### get_cursor_pos
 
 Will provide the current cursor_pos for the resulting text drawn.
 
-## set_color
+### set_color
 
 Sets the color to utilize on `DrawCall`s for FrameBuffer.Target or .Target_Uncached passes
 
@@ -72,6 +72,6 @@ Will update the draw list layer with the latest offset based on the current leng
 
 Provides a Vec2 the width and height occupied by the provided text string. The y is measured to be the the largest glyph box bounds height of the text. The width is derived from the `end_cursor_pos` field from a `ShapedText` entry.
 
-## get_font_vertical_metrics
+### get_font_vertical_metrics
 
 A wrapper for `parser_get_font_vertical_metrics`. Will provide the ascent, descent, and line_gap for a font entry.
