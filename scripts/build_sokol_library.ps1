@@ -1,4 +1,4 @@
-$devshell = Join-Path $PSScriptRoot 'devshell.ps1'
+$devshell = Join-Path $PSScriptRoot 'helpers/devshell.ps1'
 & $devshell -arch amd64
 
 $path_root       = '../..'

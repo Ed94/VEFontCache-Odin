@@ -79,8 +79,8 @@ function build-SokolBackendDemo
 {
 	write-host 'Building VEFontCache: Sokol Backend Demo'
 
-	$compile_shaders = join-path $path_scripts "compile_sokol_shaders.ps1"
-	& $compile_shaders
+	# $compile_shaders = join-path $path_scripts "compile_sokol_shaders.ps1"
+	# & $compile_shaders
 
 	$executable = join-path $path_build 'sokol_demo.exe'
 	$pdb        = join-path $path_build 'sokol_demo.pdb'
