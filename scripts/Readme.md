@@ -6,7 +6,9 @@ All scripts provided for utilizing the example demos or backends.
 
 ### build_sokol_demo.ps1
 
-Builds example's sokol_demo.odin. Will gather necessary dependencies first.
+Builds example's sokol_demo.odin. Will gather necessary dependencies first.  
+Its assumed the user has Odin installed and exposed to the OS enviornment's PATH.  
+(Change odin_compiler_def.ps1 if not the case)
 
 ### build_sokol_library.ps1
 
