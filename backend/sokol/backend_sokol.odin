@@ -130,7 +130,6 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 			},
 			cull_mode    = .NONE,
 			sample_count = 1,
-			// label =
 		})
 		assert( gfx.query_pipeline_state(glyph_pipeline) < Resource_State.FAILED, "Failed to make glyph_pipeline" )
 	}
@@ -147,8 +146,6 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 			usage         = .IMMUTABLE,
 			pixel_format  = .R8,
 			sample_count  = 1,
-			// TODO(Ed): Setup labels for debug tracing/logging
-			// label         = 
 		})
 		assert( gfx.query_image_state(glyph_rt_color) < Resource_State.FAILED, "Failed to make glyph_pipeline" )
 
@@ -318,7 +315,6 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 
 		color_attach := Attachment_Desc {
 			image     = atlas_rt_color,
-			// mip_level = 1,
 		}
 
 		atlas_attachments := gfx.make_attachments({
@@ -354,7 +350,6 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 		atlas_pass = gfx.Pass {
 			action      = atlas_action,
 			attachments = atlas_attachments,
-			// label =
 		}
 	}
 
@@ -446,7 +441,6 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 
 		screen_pass = gfx.Pass {
 			action = screen_action,
-			// label =
 		}
 	}
 }
@@ -456,9 +450,9 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 	// profile("VEFontCache: render text layer")
 	using ctx
 
-	Bindings    :: gfx.Bindings
-	Range       :: gfx.Range
-	ShaderStage :: gfx.Shader_Stage
+	Bindings     :: gfx.Bindings
+	Range        :: gfx.Range
+	Shader_Stage :: gfx.Shader_Stage
 
 	vbuf_layer_slice, ibuf_layer_slice, calls_layer_slice := ve.get_draw_list_layer( ve_ctx )
 
@@ -542,7 +536,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 				gfx.apply_pipeline( atlas_pipeline )
 
 				fs_uniform := Blit_Atlas_Fs_Params { region = cast(i32) draw_call.region }
-				gfx.apply_uniforms( ShaderStage.FS, SLOT_blit_atlas_fs_params, Range { & fs_uniform, size_of(Blit_Atlas_Fs_Params) })
+				gfx.apply_uniforms( Shader_Stage.FS, SLOT_blit_atlas_fs_params, Range { & fs_uniform, size_of(Blit_Atlas_Fs_Params) })
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {
@@ -589,7 +583,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					src_rt      = glyph_rt_color
 					src_sampler = glyph_rt_sampler
 				}
-				gfx.apply_uniforms( ShaderStage.FS, SLOT_draw_text_fs_params, Range { & fs_target_uniform, size_of(Draw_Text_Fs_Params) })
+				gfx.apply_uniforms( Shader_Stage.FS, SLOT_draw_text_fs_params, Range { & fs_target_uniform, size_of(Draw_Text_Fs_Params) })
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {

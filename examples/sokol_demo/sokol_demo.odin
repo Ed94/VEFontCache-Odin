@@ -219,7 +219,7 @@ init :: proc "c" ()
 	}
 
 	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator )
-	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 128 * 1024, index_cap = 64 * 1024 )
+	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 1024 * 1024, index_cap = 1024 * 1024 )
 
 	error : mem.Allocator_Error
 	demo_ctx.font_ids, error = make( map[string]FontDef, 256 )
@@ -240,9 +240,21 @@ frame :: proc "c" ()
 	{
 		ve.configure_snap( & demo_ctx.ve_ctx, u32(Screen_Size.x), u32(Screen_Size.y) )
 
-		draw_text_string_pos_extent( "Hello VEFontCache!", demo_ctx.font_firacode, 24, {0, 0}, Color_White )
+		ve.set_colour( & demo_ctx.ve_ctx, ve.Colour { 1.0, 1.0, 1.0, 1.0 })
 
-		ve_sokol.render_text_layer( Screen_Size, & demo_ctx.ve_ctx, demo_ctx.render_ctx )
+		ve_id, size := font_provider_resolve_draw_id( demo_ctx.font_firacode, 100 )
+		ve.draw_text(
+			& demo_ctx.ve_ctx,
+			ve_id,
+			"Hello VE FONT CACHE???",
+			Vec2{0.1, 0.1},
+			Vec2{1 / Screen_Size.x, 1 / Screen_Size.y }
+		)
+
+		draw_text_string_pos_extent( "Hello VEFontCache!", demo_ctx.font_firacode, 48, {0, 0}, Color_White )
+		draw_text_string_pos_norm( "Hello VEFontCache!", demo_ctx.font_firacode, 24, {0, 0}, Color_White )
+
+		ve_sokol.render_text_layer( Screen_Size * 0.5, & demo_ctx.ve_ctx, demo_ctx.render_ctx )
 	}
 	gfx.commit()
 	ve.flush_draw_list( & demo_ctx.ve_ctx )
