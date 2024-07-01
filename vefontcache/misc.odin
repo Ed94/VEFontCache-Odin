@@ -1,4 +1,4 @@
-package VEFontCache
+package vefontcache
 
 import "base:runtime"
 import "core:simd"

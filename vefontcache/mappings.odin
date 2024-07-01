@@ -1,4 +1,4 @@
-package VEFontCache
+package vefontcache
 
 import "core:hash"
 	fnv64a :: hash.fnv64a

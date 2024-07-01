@@ -3,7 +3,7 @@ A port of (https://github.com/hypernewbie/VEFontCache) to Odin.
 
 See: https://github.com/Ed94/VEFontCache-Odin
 */
-package VEFontCache
+package vefontcache
 
 import "base:runtime"
 

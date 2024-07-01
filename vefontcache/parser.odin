@@ -1,4 +1,4 @@
-package VEFontCache
+package vefontcache
 
 /*
 Notes:

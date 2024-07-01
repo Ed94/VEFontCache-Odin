@@ -1,4 +1,4 @@
-package VEFontCache
+package vefontcache
 
 AtlasRegionKind :: enum u8 {
 	None   = 0x00,

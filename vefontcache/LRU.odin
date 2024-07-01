@@ -1,4 +1,4 @@
-package VEFontCache
+package vefontcache
 
 /*
 The choice was made to keep the LRU cache implementation as close to the original as possible.

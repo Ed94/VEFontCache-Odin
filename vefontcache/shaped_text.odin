@@ -1,4 +1,4 @@
-package VEFontCache
+package vefontcache
 
 ShapedText :: struct {
 	glyphs         : [dynamic]Glyph,

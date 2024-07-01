@@ -1,4 +1,4 @@
-package VEFontCache
+package vefontcache
 /*
 Note(Ed): The only reason I didn't directly use harfbuzz is because hamza exists and seems to be under active development as an alternative.
 */
