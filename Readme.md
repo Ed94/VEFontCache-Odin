@@ -6,20 +6,24 @@ Its original purpose was for use in game engines, however its rendeirng quality 
 
 See: [docs/Readme.md](docs/Readme.md) for the library's interface
 
+## Building
+
+See [scripts/Readme.md](scripts/Readme.md) for building examples or utilizing the provided backends.
+
+Currently the scripts provided & the library itself where developed & tested on Windows. The library itself should not be limited to that OS platform however, just don't have the configuration setup for alternative platforms (yet).
+
+The library depends on freetype, harfbuzz, & stb_truetype currently to build.  
+Note: freetype and harfbuzz could technically be gutted if the user removes their definitions, however they have not been made into a conditional compilation option (yet).
+
 ## Changes from orignal
 
 * Font Parser & Glyph shaper are abstracted to their own interface
-* Font face parser info encapsulated in parser_info struct.
 * ve_fontcache_loadfile not ported (ust use core:os or os2, then call load_font)
 * Macro defines have been coverted (mostly) to runtime parameters
 * Support for hot_reloading
 * Curve quality step granularity for glyph rendering can be set on a per font basis.
 
 ## TODOs
-
-### Thirdparty support:
-
-* Setup freetype, harfbuzz, depedency management within the library
 
 ### Documentation:
 
@@ -29,13 +33,13 @@ See: [docs/Readme.md](docs/Readme.md) for the library's interface
 ### Content:
 
 * Port over the original demo utilizing sokol libraries instead
-* Provide a sokol_gfx backend package
-* Provide alternative build scripts
 
 ### Additional Features:
 
 * Support for freetype (WIP, Untested)
 * Support for harfbuzz (WIP, Untested)
+* Add ability to conditionally compile dependencies (so that the user may not need to resolve those packages). 
+  * Related to usage of //+build tags?
 * Ability to set a draw transform, viewport and projection
   * By default the library's position is in unsigned normalized render space
   * Could implement a similar design to sokol_gp's interface
