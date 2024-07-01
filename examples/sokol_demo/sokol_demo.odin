@@ -7,7 +7,7 @@ import "core:fmt"
 import "core:mem"
 import "core:os"
 
-import ve       "../../VEFontCache"
+import ve       "../../vefontcache"
 import ve_sokol "backend:sokol"
 import app      "thirdparty:sokol/app"
 import gfx      "thirdparty:sokol/gfx"
