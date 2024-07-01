@@ -1,6 +1,6 @@
 package ve_sokol
 
-import ve   "../../VEFontCache"
+import ve   "../../vefontcache"
 import gfx  "thirdparty:sokol/gfx"
 import glue "thirdparty:sokol/glue"
 
