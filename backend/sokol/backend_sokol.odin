@@ -31,7 +31,7 @@ Context :: struct {
 	screen_pass : gfx.Pass,
 }
 
-setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ve.Context, vert_cap, index_cap : int )
+setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index_cap : u64 )
 {
 	using ctx
 	Attachment_Desc            :: gfx.Attachment_Desc
@@ -92,10 +92,10 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ve.Context, vert_cap, index_
 			}
 			attrs[ATTR_render_glyph_vs_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
-				offset       = size_of(Vec2),
+				offset       = size_of(ve.Vec2),
 				buffer_index = 0,
 			}
-			buffers[0] = VertexBufferLayoutState {
+			buffers[0] = Vertex_Buffer_Layout_State {
 				stride    = size_of([4]f32),
 				step_func = Vertex_Step.PER_VERTEX
 			}
@@ -150,7 +150,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ve.Context, vert_cap, index_
 			// TODO(Ed): Setup labels for debug tracing/logging
 			// label         = 
 		})
-		assert( gfx.query_image_state(glyph_rt_color) < ResourceState.FAILED, "Failed to make glyph_pipeline" )
+		assert( gfx.query_image_state(glyph_rt_color) < Resource_State.FAILED, "Failed to make glyph_pipeline" )
 
 		glyph_rt_depth = gfx.make_image( Image_Desc {
 			type          = ._2D,
@@ -172,7 +172,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ve.Context, vert_cap, index_
 			wrap_v         = .CLAMP_TO_EDGE,
 			min_lod        = -1000.0,
 			max_lod        =  1000.0,
-			border_color   = BorderColor.OPAQUE_BLACK,
+			border_color   = Border_Color.OPAQUE_BLACK,
 			compare        = .NEVER,
 			max_anisotropy = 1,
 		})
@@ -221,17 +221,17 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ve.Context, vert_cap, index_
 
 	// atlas_pipeline
 	{
-		vs_layout : VertexLayoutState
+		vs_layout : Vertex_Layout_State
 		{
 			using vs_layout
-			attrs[ATTR_ve_blit_atlas_vs_v_position] = Vertex_Attribute_State {
+			attrs[ATTR_blit_atlas_vs_v_position] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = 0,
 				buffer_index = 0,
 			}
-			attrs[ATTR_ve_blit_atlas_vs_v_texture] = Vertex_Attribute_State {
+			attrs[ATTR_blit_atlas_vs_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
-				offset       = size_of(Vec2),
+				offset       = size_of(ve.Vec2),
 				buffer_index = 0,
 			}
 			buffers[0] = Vertex_Buffer_Layout_State {
@@ -363,14 +363,14 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ve.Context, vert_cap, index_
 		vs_layout : Vertex_Layout_State
 		{
 			using vs_layout
-			attrs[ATTR_ve_draw_text_vs_v_position] = Vertex_Attribute_State {
+			attrs[ATTR_draw_text_vs_v_position] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = 0,
 				buffer_index = 0,
 			}
-			attrs[ATTR_ve_draw_text_vs_v_texture] = Vertex_Attribute_State {
+			attrs[ATTR_draw_text_vs_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
-				offset       = size_of(Vec2),
+				offset       = size_of(ve.Vec2),
 				buffer_index = 0,
 			}
 			buffers[0] = Vertex_Buffer_Layout_State {
@@ -386,10 +386,10 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ve.Context, vert_cap, index_
 				enabled = true,
 				src_factor_rgb   = .SRC_ALPHA,
 				dst_factor_rgb   = .ONE_MINUS_SRC_ALPHA,
-				op_rgb           = BlendOp.ADD,
+				op_rgb           = Blend_Op.ADD,
 				src_factor_alpha = .SRC_ALPHA,
 				dst_factor_alpha = .ONE_MINUS_SRC_ALPHA,
-				op_alpha         = BlendOp.ADD,
+				op_alpha         = Blend_Op.ADD,
 			},
 		}
 
@@ -409,7 +409,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ve.Context, vert_cap, index_
 			},
 			cull_mode = .NONE,
 		})
-		verify( gfx.query_pipeline_state(screen_pipeline) < Resource_State.FAILED, "Failed to make screen_pipeline" )
+		assert( gfx.query_pipeline_state(screen_pipeline) < Resource_State.FAILED, "Failed to make screen_pipeline" )
 	}
 
 	// screen_pass
@@ -451,7 +451,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ve.Context, vert_cap, index_
 	}
 }
 
-render_text_layer :: proc( screen_extent : Vec2, ve_ctx : ^ve.Context, ctx : Context )
+render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : Context )
 {
 	// profile("VEFontCache: render text layer")
 	using ctx
@@ -568,7 +568,7 @@ render_text_layer :: proc( screen_extent : Vec2, ve_ctx : ^ve.Context, ctx : Con
 				// profile("VEFontCache: draw call: target")
 
 				pass := screen_pass
-				pass.swapchain = sokol_glue.swapchain()
+				pass.swapchain = glue.swapchain()
 				gfx.begin_pass( pass )
 
 				gfx.apply_viewport( 0, 0, screen_width, screen_height, origin_top_left = true )

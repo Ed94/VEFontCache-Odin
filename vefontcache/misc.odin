@@ -4,7 +4,7 @@ import "base:runtime"
 import "core:simd"
 import "core:math"
 
-// import core_log "core:log"
+import core_log "core:log"
 
 Colour  :: [4]f32
 Vec2    :: [2]f32

@@ -4,8 +4,10 @@ import "base:runtime"
 import "core:path/filepath"
 	file_name_from_path :: filepath.short_stem
 import "core:fmt"
+import "core:math"
 import "core:mem"
 import "core:os"
+import "core:strings"
 
 import ve       "../../vefontcache"
 import ve_sokol "backend:sokol"
@@ -39,13 +41,16 @@ Font_Provider_Use_Freetype :: false
 Font_Largest_Px_Size       :: 154
 Font_Size_Interval         :: 2
 
-Font_Default      :: FontID { 0, "" }
+Font_Default      :: FontID { "" }
 Font_Default_Size :: 12.0
 
 Font_Load_Use_Default_Size :: -1
 Font_Load_Gen_ID           :: ""
 
-Screen_Size : [2]u32 : { 1600, 900 }
+// Working directory assumed to be the build folder
+Path_Fonts :: "../fonts/"
+
+Screen_Size : [2]f32 : { 1600, 900 }
 
 FontID  :: struct {
 	label : string,
@@ -74,22 +79,24 @@ font_load :: proc(path_file : string,
 {
 	msg := fmt.println("Loading font: %v", path_file)
 
-	font_data, read_succeded : = os.read_entire_file( path_file, persistent_allocator() )
-	assert( b32(read_succeded), fmt.println("Failed to read font file for: %v", path_file) )
+	font_data, read_succeded : = os.read_entire_file( path_file )
+	assert( bool(read_succeded), fmt.tprintf("Failed to read font file for: %v", path_file) )
 	font_data_size := cast(i32) len(font_data)
+font_firacode : FontID
+
 
 	desired_id := desired_id
 	if len(desired_id) == 0 {
-		fmt.println("desired_key not provided, using file name. Give it a proper name!", LogLevel.Warning)
+		fmt.println("desired_key not provided, using file name. Give it a proper name!")
 		desired_id = file_name_from_path(path_file)
 	}
 
 	demo_ctx.font_ids[desired_id] = FontDef {}
-	def = demo_ctx.font_ids[desired_id]
+	def := & demo_ctx.font_ids[desired_id]
 
 	default_size := default_size
 	if default_size < 0 {
-		default_size = Font_Default_Point_Size
+		default_size = Font_Default_Size
 	}
 
 	def.path_file    = path_file
@@ -152,21 +159,33 @@ draw_text_string_pos_norm :: proc( content : string, id : FontID, size : f32, po
 // Draw text using a string and extent-based screen coordinates
 draw_text_string_pos_extent :: proc( content : string, id : FontID, size : f32, pos : Vec2, color := Color_White )
 {
-	render_pos     := pos + ve.vec2(Screen_Size) * 0.5
+	render_pos     := pos + Screen_Size * 0.5
 	normalized_pos := render_pos * (1.0 / Screen_Size)
 	draw_text_string_pos_norm( content, id, size, normalized_pos, color )
 }
 
 sokol_app_alloc :: proc "c" ( size : u64, user_data : rawptr ) -> rawptr {
-	context = runtime.default_allocator()
-	block, error := alloc( int(size), allocator = context.allocator )
-	assert(error == AllocatorError.None, "sokol_app allocation failed")
+	context = runtime.default_context()
+	block, error := mem.alloc( int(size), allocator = context.allocator )
+	assert(error == .None, "sokol_app allocation failed")
 	return block
 }
 
 sokol_app_free :: proc "c" ( data : rawptr, user_data : rawptr ) {
-	context = runtime.default_allocator()
+	context = runtime.default_context()
 	free(data, allocator = context.allocator)
+}
+
+sokol_gfx_alloc :: proc "c" ( size : u64, user_data : rawptr ) -> rawptr {
+	context = runtime.default_context()
+	block, error := mem.alloc( int(size), allocator = context.allocator )
+	assert(error == .None, "sokol_gfx allocation failed")
+	return block
+}
+
+sokol_gfx_free :: proc "c" ( data : rawptr, user_data : rawptr ) {
+	context = runtime.default_context()
+	free(data, allocator = context.allocator )
 }
 
 init :: proc "c" ()
@@ -179,8 +198,8 @@ init :: proc "c" ()
 		shader_pool_size      = 32,
 		pipeline_pool_size    = 64,
 		attachments_pool_size = 16,
-		uniform_buffer_size   = 4 * Megabyte,
-		max_commit_listeners  = Kilo,
+		uniform_buffer_size   = 4 * mem.Megabyte,
+		max_commit_listeners  = 1024,
 		allocator             = { sokol_gfx_alloc, sokol_gfx_free, nil },
 		logger                = { func = slog.func },
 		environment           = glue.environment(),
@@ -199,48 +218,53 @@ init :: proc "c" ()
 		case .DUMMY: fmt.println(">> using dummy backend")
 	}
 
-	ve.startup( & ve_ctx, .STB_TrueType, allocator = persistent_slab_allocator() )
-	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, demo_ctx.ve_ctx )
+	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator )
+	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 128 * 1024, index_cap = 64 * 1024 )
 
+	error : mem.Allocator_Error
 	demo_ctx.font_ids, error = make( map[string]FontDef, 256 )
 	assert( error == .None, "Failed to allocate demo_ctx.font_ids" )
+
+	path_firacode          := strings.concatenate( { Path_Fonts, "FiraCode-Regular.ttf" } )
+	demo_ctx.font_firacode  = font_load( path_firacode, 16.0, "FiraCode" )
 }
 
 frame :: proc "c" ()
 {
 	context = runtime.default_context()
 
-	pass_action           : sg.Pass_Action;
-	pass_action.colors[0] = { load_action = .CLEAR, clear_value = { 0.1, 0.1, 0.1, 1.0 } }
+	pass_action : gfx.Pass_Action;
+	pass_action.colors[0] = { load_action = .CLEAR, clear_value = { 0.18 * 0.18, 0.204 * 0.204, 0.251 * 0.251, 1.0 } }
 	gfx.begin_pass({ action = pass_action, swapchain = glue.swapchain() })
 	gfx.end_pass()
 	{
-		ve.configure_snap( ve_ctx, Screen_Size.x, Screen_Size.y )
+		ve.configure_snap( & demo_ctx.ve_ctx, u32(Screen_Size.x), u32(Screen_Size.y) )
 
-		draw_text_string_pos_extent( "Hello VEFontCache!", )
+		draw_text_string_pos_extent( "Hello VEFontCache!", demo_ctx.font_firacode, 24, {0, 0}, Color_White )
 
-		ve_sokol.render_text_layer( Screen_Size, demo_ctx.ve_ctx, demo_ctx.render_ctx )
+		ve_sokol.render_text_layer( Screen_Size, & demo_ctx.ve_ctx, demo_ctx.render_ctx )
 	}
 	gfx.commit()
-	ve.flush_draw_list( & font_provider_ctx.ve_ctx )
+	ve.flush_draw_list( & demo_ctx.ve_ctx )
 }
 
 cleanup :: proc "c" ()
 {
 	context = runtime.default_context()
-	ve.shutdown( demo_ctx.ve_ctx )
+	ve.shutdown( & demo_ctx.ve_ctx )
 	gfx.shutdown()
 }
 
 main :: proc() {
-	sapp.run({
+	app.run({
 		init_cb      = init,
 		frame_cb     = frame,
 		cleanup_cb   = cleanup,
-		width        = Screen_Size.x,
-		height       = Screen_Size.y,
+		width        = i32(Screen_Size.x),
+		height       = i32(Screen_Size.y),
 		window_title = "VEFonCache: Sokol Backend Demo",
 		icon         = { sokol_default = true },
 		logger       = { func = slog.func },
+		allocator    = { sokol_app_alloc, sokol_app_free, nil },
 	})
 }
