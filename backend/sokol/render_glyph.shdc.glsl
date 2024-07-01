@@ -4,7 +4,7 @@
 @header import sg "thirdparty:sokol/gfx"
 
 @vs render_glyph_vs
-@include ./ve_source_shared.shdc.glsl
+@include ./source_shared.shdc.glsl
 @end
 
 @fs render_glyph_fs

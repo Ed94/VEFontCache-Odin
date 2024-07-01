@@ -14,7 +14,7 @@ out vec4 frag_color;
 uniform texture2D blit_atlas_src_texture;
 uniform sampler   blit_atlas_src_sampler;
 
-uniform ve_blit_atlas_fs_params {
+uniform blit_atlas_fs_params {
 	int region;
 };
 
