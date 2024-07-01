@@ -1,11 +1,7 @@
 /*
 A port of (https://github.com/hypernewbie/VEFontCache) to Odin.
 
-Changes:
-- Font Parser & Glyph Shaper are abstracted to their own interface
-- Font Face parser info stored separately from entries
-- ve_fontcache_loadfile not ported (just use odin's core:os or os2), then call load_font
-- Macro defines have been made (mostly) into runtime parameters
+See: https://github.com/Ed94/VEFontCache-Odin
 */
 package VEFontCache
 
@@ -130,7 +126,7 @@ InitShapeCacheParams :: struct {
 
 InitShapeCacheParams_Default :: InitShapeCacheParams {
 	capacity       =  8 * 1024,
-	reserve_length =  1 * 1024,
+	reserve_length =  256,
 }
 
 // ve_fontcache_init

@@ -29,6 +29,7 @@ DrawList :: struct {
 	calls    : [dynamic]DrawCall,
 }
 
+// TODO(Ed): This was a rough translation of the raw values the orignal was using, need to give better names...
 FrameBufferPass :: enum u32 {
 	None            = 0,
 	Glyph           = 1,
@@ -489,8 +490,8 @@ draw_text_batch :: proc(ctx: ^Context, entry: ^Entry, shaped: ^ShapedText,
 			// Draw cacxhed glyph
 			slot_position, _ := atlas_bbox( atlas, region_kind, atlas_index )
 			glyph_scale      := bounds_size * entry.size_scale + glyph_padding
-			bounds_0_scaled  := ceil( vbounds_0 * entry.size_scale )
-			dst              := glyph_translate + (bounds_0_scaled - glyph_padding) * scale
+			bounds_0_scaled  := ceil(vbounds_0 * entry.size_scale)
+			dst              := glyph_translate + bounds_0_scaled * scale
 			dst_scale        := glyph_scale * scale
 			textspace_x_form( & slot_position, & glyph_scale, atlas_size )
 
