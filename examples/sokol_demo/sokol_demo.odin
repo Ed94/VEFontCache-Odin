@@ -50,8 +50,6 @@ Font_Load_Gen_ID           :: ""
 // Working directory assumed to be the build folder
 Path_Fonts :: "../fonts/"
 
-Screen_Size : [2]f32 : { 1600, 900 }
-
 FontID  :: struct {
 	label : string,
 }
@@ -68,6 +66,8 @@ Demo_Context :: struct {
 	font_ids   : map[string]FontDef,
 
 	font_firacode : FontID,
+
+	screen_size : [2]f32
 }
 
 demo_ctx : Demo_Context
@@ -135,7 +135,7 @@ measure_text_size :: proc( text : string, font : FontID, font_size := Font_Use_D
 	return measured
 }
 
-get_font_vertical_metrics :: #force_inline proc ( font : FontID, font_size := Font_Use_Default_Size ) -> ( ascent, descent, line_gap : f32 )
+get_font_vertical_metrics :: #force_inline proc ( font : FontID, font_size := Font_Use_Default_Size ) -> ( ascent, descent, line_gap : f32 ) 
 {
 	ve_id, size := font_provider_resolve_draw_id( font, font_size )
 	ascent, descent, line_gap = ve.get_font_vertical_metrics( & demo_ctx.ve_ctx, ve_id )
@@ -145,8 +145,8 @@ get_font_vertical_metrics :: #force_inline proc ( font : FontID, font_size := Fo
 // Draw text using a string and normalized render coordinates
 draw_text_string_pos_norm :: proc( content : string, id : FontID, size : f32, pos : Vec2, color := Color_White, scale : f32 = 1.0 )
 {
-	width  :: Screen_Size.x
-	height :: Screen_Size.y
+	width  := demo_ctx.screen_size.x
+	height := demo_ctx.screen_size.y
 
 	ve_id, resolved_size := font_provider_resolve_draw_id( id, size )
 	color_norm           := normalize_rgba8(color)
@@ -157,10 +157,9 @@ draw_text_string_pos_norm :: proc( content : string, id : FontID, size : f32, po
 }
 
 // Draw text using a string and extent-based screen coordinates
-draw_text_string_pos_extent :: proc( content : string, id : FontID, size : f32, pos : Vec2, color := Color_White )
-{
-	render_pos     := pos + Screen_Size * 0.5
-	normalized_pos := render_pos * (1.0 / Screen_Size)
+draw_text_string_pos_extent :: proc( content : string, id : FontID, size : f32, pos : Vec2, color := Color_White ) {
+	render_pos     := pos + demo_ctx.screen_size * 0.5
+	normalized_pos := render_pos * (1.0 / demo_ctx.screen_size)
 	draw_text_string_pos_norm( content, id, size, normalized_pos, color )
 }
 
@@ -233,13 +232,14 @@ frame :: proc "c" ()
 {
 	context = runtime.default_context()
 
+	demo_ctx.screen_size = { app.widthf(), app.heightf() }
+
 	pass_action : gfx.Pass_Action;
 	pass_action.colors[0] = { load_action = .CLEAR, clear_value = { 0.18 * 0.18, 0.204 * 0.204, 0.251 * 0.251, 1.0 } }
 	gfx.begin_pass({ action = pass_action, swapchain = glue.swapchain() })
 	gfx.end_pass()
 	{
-		ve.configure_snap( & demo_ctx.ve_ctx, u32(Screen_Size.x), u32(Screen_Size.y) )
-
+		ve.configure_snap( & demo_ctx.ve_ctx, u32(demo_ctx.screen_size.x), u32(demo_ctx.screen_size.y) )
 		ve.set_colour( & demo_ctx.ve_ctx, ve.Colour { 1.0, 1.0, 1.0, 1.0 })
 
 		ve_id, size := font_provider_resolve_draw_id( demo_ctx.font_firacode, 100 )
@@ -248,32 +248,34 @@ frame :: proc "c" ()
 			ve_id,
 			"Hello VE FONT CACHE???",
 			Vec2{0.1, 0.1},
-			Vec2{1 / Screen_Size.x, 1 / Screen_Size.y }
+			Vec2{1 / demo_ctx.screen_size.x, 1 / demo_ctx.screen_size.y }
 		)
 
 		draw_text_string_pos_extent( "Hello VEFontCache!", demo_ctx.font_firacode, 48, {0, 0}, Color_White )
 		draw_text_string_pos_norm( "Hello VEFontCache!", demo_ctx.font_firacode, 24, {0, 0}, Color_White )
 
-		ve_sokol.render_text_layer( Screen_Size * 0.5, & demo_ctx.ve_ctx, demo_ctx.render_ctx )
+		ve_sokol.render_text_layer( demo_ctx.screen_size * 0.5, & demo_ctx.ve_ctx, demo_ctx.render_ctx )
 	}
 	gfx.commit()
 	ve.flush_draw_list( & demo_ctx.ve_ctx )
 }
 
-cleanup :: proc "c" ()
-{
+cleanup :: proc "c" () {
 	context = runtime.default_context()
 	ve.shutdown( & demo_ctx.ve_ctx )
 	gfx.shutdown()
 }
 
-main :: proc() {
+main :: proc()
+{
+	demo_ctx.screen_size = Vec2 { 1600, 900 }
+
 	app.run({
 		init_cb      = init,
 		frame_cb     = frame,
 		cleanup_cb   = cleanup,
-		width        = i32(Screen_Size.x),
-		height       = i32(Screen_Size.y),
+		width        = i32(demo_ctx.screen_size.x),
+		height       = i32(demo_ctx.screen_size.y),
 		window_title = "VEFonCache: Sokol Backend Demo",
 		icon         = { sokol_default = true },
 		logger       = { func = slog.func },
