@@ -513,7 +513,7 @@ render_text_layer :: proc( screen_extent : Vec2, ve_ctx : ^ve.Context, ctx : Con
 						0 = 0,
 					},
 					index_buffer        = draw_list_ibuf,
-					index_buffer_offset = 0,//i32(draw_call.start_index) * size_of(u32),
+					index_buffer_offset = 0,
 					fs = {},
 				}
 				gfx.apply_bindings( bindings )
@@ -541,8 +541,8 @@ render_text_layer :: proc( screen_extent : Vec2, ve_ctx : ^ve.Context, ctx : Con
 
 				gfx.apply_pipeline( atlas_pipeline )
 
-				fs_uniform := Ve_Blit_Atlas_Fs_Params { region = cast(i32) draw_call.region }
-				gfx.apply_uniforms( ShaderStage.FS, SLOT_ve_blit_atlas_fs_params, Range { & fs_uniform, size_of(Ve_Blit_Atlas_Fs_Params) })
+				fs_uniform := Blit_Atlas_Fs_Params { region = cast(i32) draw_call.region }
+				gfx.apply_uniforms( ShaderStage.FS, SLOT_blit_atlas_fs_params, Range { & fs_uniform, size_of(Blit_Atlas_Fs_Params) })
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {
@@ -552,10 +552,10 @@ render_text_layer :: proc( screen_extent : Vec2, ve_ctx : ^ve.Context, ctx : Con
 						0 = 0,
 					},
 					index_buffer        = draw_list_ibuf,
-					index_buffer_offset = 0,//i32(draw_call.start_index) * size_of(u32),
+					index_buffer_offset = 0,
 					fs = {
-						images   = { SLOT_ve_blit_atlas_src_texture = glyph_rt_color, },
-						samplers = { SLOT_ve_blit_atlas_src_sampler = glyph_rt_sampler, },
+						images   = { SLOT_blit_atlas_src_texture = glyph_rt_color, },
+						samplers = { SLOT_blit_atlas_src_sampler = glyph_rt_sampler, },
 					},
 				})
 
@@ -579,9 +579,9 @@ render_text_layer :: proc( screen_extent : Vec2, ve_ctx : ^ve.Context, ctx : Con
 				src_rt      := atlas_rt_color
 				src_sampler := atlas_rt_sampler
 
-				fs_target_uniform := Ve_Draw_Text_Fs_Params {
+				fs_target_uniform := Draw_Text_Fs_Params {
 					down_sample = 0,
-					colour = draw_call.colour,
+					colour      = draw_call.colour,
 				}
 
 				if draw_call.pass == .Target_Uncached {
@@ -589,7 +589,7 @@ render_text_layer :: proc( screen_extent : Vec2, ve_ctx : ^ve.Context, ctx : Con
 					src_rt      = glyph_rt_color
 					src_sampler = glyph_rt_sampler
 				}
-				gfx.apply_uniforms( ShaderStage.FS, SLOT_ve_draw_text_fs_params, Range { & fs_target_uniform, size_of(Ve_Draw_Text_Fs_Params) })
+				gfx.apply_uniforms( ShaderStage.FS, SLOT_draw_text_fs_params, Range { & fs_target_uniform, size_of(Draw_Text_Fs_Params) })
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {
@@ -599,10 +599,10 @@ render_text_layer :: proc( screen_extent : Vec2, ve_ctx : ^ve.Context, ctx : Con
 						0 = 0,
 					},
 					index_buffer        = draw_list_ibuf,
-					index_buffer_offset = 0,//i32(draw_call.start_index) * size_of(u32),
+					index_buffer_offset = 0,
 					fs = {
-						images   = { SLOT_ve_draw_text_src_texture = src_rt, },
-						samplers = { SLOT_ve_draw_text_src_sampler = src_sampler, },
+						images   = { SLOT_draw_text_src_texture = src_rt, },
+						samplers = { SLOT_draw_text_src_sampler = src_sampler, },
 					},
 				})
 		}
