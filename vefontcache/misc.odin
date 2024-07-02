@@ -121,7 +121,7 @@ textspace_x_form :: #force_inline proc "contextless" ( position, scale : ^Vec2, 
 	}
 }
 
-Use_SIMD_For_Bezier_Ops :: true
+Use_SIMD_For_Bezier_Ops :: false
 
 when ! Use_SIMD_For_Bezier_Ops
 {

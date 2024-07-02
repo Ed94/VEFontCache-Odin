@@ -50,6 +50,8 @@ FONT_LOAD_GEN_ID           :: ""
 // Working directory assumed to be the build folder
 PATH_FONTS :: "../fonts/"
 
+OVER_SAMPLE_ZOOM : f32 : 2.0  // Adjust this value as needed, used by draw_text_zoomed_norm
+
 FontID  :: struct {
 	label : string,
 }
@@ -185,8 +187,6 @@ draw_text_string_pos_extent :: proc( content : string, id : FontID, size : f32, 
 	draw_text_string_pos_norm( content, id, size, normalized_pos, color )
 }
 
-OVER_SAMPLE_ZOOM : f32 : 2.0  // Adjust this value as needed
-
 // Adapt the draw_text_string_pos_extent_zoomed procedure
 draw_text_zoomed_norm :: proc(content : string, id : FontID, size : f32, pos : Vec2, zoom : f32, color := COLOR_WHITE)
 {
@@ -271,7 +271,7 @@ init :: proc "c" ()
 		case .DUMMY: fmt.println(">> using dummy backend")
 	}
 
-	ve.startup( & demo_ctx.ve_ctx, .Freetype, allocator = context.allocator, snap_shape_position = false, use_advanced_text_shaper = true )
+	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, snap_shape_position = false, use_advanced_text_shaper = true )
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 1024 * 1024, index_cap = 1024 * 1024 )
 
 	error : mem.Allocator_Error

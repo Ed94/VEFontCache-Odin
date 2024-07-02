@@ -91,6 +91,54 @@ blit_quad :: proc( draw_list : ^DrawList, p0 : Vec2 = {0, 0}, p1 : Vec2 = {1, 1}
 // TODO(Ed): glyph caching cannot be handled in a 'font parser' abstraction. Just going to have explicit procedures to grab info neatly...
 cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, entry: ^Entry, bounds_0, bounds_1: Vec2, scale, translate: Vec2) -> b32
 {
+
+	draw_filled_path_freetype :: proc( draw_list : ^DrawList, outside_point : Vec2, path : []Vertex,
+		scale     := Vec2 { 1, 1 },
+		translate := Vec2 { 0, 0 },
+		debug_print_verbose : b32 = false
+	)
+	{
+		if debug_print_verbose 		{
+			log("outline_path:")
+			for point in path {
+				vec := point.pos * scale + translate
+				logf(" %0.2f %0.2f", vec.x, vec.y )
+			}
+		}
+
+		v_offset := cast(u32) len(draw_list.vertices)
+		for point in path 
+		{
+			transformed_point := Vertex {
+				pos = point.pos * scale + translate,
+				u = 0,
+				v = 0
+			}
+			append( & draw_list.vertices, transformed_point )
+		}
+
+		if len(path) > 2
+		{
+			indices := & draw_list.indices
+			for index : u32 = 1; index < cast(u32) len(path) - 1; index += 1 {
+				to_add := [3]u32 {
+					v_offset,
+					v_offset + index,
+					v_offset + index + 1
+				}
+				append( indices, ..to_add[:] )
+			}
+
+			// Close the path by connecting the last vertex to the first two
+			to_add := [3]u32 {
+					v_offset,
+					v_offset + cast(u32)(len(path) - 1),
+					v_offset + 1
+			}
+			append( indices, ..to_add[:] )
+		}
+	}
+
 	if glyph_index == Glyph(0) {
 		return false
 	}
@@ -113,7 +161,7 @@ cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, en
 
 	draw            := DrawCall_Default
 	draw.pass        = FrameBufferPass.Glyph
-	draw.start_index = u32(len(ctx.draw_list.indices))
+	draw.start_index = cast(u32) len(ctx.draw_list.indices)
 
 	contours := slice.from_ptr(cast( [^]i16)             outline.contours, int(outline.n_contours))
 	points   := slice.from_ptr(cast( [^]freetype.Vector) outline.points,   int(outline.n_points))
@@ -125,34 +173,57 @@ cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, en
 	outside := Vec2{ bounds_0.x - 21, bounds_0.y - 33 }
 
 	start_index: int = 0
-	for contour_index in 0..<int(outline.n_contours)
+	for contour_index in 0 ..< int(outline.n_contours)
 	{
-			end_index := int(contours[contour_index]) + 1
-			for i := start_index; i < end_index; i += 1
-			{
-				is_current_off_curve := (tags[i] & 1) == 0
-				next_index := (i + 1) % int(outline.n_points)
-				is_next_off_curve := (tags[next_index] & 1) == 0
+		end_index := int(contours[contour_index]) + 1
+		prev_point: Vec2
+		first_point: Vec2
 
-				if is_current_off_curve && i != end_index - 1 && is_next_off_curve {
-					// both current and next points are off-curve
-					midpoint := Vec2{
-							(f32(points[i].x) + f32(points[next_index].x)) * 0.5,
-							(f32(points[i].y) + f32(points[next_index].y)) * 0.5
+			for idx := start_index; idx < end_index; idx += 1
+			{
+				current_pos := Vec2 { f32( points[idx].x ), f32( points[idx].y ) }
+				if ( tags[idx] & 1 ) == 0
+				{
+					// If current point is off-curve
+					if (idx == start_index || (tags[ idx - 1 ] & 1) != 0)
+					{
+							// current is the first or following an on-curve point
+							prev_point = current_pos
 					}
-					append(path, Vertex{pos = midpoint})
-					i += 1 // skip the next point because it's handled here
+					else
+					{
+							// current and previous are off-curve, calculate midpoint
+							midpoint := (prev_point + current_pos) * 0.5
+							append( path, Vertex { pos = midpoint } )  // Add midpoint as on-curve point
+							if idx < end_index - 1
+							{
+									// perform interp from prev_point to current_pos via midpoint
+									for t : f32 = 0.0; t <= 1.0; t += 1.0 / f32(entry.curve_quality)
+									{
+											bezier_point := eval_point_on_bezier3( prev_point, midpoint, current_pos, t )
+											append( path, Vertex{ pos = bezier_point } )
+									}
+							}
+
+							prev_point = current_pos
+					}
 				}
 				else
 				{
-					current_pos := Vec2{f32(points[i].x), f32(points[i].y)}
-					append(path, Vertex{pos = current_pos})
+					if idx == start_index {
+							first_point = current_pos
+					}
+					if prev_point != (Vec2{}) {
+							// there was an off-curve point before this
+							append(path, Vertex{ pos = prev_point}) // Ensure previous off-curve is handled
+					}
+					append(path, Vertex{ pos = current_pos})
+					prev_point = {}
 				}
 			}
 
 			// ensure the contour is closed
-			if path[0].pos != path[len(path)-1].pos
-			{
+			if path[0].pos != path[ len(path) - 1 ].pos {
 				append(path, Vertex{pos = path[0].pos})
 			}
 			draw_filled_path(&ctx.draw_list, bounds_0, path[:], scale, translate, ctx.debug_print_verbose)
@@ -161,7 +232,7 @@ cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, en
 	}
 
 	if len(path) > 0 {
-		draw_filled_path_freetype(&ctx.draw_list, outside, path[:], scale, translate, ctx.debug_print_verbose)
+		draw_filled_path(&ctx.draw_list, outside, path[:], scale, translate, ctx.debug_print_verbose)
 	}
 
 	draw.end_index = cast(u32) len(ctx.draw_list.indices)
@@ -170,56 +241,6 @@ cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, en
 	}
 
 	return true
-}
-
-draw_filled_path_freetype :: proc( draw_list : ^DrawList, outside_point : Vec2, path : []Vertex,
-	scale     := Vec2 { 1, 1 },
-	translate := Vec2 { 0, 0 },
-	debug_print_verbose : b32 = false
-)
-{
-	if debug_print_verbose
-	{
-			log("outline_path:")
-			for point in path {
-					vec := point.pos * scale + translate
-					logf(" %0.2f %0.2f", vec.x, vec.y )
-			}
-	}
-
-	// Apply transformations and add vertices to the draw list
-	v_offset := cast(u32) len(draw_list.vertices)
-	for point in path {
-			transformed_point := Vertex {
-					pos = point.pos * scale + translate,
-					u = 0,  // If texture coordinates are used, set appropriately
-					v = 0
-			}
-			append( & draw_list.vertices, transformed_point )
-	}
-
-	// Ensure there's enough vertices to form at least one triangle
-	if len(path) > 2 {
-			indices := & draw_list.indices
-
-			// Connect each vertex to form a triangle fan without an outside vertex
-			for index : u32 = 1; index < cast(u32) len(path) - 1; index += 1 {
-					to_add := [3]u32 {
-							v_offset,                 // Start vertex (first vertex of the path)
-							v_offset + index,         // Current vertex
-							v_offset + index + 1      // Next vertex
-					}
-					append( indices, ..to_add[:] )
-			}
-
-			// Close the path by connecting the last vertex to the first two
-			to_add := [3]u32 {
-					v_offset,                      // First vertex
-					v_offset + cast(u32)(len(path) - 1),  // Last vertex
-					v_offset + 1                   // Second vertex, to close the loop
-			}
-			append( indices, ..to_add[:] )
-	}
 }
 
 cache_glyph :: proc(ctx : ^Context, font : FontID, glyph_index : Glyph, entry : ^Entry, bounds_0, bounds_1 : Vec2, scale, translate : Vec2) -> b32

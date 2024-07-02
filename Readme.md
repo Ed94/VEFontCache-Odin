@@ -36,8 +36,8 @@ Note: freetype and harfbuzz could technically be gutted if the user removes thei
 
 ### Additional Features:
 
-* Support for freetype (WIP, Untested)
-* Add ability to conditionally compile dependencies (so that the user may not need to resolve those packages). 
+* Support for freetype (WIP, Currently a mess... and slow)
+* Add ability to conditionally compile dependencies (so that the user may not need to resolve those packages).
   * Related to usage of //+build tags?
 * Ability to set a draw transform, viewport and projection
   * By default the library's position is in unsigned normalized render space
