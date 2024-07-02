@@ -67,7 +67,7 @@ Context :: struct {
 	debug_print_verbose : b32,
 }
 
-#region("lifetime")
+//#region("lifetime")
 
 InitAtlasRegionParams :: struct {
 	width  : u32,
@@ -419,9 +419,9 @@ unload_font :: proc( ctx : ^Context, font : FontID )
 	shaper_unload_font( & entry.shaper_info )
 }
 
-#endregion("lifetime")
+//#endregion("lifetime")
 
-#region("drawing")
+//#region("drawing")
 
 // ve_fontcache_configure_snap
 configure_snap :: #force_inline proc( ctx : ^Context, snap_width, snap_height : u32 ) {
@@ -497,9 +497,9 @@ flush_draw_list_layer :: proc( ctx : ^Context ) {
 	draw_layer.calls_offset    = len(draw_list.calls)
 }
 
-#endregion("drawing")
+//#endregion("drawing")
 
-#region("metrics")
+//#region("metrics")
 
 measure_text_size :: proc( ctx : ^Context, font : FontID, text_utf8 : string ) -> (measured : Vec2)
 {
@@ -526,4 +526,4 @@ get_font_vertical_metrics :: #force_inline proc ( ctx : ^Context, font : FontID 
 	return
 }
 
-#endregion("metrics")
+//#endregion("metrics")
