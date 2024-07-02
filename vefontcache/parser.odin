@@ -56,9 +56,9 @@ ParserContext :: struct {
 	// fonts : HMapChained(ParserFontInfo),
 }
 
-parser_init :: proc( ctx : ^ParserContext )
+parser_init :: proc( ctx : ^ParserContext, kind : ParserKind )
 {
-	switch ctx.kind
+	switch kind
 	{
 		case .Freetype:
 			result := freetype.init_free_type( & ctx.ft_library )
@@ -67,6 +67,8 @@ parser_init :: proc( ctx : ^ParserContext )
 		case .STB_TrueType:
 			// Do nothing intentional
 	}
+
+	ctx.kind = kind
 
 	// error : AllocatorError
 	// ctx.fonts, error = make( HMapChained(ParserFontInfo), 256 )
@@ -99,6 +101,7 @@ parser_load_font :: proc( ctx : ^ParserContext, label : string, data : []byte ) 
 
 	font.label = label
 	font.data  = data
+	font.kind  = ctx.kind
 	return
 }
 
@@ -190,6 +193,19 @@ parser_get_font_vertical_metrics :: #force_inline proc "contextless" ( font : ^P
 	switch font.kind
 	{
 		case .Freetype:
+			info    := font.freetype_info
+			ascent   = i32(info.ascender)
+			descent  = i32(info.descender)
+			line_gap = i32(info.height) - (ascent - descent)
+
+			// FreeType stores these values in font units, so we need to convert them to pixels
+			units_per_em := i32(info.units_per_em)
+
+			if units_per_em != 0 {
+				ascent   = (ascent   * i32(info.size.metrics.y_ppem)) / units_per_em
+				descent  = (descent  * i32(info.size.metrics.y_ppem)) / units_per_em
+				line_gap = (line_gap * i32(info.size.metrics.y_ppem)) / units_per_em
+			}
 
 		case .STB_TrueType:
 			stbtt.GetFontVMetrics( & font.stbtt_info, & ascent, & descent, & line_gap )

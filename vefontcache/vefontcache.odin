@@ -32,7 +32,6 @@ Entry_Default :: Entry {
 Context :: struct {
 	backing : Allocator,
 
-	parser_kind : ParserKind,
 	parser_ctx  : ParserContext,
 	shaper_ctx  : ShaperContext,
 
@@ -267,7 +266,7 @@ startup :: proc( ctx : ^Context, parser_kind : ParserKind,
 		assert( error == .None, "VEFontCache.init : Failed to allocate vertices array for clear_draw_list" )
 	}
 
-	parser_init( & parser_ctx )
+	parser_init( & parser_ctx, parser_kind )
 	shaper_init( & shaper_ctx )
 }
 
@@ -355,10 +354,7 @@ load_font :: proc( ctx : ^Context, label : string, data : []byte, size_px : f32,
 		used = true
 
 		parser_info = parser_load_font( & parser_ctx, label, data )
-		// assert( parser_info != nil, "VEFontCache.load_font: Failed to load font info from parser" )
-
 		shaper_info = shaper_load_font( & shaper_ctx, label, data, transmute(rawptr) id )
-		// assert( shaper_info != nil, "VEFontCache.load_font: Failed to load font from shaper")
 
 		size = size_px
 		size_scale = size_px < 0.0 ?                               \

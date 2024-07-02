@@ -37,7 +37,6 @@ Note: freetype and harfbuzz could technically be gutted if the user removes thei
 ### Additional Features:
 
 * Support for freetype (WIP, Untested)
-* Support for harfbuzz (WIP, Untested)
 * Add ability to conditionally compile dependencies (so that the user may not need to resolve those packages). 
   * Related to usage of //+build tags?
 * Ability to set a draw transform, viewport and projection

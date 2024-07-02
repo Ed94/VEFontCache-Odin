@@ -138,7 +138,7 @@ font_firacode : FontID
 
 Font_Use_Default_Size :: f32(0.0)
 
-font_provider_resolve_draw_id :: proc( id : FontID, size := Font_Use_Default_Size ) -> ( ve_id : ve.FontID, resolved_size : i32 )
+font_resolve_draw_id :: proc( id : FontID, size := Font_Use_Default_Size ) -> ( ve_id : ve.FontID, resolved_size : i32 )
 {
 	def           := demo_ctx.font_ids[ id.label ]
 	size          := size == 0.0 ? f32(def.default_size) : size
@@ -152,14 +152,14 @@ font_provider_resolve_draw_id :: proc( id : FontID, size := Font_Use_Default_Siz
 
 measure_text_size :: proc( text : string, font : FontID, font_size := Font_Use_Default_Size, spacing : f32 ) -> Vec2
 {
-	ve_id, size := font_provider_resolve_draw_id( font, font_size )
+	ve_id, size := font_resolve_draw_id( font, font_size )
 	measured    := ve.measure_text_size( & demo_ctx.ve_ctx, ve_id, text )
 	return measured
 }
 
 get_font_vertical_metrics :: #force_inline proc ( font : FontID, font_size := Font_Use_Default_Size ) -> ( ascent, descent, line_gap : f32 ) 
 {
-	ve_id, size := font_provider_resolve_draw_id( font, font_size )
+	ve_id, size := font_resolve_draw_id( font, font_size )
 	ascent, descent, line_gap = ve.get_font_vertical_metrics( & demo_ctx.ve_ctx, ve_id )
 	return
 }
@@ -170,7 +170,7 @@ draw_text_string_pos_norm :: proc( content : string, id : FontID, size : f32, po
 	width  := demo_ctx.screen_size.x
 	height := demo_ctx.screen_size.y
 
-	ve_id, resolved_size := font_provider_resolve_draw_id( id, size )
+	ve_id, resolved_size := font_resolve_draw_id( id, size )
 	color_norm           := normalize_rgba8(color)
 
 	ve.set_colour( & demo_ctx.ve_ctx, color_norm )
@@ -198,7 +198,7 @@ draw_text_zoomed_norm :: proc(content : string, id : FontID, size : f32, pos : V
 
 	zoom_adjust_size *= OVER_SAMPLE_ZOOM
 
-	ve_id, resolved_size := font_provider_resolve_draw_id(id, zoom_adjust_size)
+	ve_id, resolved_size := font_resolve_draw_id(id, zoom_adjust_size)
 
 	text_scale := screen_scale
 	{
@@ -271,7 +271,7 @@ init :: proc "c" ()
 		case .DUMMY: fmt.println(">> using dummy backend")
 	}
 
-	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, snap_shape_position = false, use_advanced_text_shaper = true )
+	ve.startup( & demo_ctx.ve_ctx, .Freetype, allocator = context.allocator, snap_shape_position = false, use_advanced_text_shaper = true )
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 1024 * 1024, index_cap = 1024 * 1024 )
 
 	error : mem.Allocator_Error
@@ -477,11 +477,13 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			draw_text_string_pos_norm("Korean", font_print, 19, {0.2, current_scroll - (section_start + 0.92)}, COLOR_WHITE)
 			draw_text_string_pos_norm("그들의 장비와 기구는 모두 살아 있다.", font_demo_korean, 36, {0.3, current_scroll - (section_start + 0.92)}, COLOR_WHITE)
 
-			draw_text_string_pos_norm("Arabic", font_print, 19, {0.2, current_scroll - (section_start + 0.96)}, COLOR_WHITE)
-			draw_text_string_pos_norm("حب السماء لا تمطر غير الأحلام.    (This one needs HarfBuzz to work!)", font_demo_arabic, 24, {0.3, current_scroll - (section_start + 0.96)}, COLOR_WHITE)
+			draw_text_string_pos_norm("Needs harfbuzz to work:", font_print, 14, {0.2, current_scroll - (section_start + 0.96)}, COLOR_WHITE)
 
-			draw_text_string_pos_norm("Hebrew", font_print, 19, {0.2, current_scroll - (section_start + 1.0)}, COLOR_WHITE)
-			draw_text_string_pos_norm("אז הגיע הלילה של כוכב השביט הראשון.    (This one needs HarfBuzz to work!)", font_demo_hebrew, 22, {0.3, current_scroll - (section_start + 1.0)}, COLOR_WHITE)
+			draw_text_string_pos_norm("Arabic", font_print, 19, {0.2, current_scroll - (section_start + 1.00)}, COLOR_WHITE)
+			draw_text_string_pos_norm("حب السماء لا تمطر غير الأحلام.", font_demo_arabic, 24, {0.3, current_scroll - (section_start + 1.00)}, COLOR_WHITE)
+
+			draw_text_string_pos_norm("Hebrew", font_print, 19, {0.2, current_scroll - (section_start + 1.04)}, COLOR_WHITE)
+			draw_text_string_pos_norm("אז הגיע הלילה של כוכב השביט הראשון.", font_demo_hebrew, 22, {0.3, current_scroll - (section_start + 1.04)}, COLOR_WHITE)
 		}
 
 		// Zoom Test
@@ -523,7 +525,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 
 			zoomed_text_base_size : f32 = 12.0
 			zoom_adjust_size      := zoomed_text_base_size * current_zoom
-			ve_id, resolved_size  := font_provider_resolve_draw_id( font_firacode, zoom_adjust_size * OVER_SAMPLE_ZOOM )
+			ve_id, resolved_size  := font_resolve_draw_id( font_firacode, zoom_adjust_size * OVER_SAMPLE_ZOOM )
 			current_zoom_text     := fmt.tprintf("Current Zoom         : %.2f x\nCurrent Resolved Size: %v px", current_zoom, resolved_size )
 			draw_text_string_pos_norm(current_zoom_text, font_firacode, 19, {0.2, zoom_info_y}, COLOR_WHITE)
 
