@@ -230,92 +230,22 @@ parser_get_glyph_box :: #force_inline proc ( font : ^ParserFontInfo, glyph_index
 
 parser_get_glyph_shape :: proc( font : ^ParserFontInfo, glyph_index : Glyph ) -> (shape : ParserGlyphShape, error : AllocatorError)
 {
+	quad_to_cubic :: proc(p0, p1, p2: freetype.Vector) -> (c1, c2: freetype.Vector) {
+		c1 = freetype.Vector{
+			x = p0.x + ((p1.x - p0.x) * 2 + 1) / 3,
+			y = p0.y + ((p1.y - p0.y) * 2 + 1) / 3,
+		}
+		c2 = freetype.Vector{
+			x = p2.x + ((p1.x - p2.x) * 2 + 1) / 3,
+			y = p2.y + ((p1.y - p2.y) * 2 + 1) / 3,
+		}
+		return
+	}
+
 	switch font.kind
 	{
 		case .Freetype:
-			error := freetype.load_glyph(font.freetype_info, cast(u32)glyph_index, {.No_Bitmap, .No_Hinting, .No_Scale})
-			if error != .Ok {
-					return
-			}
-
-			glyph := font.freetype_info.glyph
-			if glyph.format != .Outline {
-					return
-			}
-
-			outline    := &glyph.outline
-			n_points   := int(outline.n_points)
-			n_contours := int(outline.n_contours)
-
-			vertices, alloc_error := make([dynamic]ParserGlyphVertex, 0, n_points + n_contours)
-			if alloc_error != .None {
-					// Handle allocation error
-					return
-			}
-
-			points   := slice.from_ptr(cast([^]freetype.Vector) outline.points,   n_points)
-			tags     := slice.from_ptr(cast([^]u8)              outline.tags,     n_points)
-			contours := slice.from_ptr(cast([^]i16)             outline.contours, n_contours)
-
-			start := 0
-			for contour_index in 0 ..< n_contours
-			{
-				end := int(contours[contour_index]) + 1
-
-				first_point := points[start]
-				append( & vertices, ParserGlyphVertex { type = .Move, x = i16(first_point.x), y = i16(first_point.y) })
-
-				for point_index := start; point_index < end; point_index += 1
-				{
-						tag        := tags[point_index]
-						point      := points[point_index]
-						next_point := points[(point_index + 1) % end]
-
-						if tag & 1 == 0
-						{
-								// Off-curve point
-								if tags[(point_index + 1) % end] & 1 == 0
-								{
-									// Next is also off-curve
-									mid_point := Vec2{
-										(f32(point.x) + f32(next_point.x)) / 2,
-										(f32(point.y) + f32(next_point.y)) / 2,
-									}
-									append(&vertices, ParserGlyphVertex {
-										type       = .Curve,
-										x          = i16(mid_point.x),
-										y          = i16(mid_point.y),
-										contour_x0 = i16(point.x),
-										contour_y0 = i16(point.y),
-									})
-								}
-								else
-								{
-									// Next is on-curve
-									append(&vertices, ParserGlyphVertex{
-										type       = .Curve,
-										x          = i16(next_point.x),
-										y          = i16(next_point.y),
-										contour_x0 = i16(point.x),
-										contour_y0 = i16(point.y),
-									})
-									point_index += 1
-								}
-						}
-						else
-						{
-							// On-curve point
-							append(&vertices, ParserGlyphVertex{
-								type = .Line,
-								x = i16(point.x), y = i16(point.y),
-							})
-						}
-				}
-
-				start = end
-			}
-
-			shape = vertices
+			// TODO(Ed): Don't do this we're going a completely different route for handling shapes
 
 		case .STB_TrueType:
 			stb_shape : [^]stbtt.vertex
@@ -406,49 +336,4 @@ parser_scale_for_mapping_em_to_pixels :: #force_inline proc "contextless" ( font
 			return stbtt.ScaleForMappingEmToPixels( & font.stbtt_info, size )
 	}
 	return 0
-}
-
-when false {
-parser_convert_conic_to_cubic_freetype :: proc( vertices : Array(ParserGlyphVertex), p0, p1, p2 : freetype.Vector, tolerance : f32 )
-{
-	scratch : [Kilobyte * 4]u8
-	scratch_arena : Arena; arena_init(& scratch_arena, scratch[:])
-
-	points, error := make( Array(freetype.Vector), 256, allocator = arena_allocator( &scratch_arena) )
-	assert(error == .None)
-
-	append( & points, p0)
-	append( & points, p1)
-	append( & points, p2)
-
-	to_float : f32 = 1.0 / 64.0
-	control_conv :: f32(2.0 / 3.0) // Conic to cubic control point distance
-
-	for ; points.num > 1; {
-		p0 := points.data[0]
-		p1 := points.data[1]
-		p2 := points.data[2]
-
-		fp0 := Vec2{ f32(p0.x), f32(p0.y) } * to_float
-		fp1 := Vec2{ f32(p1.x), f32(p1.y) } * to_float
-		fp2 := Vec2{ f32(p2.x), f32(p2.y) } * to_float
-
-		delta_x  := fp0.x - 2 * fp1.x + fp2.x;
-		delta_y  := fp0.y - 2 * fp1.y + fp2.y;
-		distance := math.sqrt(delta_x * delta_x + delta_y * delta_y);
-
-		if distance <= tolerance
-		{
-			control1 := {
-
-			}
-		}
-		else
-		{
-			control2 := {
-
-			}
-		}
-	}
-}
 }

@@ -1,5 +1,8 @@
 package vefontcache
 
+import "thirdparty:freetype"
+import "core:slice"
+
 Vertex :: struct {
 	pos  : Vec2,
 	u, v : f32,
@@ -85,11 +88,124 @@ blit_quad :: proc( draw_list : ^DrawList, p0 : Vec2 = {0, 0}, p1 : Vec2 = {1, 1}
 	return
 }
 
+cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, entry: ^Entry, bounds_0, bounds_1: Vec2, scale, translate: Vec2) -> b32
+{
+	if glyph_index == Glyph(0) {
+			return false
+	}
+
+	face := entry.parser_info.freetype_info
+	error := freetype.load_glyph(face, u32(glyph_index), {.No_Bitmap, .No_Hinting, .No_Scale})
+	if error != .Ok {
+			return false
+	}
+
+	glyph := face.glyph
+	if glyph.format != .Outline {
+			return false
+	}
+
+	outline := &glyph.outline
+	if outline.n_points == 0 {
+			return false
+	}
+
+	outside := Vec2{bounds_0.x - 21, bounds_0.y - 33}
+
+	draw            := DrawCall_Default
+	draw.pass        = FrameBufferPass.Glyph
+	draw.start_index = u32(len(ctx.draw_list.indices))
+
+	path := &ctx.temp_path
+	clear(path)
+
+	points   := slice.from_ptr(cast([^]freetype.Vector)outline.points, int(outline.n_points))
+	tags     := slice.from_ptr(cast([^]u8)outline.tags, int(outline.n_points))
+	contours := slice.from_ptr(cast([^]i16)outline.contours, int(outline.n_contours))
+
+	curve_quality := max(entry.curve_quality, 12)  // Increase minimum curve quality
+
+	start := 0
+	for contour_index in 0..<int(outline.n_contours)
+	{
+			end         := int(contours[contour_index]) + 1
+			first_point := Vec2{f32(points[start].x), f32(points[start].y)}
+
+			if len(path) > 0 {
+					draw_filled_path(&ctx.draw_list, outside, path[:], scale, translate, ctx.debug_print_verbose)
+					clear(path)
+			}
+			append(path, Vertex{pos = first_point})
+
+			for point_index := start + 1; point_index <= end; point_index += 1
+			{
+					curr     := points[point_index % int(outline.n_points)]
+					curr_tag := tags[point_index % int(outline.n_points)]
+					curr_pos := Vec2 { f32(curr.x), f32(curr.y) }
+
+					if curr_tag & 1 != 0
+					{
+							// On-curve point
+							append(path, Vertex{pos = curr_pos})
+					} else
+					{
+							// Off-curve point
+							prev := path[len(path)-1].pos
+							next: Vec2
+							if point_index == end
+							{
+									next = first_point
+							}
+							else
+							{
+									next_point := points[(point_index + 1) % int(outline.n_points)]
+									next        = Vec2{f32(next_point.x), f32(next_point.y)}
+									if tags[(point_index + 1) % int(outline.n_points)] & 1 == 0
+									{
+										// Next point is also off-curve, insert virtual on-curve point
+										next = {(curr_pos.x + next.x) * 0.5, (curr_pos.y + next.y) * 0.5}
+									}
+							}
+
+							for i: f32 = 1; i <= curve_quality; i += 1
+							{
+								t := i / curve_quality
+								q := eval_point_on_bezier3(prev, curr_pos, next, t)
+								append(path, Vertex{pos = q})
+							}
+					}
+			}
+
+			// Explicitly close the contour
+			if path[0].pos != path[len(path)-1].pos {
+					append(path, Vertex{pos = first_point})
+			}
+
+			start = end
+	}
+
+	if len(path) > 0 {
+			draw_filled_path(&ctx.draw_list, outside, path[:], scale, translate, ctx.debug_print_verbose)
+	}
+
+	draw.end_index = u32(len(ctx.draw_list.indices))
+	if draw.end_index > draw.start_index {
+			append(&ctx.draw_list.calls, draw)
+	}
+
+	return true
+}
+
 cache_glyph :: proc(ctx : ^Context, font : FontID, glyph_index : Glyph, entry : ^Entry, bounds_0, bounds_1 : Vec2, scale, translate : Vec2) -> b32
 {
 	// profile(#procedure)
 	if glyph_index == Glyph(0) {
 		return false
+	}
+
+	if entry.parser_info.kind == .Freetype {
+		result := cache_glyph_freetype( ctx, font, glyph_index, entry, bounds_0, bounds_1, scale, translate )
+		return result
 	}
 
 	shape, error := parser_get_glyph_shape(&entry.parser_info, glyph_index)
@@ -151,7 +267,7 @@ cache_glyph :: proc(ctx : ^Context, font : FontID, glyph_index : Glyph, entry : 
 
 	draw.end_index = u32(len(ctx.draw_list.indices))
 	if draw.end_index > draw.start_index {
-		append(&ctx.draw_list.calls, draw)
+		append( & ctx.draw_list.calls, draw)
 	}
 
 	parser_free_shape(&entry.parser_info, shape)
