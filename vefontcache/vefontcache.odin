@@ -322,9 +322,38 @@ shutdown :: proc( ctx : ^Context )
 		unload_font( ctx, entry.id )
 	}
 
-	shaper_shutdown( & shaper_ctx )
+	delete( entries )
+	delete( temp_path )
+	delete( temp_codepoint_seen )
 
-	// TODO(Ed): Finish implementing, there is quite a few resource not released here.
+	delete( draw_list.vertices )
+	delete( draw_list.indices )
+	delete( draw_list.calls )
+
+	LRU_free( & atlas.region_a.state )
+	LRU_free( & atlas.region_b.state )
+	LRU_free( & atlas.region_c.state )
+	LRU_free( & atlas.region_d.state )
+
+	for idx : i32 = 0; idx < i32(len(shape_cache.storage)); idx += 1 {
+		stroage_entry := & shape_cache.storage[idx]
+		using stroage_entry
+
+		delete( glyphs )
+		delete( positions )
+	}
+	LRU_free( & shape_cache.state )
+
+	delete( glyph_buffer.draw_list.vertices )
+	delete( glyph_buffer.draw_list.indices )
+	delete( glyph_buffer.draw_list.calls )
+
+	delete( glyph_buffer.clear_draw_list.vertices )
+	delete( glyph_buffer.clear_draw_list.indices )
+	delete( glyph_buffer.clear_draw_list.calls )
+
+	shaper_shutdown( & shaper_ctx )
+	parser_shutdown( & parser_ctx )
 }
 
 // ve_fontcache_load

@@ -707,7 +707,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 
 cleanup :: proc "c" () {
 	context = runtime.default_context()
-	// ve.shutdown( & demo_ctx.ve_ctx )
+	ve.shutdown( & demo_ctx.ve_ctx )
 	gfx.shutdown()
 }
 

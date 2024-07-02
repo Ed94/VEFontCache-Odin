@@ -98,7 +98,7 @@ cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, en
 		debug_print_verbose : b32 = false
 	)
 	{
-		if debug_print_verbose 		{
+		if debug_print_verbose {
 			log("outline_path:")
 			for point in path {
 				vec := point.pos * scale + translate
@@ -198,9 +198,10 @@ cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, en
 							if idx < end_index - 1
 							{
 									// perform interp from prev_point to current_pos via midpoint
-									for t : f32 = 0.0; t <= 1.0; t += 1.0 / f32(entry.curve_quality)
+									step := 1.0 / entry.curve_quality
+									for alpha : f32 = 0.0; alpha <= 1.0; alpha += step
 									{
-											bezier_point := eval_point_on_bezier3( prev_point, midpoint, current_pos, t )
+											bezier_point := eval_point_on_bezier3( prev_point, midpoint, current_pos, alpha )
 											append( path, Vertex{ pos = bezier_point } )
 									}
 							}

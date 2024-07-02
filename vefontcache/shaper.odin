@@ -13,7 +13,6 @@ ShaperKind :: enum {
 
 ShaperContext :: struct {
 	hb_buffer : harfbuzz.Buffer,
-	// infos : HMapChained(ShaperInfo),
 }
 
 ShaperInfo :: struct {
@@ -26,10 +25,6 @@ shaper_init :: proc( ctx : ^ShaperContext )
 {
 	ctx.hb_buffer = harfbuzz.buffer_create()
 	assert( ctx.hb_buffer != nil, "VEFontCache.shaper_init: Failed to create harfbuzz buffer")
-
-	// error : AllocatorError
-	// ctx.infos, error = make( HMapChained(ShaperInfo), 256 )
-	// assert( error == .None, "VEFontCache.shaper_init: Failed to create shaper infos map" )
 }
 
 shaper_shutdown :: proc( ctx : ^ShaperContext )
@@ -37,20 +32,10 @@ shaper_shutdown :: proc( ctx : ^ShaperContext )
 	if ctx.hb_buffer != nil {
 		harfbuzz.buffer_destroy( ctx.hb_buffer )
 	}
-
-	// delete(& ctx.infos)
 }
 
 shaper_load_font :: proc( ctx : ^ShaperContext, label : string, data : []byte, user_data : rawptr ) -> (info : ShaperInfo)
 {
-	// key := font_key_from_label( label )
-	// info = get( ctx.infos, key )
-	// if info != nil do return
-
-	// error : AllocatorError
-	// info, error = set( ctx.infos, key, ShaperInfo {} )
-	// assert( error == .None, "VEFontCache.parser_load_font: Failed to set a new shaper info" )
-
 	using info
 	blob = harfbuzz.blob_create( raw_data(data), cast(c.uint) len(data), harfbuzz.Memory_Mode.READONLY, user_data, nil )
 	face = harfbuzz.face_create( blob, 0 )
