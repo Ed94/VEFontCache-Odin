@@ -12,8 +12,12 @@ Its assumed the user has Odin installed and exposed to the OS enviornment's PATH
 
 #### Note on dependency packages
 
-[harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it uses the meson build system.  
-[freetype](https://github.com/Ed94/odin-freetype) package has pre-built .lib files for windows (debug/release).
+All dependencies are cloned directly into a created thirdparty directory.
+
+[harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it will use the MSVC toolchain (you can change it to use meson instead of preferred).  
+[freetype](https://github.com/Ed94/odin-freetype) package has pre-built .lib files for windows (debug/release).  
+[sokol](https://github.com/floooh/sokol) built using `build_sokol_library.ps`.  
+[sokol-tools](https://github.com/floooh/sokol-tools) used by `compile_sokol_shaders.ps1` to compile the glsl files into odin files for the sokol backend.
 
 ### build_sokol_library.ps1
 
