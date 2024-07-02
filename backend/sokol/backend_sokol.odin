@@ -454,7 +454,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 	Range        :: gfx.Range
 	Shader_Stage :: gfx.Shader_Stage
 
-	vbuf_layer_slice, ibuf_layer_slice, calls_layer_slice := ve.get_draw_list_layer( ve_ctx )
+	vbuf_layer_slice, ibuf_layer_slice, calls_layer_slice := ve.get_draw_list_layer( ve_ctx, optimize_before_returning = false )
 
 	vbuf_ve_range := Range{ raw_data(vbuf_layer_slice), cast(u64) len(vbuf_layer_slice) * size_of(ve.Vertex) }
 	ibuf_ve_range := Range{ raw_data(ibuf_layer_slice), cast(u64) len(ibuf_layer_slice) * size_of(u32)       }

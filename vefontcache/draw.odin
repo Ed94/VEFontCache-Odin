@@ -88,112 +88,138 @@ blit_quad :: proc( draw_list : ^DrawList, p0 : Vec2 = {0, 0}, p1 : Vec2 = {1, 1}
 	return
 }
 
+// TODO(Ed): glyph caching cannot be handled in a 'font parser' abstraction. Just going to have explicit procedures to grab info neatly...
 cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, entry: ^Entry, bounds_0, bounds_1: Vec2, scale, translate: Vec2) -> b32
 {
 	if glyph_index == Glyph(0) {
-			return false
+		return false
 	}
 
 	face := entry.parser_info.freetype_info
-	error := freetype.load_glyph(face, u32(glyph_index), {.No_Bitmap, .No_Hinting, .No_Scale})
+	error := freetype.load_glyph(face, u32(glyph_index), {.No_Bitmap, .No_Scale})
 	if error != .Ok {
-			return false
+		return false
 	}
 
 	glyph := face.glyph
 	if glyph.format != .Outline {
-			return false
+		return false
 	}
 
 	outline := &glyph.outline
 	if outline.n_points == 0 {
-			return false
+		return false
 	}
-
-	outside := Vec2{bounds_0.x - 21, bounds_0.y - 33}
 
 	draw            := DrawCall_Default
 	draw.pass        = FrameBufferPass.Glyph
 	draw.start_index = u32(len(ctx.draw_list.indices))
 
+	contours := slice.from_ptr(cast( [^]i16)             outline.contours, int(outline.n_contours))
+	points   := slice.from_ptr(cast( [^]freetype.Vector) outline.points,   int(outline.n_points))
+	tags     := slice.from_ptr(cast( [^]u8)              outline.tags,     int(outline.n_points))
+
 	path := &ctx.temp_path
 	clear(path)
 
-	points   := slice.from_ptr(cast([^]freetype.Vector)outline.points, int(outline.n_points))
-	tags     := slice.from_ptr(cast([^]u8)outline.tags, int(outline.n_points))
-	contours := slice.from_ptr(cast([^]i16)outline.contours, int(outline.n_contours))
+	outside := Vec2{ bounds_0.x - 21, bounds_0.y - 33 }
 
-	curve_quality := max(entry.curve_quality, 12)  // Increase minimum curve quality
-
-	start := 0
+	start_index: int = 0
 	for contour_index in 0..<int(outline.n_contours)
 	{
-			end         := int(contours[contour_index]) + 1
-			first_point := Vec2{f32(points[start].x), f32(points[start].y)}
-
-			if len(path) > 0 {
-					draw_filled_path(&ctx.draw_list, outside, path[:], scale, translate, ctx.debug_print_verbose)
-					clear(path)
-			}
-			append(path, Vertex{pos = first_point})
-
-			for point_index := start + 1; point_index <= end; point_index += 1
+			end_index := int(contours[contour_index]) + 1
+			for i := start_index; i < end_index; i += 1
 			{
-					curr     := points[point_index % int(outline.n_points)]
-					curr_tag := tags[point_index % int(outline.n_points)]
-					curr_pos := Vec2 { f32(curr.x), f32(curr.y) }
+				is_current_off_curve := (tags[i] & 1) == 0
+				next_index := (i + 1) % int(outline.n_points)
+				is_next_off_curve := (tags[next_index] & 1) == 0
 
-					if curr_tag & 1 != 0
-					{
-							// On-curve point
-							append(path, Vertex{pos = curr_pos})
-					} else
-					{
-							// Off-curve point
-							prev := path[len(path)-1].pos
-							next: Vec2
-							if point_index == end
-							{
-									next = first_point
-							}
-							else
-							{
-									next_point := points[(point_index + 1) % int(outline.n_points)]
-									next        = Vec2{f32(next_point.x), f32(next_point.y)}
-									if tags[(point_index + 1) % int(outline.n_points)] & 1 == 0
-									{
-										// Next point is also off-curve, insert virtual on-curve point
-										next = {(curr_pos.x + next.x) * 0.5, (curr_pos.y + next.y) * 0.5}
-									}
-							}
-
-							for i: f32 = 1; i <= curve_quality; i += 1
-							{
-								t := i / curve_quality
-								q := eval_point_on_bezier3(prev, curr_pos, next, t)
-								append(path, Vertex{pos = q})
-							}
+				if is_current_off_curve && i != end_index - 1 && is_next_off_curve {
+					// both current and next points are off-curve
+					midpoint := Vec2{
+							(f32(points[i].x) + f32(points[next_index].x)) * 0.5,
+							(f32(points[i].y) + f32(points[next_index].y)) * 0.5
 					}
+					append(path, Vertex{pos = midpoint})
+					i += 1 // skip the next point because it's handled here
+				}
+				else
+				{
+					current_pos := Vec2{f32(points[i].x), f32(points[i].y)}
+					append(path, Vertex{pos = current_pos})
+				}
 			}
 
-			// Explicitly close the contour
-			if path[0].pos != path[len(path)-1].pos {
-					append(path, Vertex{pos = first_point})
+			// ensure the contour is closed
+			if path[0].pos != path[len(path)-1].pos
+			{
+				append(path, Vertex{pos = path[0].pos})
 			}
-
-			start = end
+			draw_filled_path(&ctx.draw_list, bounds_0, path[:], scale, translate, ctx.debug_print_verbose)
+			clear(path)
+			start_index = end_index
 	}
 
 	if len(path) > 0 {
-			draw_filled_path(&ctx.draw_list, outside, path[:], scale, translate, ctx.debug_print_verbose)
+		draw_filled_path_freetype(&ctx.draw_list, outside, path[:], scale, translate, ctx.debug_print_verbose)
 	}
 
-	draw.end_index = u32(len(ctx.draw_list.indices))
+	draw.end_index = cast(u32) len(ctx.draw_list.indices)
 	if draw.end_index > draw.start_index {
-			append(&ctx.draw_list.calls, draw)
+		append( & ctx.draw_list.calls, draw)
 	}
 
 	return true
+}
+
+draw_filled_path_freetype :: proc( draw_list : ^DrawList, outside_point : Vec2, path : []Vertex,
+	scale     := Vec2 { 1, 1 },
+	translate := Vec2 { 0, 0 },
+	debug_print_verbose : b32 = false
+)
+{
+	if debug_print_verbose
+	{
+			log("outline_path:")
+			for point in path {
+					vec := point.pos * scale + translate
+					logf(" %0.2f %0.2f", vec.x, vec.y )
+			}
+	}
+
+	// Apply transformations and add vertices to the draw list
+	v_offset := cast(u32) len(draw_list.vertices)
+	for point in path {
+			transformed_point := Vertex {
+					pos = point.pos * scale + translate,
+					u = 0,  // If texture coordinates are used, set appropriately
+					v = 0
+			}
+			append( & draw_list.vertices, transformed_point )
+	}
+
+	// Ensure there's enough vertices to form at least one triangle
+	if len(path) > 2 {
+			indices := & draw_list.indices
+
+			// Connect each vertex to form a triangle fan without an outside vertex
+			for index : u32 = 1; index < cast(u32) len(path) - 1; index += 1 {
+					to_add := [3]u32 {
+							v_offset,                 // Start vertex (first vertex of the path)
+							v_offset + index,         // Current vertex
+							v_offset + index + 1      // Next vertex
+					}
+					append( indices, ..to_add[:] )
+			}
+
+			// Close the path by connecting the last vertex to the first two
+			to_add := [3]u32 {
+					v_offset,                      // First vertex
+					v_offset + cast(u32)(len(path) - 1),  // Last vertex
+					v_offset + 1                   // Second vertex, to close the loop
+			}
+			append( indices, ..to_add[:] )
+	}
 }
 
 cache_glyph :: proc(ctx : ^Context, font : FontID, glyph_index : Glyph, entry : ^Entry, bounds_0, bounds_1 : Vec2, scale, translate : Vec2) -> b32
@@ -203,6 +229,7 @@ cache_glyph :: proc(ctx : ^Context, font : FontID, glyph_index : Glyph, entry : 
 		return false
 	}
 
+	// Glyph shape handling are not abstractable between freetype and stb_truetype
 	if entry.parser_info.kind == .Freetype {
 		result := cache_glyph_freetype( ctx, font, glyph_index, entry, bounds_0, bounds_1, scale, translate )
 		return result
