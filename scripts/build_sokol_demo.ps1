@@ -33,7 +33,7 @@ write-host "Core Count - Physical: $CoreCount_Physical Logical: $CoreCount_Logic
 #endregion CPU_Info
 
 $url_freetype       = 'https://github.com/Ed94/odin-freetype.git'
-$url_harfbuzz       = 'https://github.com/Ed94/odin_harfbuzz.git'
+$url_harfbuzz       = 'https://github.com/Ed94/harfbuzz-odin.git'
 $url_sokol          = 'https://github.com/floooh/sokol-odin.git'
 $url_sokol_tools    = 'https://github.com/floooh/sokol-tools-bin.git'
 
