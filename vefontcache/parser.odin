@@ -12,6 +12,7 @@ STB_Truetype has macros for its allocation unfortuantely
 import "base:runtime"
 import "core:c"
 import "core:math"
+import "core:slice"
 import stbtt    "vendor:stb/truetype"
 import freetype "thirdparty:freetype"
 
@@ -198,15 +199,6 @@ parser_get_font_vertical_metrics :: #force_inline proc "contextless" ( font : ^P
 			descent  = i32(info.descender)
 			line_gap = i32(info.height) - (ascent - descent)
 
-			// FreeType stores these values in font units, so we need to convert them to pixels
-			units_per_em := i32(info.units_per_em)
-
-			if units_per_em != 0 {
-				ascent   = (ascent   * i32(info.size.metrics.y_ppem)) / units_per_em
-				descent  = (descent  * i32(info.size.metrics.y_ppem)) / units_per_em
-				line_gap = (line_gap * i32(info.size.metrics.y_ppem)) / units_per_em
-			}
-
 		case .STB_TrueType:
 			stbtt.GetFontVMetrics( & font.stbtt_info, & ascent, & descent, & line_gap )
 	}
@@ -241,137 +233,89 @@ parser_get_glyph_shape :: proc( font : ^ParserFontInfo, glyph_index : Glyph ) ->
 	switch font.kind
 	{
 		case .Freetype:
-			error := freetype.load_glyph( font.freetype_info, cast(u32) glyph_index, { .No_Bitmap, .No_Hinting, .No_Scale } )
+			error := freetype.load_glyph(font.freetype_info, cast(u32)glyph_index, {.No_Bitmap, .No_Hinting, .No_Scale})
 			if error != .Ok {
-				return
+					return
 			}
 
 			glyph := font.freetype_info.glyph
 			if glyph.format != .Outline {
-				return
+					return
 			}
 
-			/*
-			convert freetype outline to stb_truetype shape
+			outline    := &glyph.outline
+			n_points   := int(outline.n_points)
+			n_contours := int(outline.n_contours)
 
-			freetype docs: https://freetype.org/freetype2/docs/glyphs/glyphs-6.html
+			vertices, alloc_error := make([dynamic]ParserGlyphVertex, 0, n_points + n_contours)
+			if alloc_error != .None {
+					// Handle allocation error
+					return
+			}
 
-			stb_truetype shape info:
-			The shape is a series of contours. Each one starts with
-			a STBTT_moveto, then consists of a series of mixed
-			STBTT_lineto and STBTT_curveto segments. A lineto
-			draws a line from previous endpoint to its x,y; a curveto
-			draws a quadratic bezier from previous endpoint to
-			its x,y, using cx,cy as the bezier control point.
-			*/
+			points   := slice.from_ptr(cast([^]freetype.Vector) outline.points,   n_points)
+			tags     := slice.from_ptr(cast([^]u8)              outline.tags,     n_points)
+			contours := slice.from_ptr(cast([^]i16)             outline.contours, n_contours)
+
+			start := 0
+			for contour_index in 0 ..< n_contours
 			{
-				FT_CURVE_TAG_CONIC :: 0x00
-				FT_CURVE_TAG_ON    :: 0x01
-				FT_CURVE_TAG_CUBIC :: 0x02
+				end := int(contours[contour_index]) + 1
 
-				vertices, error := make( [dynamic]ParserGlyphVertex, 1024 )
-				assert( error == .None )
+				first_point := points[start]
+				append( & vertices, ParserGlyphVertex { type = .Move, x = i16(first_point.x), y = i16(first_point.y) })
 
-				// TODO(Ed): This makes freetype second class I guess but VEFontCache doesn't have native support for freetype originally so....
-				outline := & glyph.outline
-
-				contours := transmute( [^]u16) outline.contours
-				points   := transmute( [^]freetype.Vector) outline.points
-				tags     := transmute( [^]u8) outline.tags
-
-				// TODO(Ed): Review this, never tested before and its problably bad.
-				for contour : i32 = 0; contour < i32(outline.n_contours); contour += 1
+				for point_index := start; point_index < end; point_index += 1
 				{
-					start := (contour == 0) ? 0 : i32(contours[ contour - 1 ] + 1)
-					end   := i32(contours[ contour ])
+						tag        := tags[point_index]
+						point      := points[point_index]
+						next_point := points[(point_index + 1) % end]
 
-					for index := start; index < i32(outline.n_points); index += 1
-					{
-						point := points[ index ]
-						tag   := tags[ index ]
-
-						if (tag & FT_CURVE_TAG_ON) != 0
+						if tag & 1 == 0
 						{
-							if len(vertices) > 0 && !(vertices[len(vertices) - 1].type == .Move )
-							{
-								// Close the previous contour if needed
-								append(& vertices, ParserGlyphVertex { type = .Line,
-									x = i16(points[start].x), y = i16(points[start].y),
-									contour_x0 = i16(0), contour_y0 = i16(0),
-									contour_x1 = i16(0), contour_y1 = i16(0),
-									padding = 0,
-								})
-							}
-
-							append(& vertices, ParserGlyphVertex { type = .Move,
-								x = i16(point.x), y = i16(point.y),
-								contour_x0 = i16(0), contour_y0 = i16(0),
-								contour_x1 = i16(0), contour_y1 = i16(0),
-								padding = 0,
-							})
-						}
-						else if (tag & FT_CURVE_TAG_CUBIC) != 0
-						{
-							point1 := points[ index + 1 ]
-							point2 := points[ index + 2 ]
-							append(& vertices, ParserGlyphVertex { type = .Cubic,
-								x = i16(point2.x), y = i16(point2.y),
-								contour_x0 = i16(point.x),  contour_y0 = i16(point.y),
-								contour_x1 = i16(point1.x), contour_y1 = i16(point1.y),
-								padding = 0,
-							})
-							index += 2
-						}
-						else if (tag & FT_CURVE_TAG_CONIC) != 0
-						{
-							// TODO(Ed): This is using a very dead simple algo to convert the conic to a cubic curve
-							// not sure if we need something more sophisticaated
-							point1       := points[ index + 1 ]
-
-							control_conv :: f32(0.5) // Conic to cubic control point distance
-							to_float     := f32(1.0 / 64.0)
-
-							fp  := Vec2 { f32(point.x), f32(point.y)   } * to_float
-							fp1 := Vec2 { f32(point1.x), f32(point1.y) } * to_float
-
-							control1 := freetype.Vector {
-								point.x + freetype.Pos( (fp1.x - fp.x) * control_conv * 64.0 ),
-								point.y + freetype.Pos( (fp1.y - fp.y) * control_conv * 64.0 ),
-							}
-							control2 := freetype.Vector {
-								point1.x + freetype.Pos( (fp.x - fp1.x) * control_conv * 64.0 ),
-								point1.y + freetype.Pos( (fp.y - fp1.y) * control_conv * 64.0 ),
-							}
-							append(& vertices, ParserGlyphVertex { type = .Cubic,
-								x = i16(point1.x), y = i16(point1.y),
-								contour_x0 = i16(control1.x), contour_y0 = i16(control1.y),
-								contour_x1 = i16(control2.x), contour_y1 = i16(control2.y),
-								padding = 0,
-							})
-							index += 1
+								// Off-curve point
+								if tags[(point_index + 1) % end] & 1 == 0
+								{
+									// Next is also off-curve
+									mid_point := Vec2{
+										(f32(point.x) + f32(next_point.x)) / 2,
+										(f32(point.y) + f32(next_point.y)) / 2,
+									}
+									append(&vertices, ParserGlyphVertex {
+										type       = .Curve,
+										x          = i16(mid_point.x),
+										y          = i16(mid_point.y),
+										contour_x0 = i16(point.x),
+										contour_y0 = i16(point.y),
+									})
+								}
+								else
+								{
+									// Next is on-curve
+									append(&vertices, ParserGlyphVertex{
+										type       = .Curve,
+										x          = i16(next_point.x),
+										y          = i16(next_point.y),
+										contour_x0 = i16(point.x),
+										contour_y0 = i16(point.y),
+									})
+									point_index += 1
+								}
 						}
 						else
 						{
-							append(& vertices, ParserGlyphVertex { type = .Line,
+							// On-curve point
+							append(&vertices, ParserGlyphVertex{
+								type = .Line,
 								x = i16(point.x), y = i16(point.y),
-								contour_x0 = i16(0), contour_y0 = i16(0),
-								contour_x1 = i16(0), contour_y1 = i16(0),
-								padding = 0,
 							})
 						}
-					}
-
-					// Close contour
-					append(& vertices, ParserGlyphVertex { type = .Line,
-						x = i16(points[start].x), y = i16(points[start].y),
-						contour_x0 = i16(0), contour_y0 = i16(0),
-						contour_x1 = i16(0), contour_y1 = i16(0),
-						padding = 0,
-					})
 				}
 
-				shape = vertices
+				start = end
 			}
+
+			shape = vertices
 
 		case .STB_TrueType:
 			stb_shape : [^]stbtt.vertex
