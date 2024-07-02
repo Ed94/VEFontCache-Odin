@@ -10,6 +10,11 @@ Builds example's sokol_demo.odin. Will gather necessary dependencies first.
 Its assumed the user has Odin installed and exposed to the OS enviornment's PATH.  
 (Change odin_compiler_def.ps1 if not the case)
 
+#### Note on dependency packages
+
+[harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it uses the meson build system.  
+[freetype](https://github.com/Ed94/odin-freetype) package has pre-built .lib files for windows (debug/release).
+
 ### build_sokol_library.ps1
 
 Helper script used by `build_sokol_demo.ps1`. Build's & modifies the library for its use in the examples.
