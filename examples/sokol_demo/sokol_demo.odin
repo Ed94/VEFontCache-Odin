@@ -62,7 +62,7 @@ FontDef :: struct {
 	size_table   : [FONT_LARGEST_PIXEL_SIZE / FONT_SIZE_INTERVAL] ve.FontID,
 }
 
-Demo_Context :: struct {
+DemoContext :: struct {
 	ve_ctx     : ve.Context,
 	render_ctx : ve_sokol.Context,
 	font_ids   : map[string]FontDef,
@@ -93,7 +93,7 @@ Demo_Context :: struct {
 	screen_size : [2]f32,
 }
 
-demo_ctx : Demo_Context
+demo_ctx : DemoContext
 
 font_load :: proc(path_file : string,
 	default_size  : i32    = FONT_LOAD_USE_DEFAULT_SIZE,

@@ -86,8 +86,7 @@ atlas_bbox :: proc( atlas : ^Atlas, region : AtlasRegionKind, local_idx : i32 ) 
 	return
 }
 
-decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Glyph
-) -> (region_kind : AtlasRegionKind, region : ^AtlasRegion, over_sample : Vec2)
+decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Glyph ) -> (region_kind : AtlasRegionKind, region : ^AtlasRegion, over_sample : Vec2)
 {
 	if parser_is_glyph_empty(&entry.parser_info, glyph_index) {
 		return .None, nil, {}

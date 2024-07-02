@@ -53,8 +53,6 @@ ParserGlyphShape :: [dynamic]ParserGlyphVertex
 ParserContext :: struct {
 	kind       : ParserKind,
 	ft_library : freetype.Library,
-
-	// fonts : HMapChained(ParserFontInfo),
 }
 
 parser_init :: proc( ctx : ^ParserContext, kind : ParserKind )
@@ -70,10 +68,6 @@ parser_init :: proc( ctx : ^ParserContext, kind : ParserKind )
 	}
 
 	ctx.kind = kind
-
-	// error : AllocatorError
-	// ctx.fonts, error = make( HMapChained(ParserFontInfo), 256 )
-	// assert( error == .None, "VEFontCache.parser_init: Failed to allocate fonts array" )
 }
 
 parser_shutdown :: proc( ctx : ^ParserContext ) {
@@ -82,13 +76,6 @@ parser_shutdown :: proc( ctx : ^ParserContext ) {
 
 parser_load_font :: proc( ctx : ^ParserContext, label : string, data : []byte ) -> (font : ParserFontInfo)
 {
-	// key  := font_key_from_label(label)
-	// font  = get( ctx.fonts, key )
-	// if font != nil do return
-
-	// error : AllocatorError
-	// font, error = set( ctx.fonts, key, ParserFontInfo {} )
-	// assert( error == .None, "VEFontCache.parser_load_font: Failed to set a new parser font info" )
 	switch ctx.kind
 	{
 		case .Freetype:
@@ -230,22 +217,11 @@ parser_get_glyph_box :: #force_inline proc ( font : ^ParserFontInfo, glyph_index
 
 parser_get_glyph_shape :: proc( font : ^ParserFontInfo, glyph_index : Glyph ) -> (shape : ParserGlyphShape, error : AllocatorError)
 {
-	quad_to_cubic :: proc(p0, p1, p2: freetype.Vector) -> (c1, c2: freetype.Vector) {
-		c1 = freetype.Vector{
-			x = p0.x + ((p1.x - p0.x) * 2 + 1) / 3,
-			y = p0.y + ((p1.y - p0.y) * 2 + 1) / 3,
-		}
-		c2 = freetype.Vector{
-			x = p2.x + ((p1.x - p2.x) * 2 + 1) / 3,
-			y = p2.y + ((p1.y - p2.y) * 2 + 1) / 3,
-		}
-		return
-	}
-
 	switch font.kind
 	{
 		case .Freetype:
-			// TODO(Ed): Don't do this we're going a completely different route for handling shapes
+			// TODO(Ed): Don't do this, going a completely different route for handling shapes.
+			// This abstraction fails to be time-saving or performant.
 
 		case .STB_TrueType:
 			stb_shape : [^]stbtt.vertex

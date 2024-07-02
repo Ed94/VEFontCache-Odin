@@ -91,7 +91,6 @@ blit_quad :: proc( draw_list : ^DrawList, p0 : Vec2 = {0, 0}, p1 : Vec2 = {1, 1}
 // TODO(Ed): glyph caching cannot be handled in a 'font parser' abstraction. Just going to have explicit procedures to grab info neatly...
 cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, entry: ^Entry, bounds_0, bounds_1: Vec2, scale, translate: Vec2) -> b32
 {
-
 	draw_filled_path_freetype :: proc( draw_list : ^DrawList, outside_point : Vec2, path : []Vertex,
 		scale     := Vec2 { 1, 1 },
 		translate := Vec2 { 0, 0 },
@@ -244,6 +243,7 @@ cache_glyph_freetype :: proc(ctx: ^Context, font: FontID, glyph_index: Glyph, en
 	return true
 }
 
+// TODO(Ed): Is it better to cache the glyph vertices for when it must be re-drawn (directly or two atlas)?
 cache_glyph :: proc(ctx : ^Context, font : FontID, glyph_index : Glyph, entry : ^Entry, bounds_0, bounds_1 : Vec2, scale, translate : Vec2) -> b32
 {
 	// profile(#procedure)

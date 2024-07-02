@@ -21,20 +21,20 @@ vec2i_from_vec2   :: #force_inline proc "contextless" ( v2     : Vec2  ) -> Vec2
 
 // This buffer is used below excluisvely to prevent any allocator recusion when verbose logging from allocators.
 // This means a single line is limited to 4k buffer
-Logger_Allocator_Buffer : [4 * Kilobyte]u8
+// Logger_Allocator_Buffer : [4 * Kilobyte]u8
 
 log :: proc( msg : string, level := core_log.Level.Info, loc := #caller_location ) {
-	temp_arena : Arena; arena_init(& temp_arena, Logger_Allocator_Buffer[:])
-	context.allocator      = arena_allocator(& temp_arena)
-	context.temp_allocator = arena_allocator(& temp_arena)
+	// temp_arena : Arena; arena_init(& temp_arena, Logger_Allocator_Buffer[:])
+	// context.allocator      = arena_allocator(& temp_arena)
+	// context.temp_allocator = arena_allocator(& temp_arena)
 
 	core_log.log( level, msg, location = loc )
 }
 
 logf :: proc( fmt : string, args : ..any,  level := core_log.Level.Info, loc := #caller_location  ) {
-	temp_arena : Arena; arena_init(& temp_arena, Logger_Allocator_Buffer[:])
-	context.allocator      = arena_allocator(& temp_arena)
-	context.temp_allocator = arena_allocator(& temp_arena)
+	// temp_arena : Arena; arena_init(& temp_arena, Logger_Allocator_Buffer[:])
+	// context.allocator      = arena_allocator(& temp_arena)
+	// context.temp_allocator = arena_allocator(& temp_arena)
 
 	core_log.logf( level, fmt, ..args, location = loc )
 }
@@ -130,10 +130,10 @@ when ! Use_SIMD_For_Bezier_Ops
 	// ve_fontcache_eval_bezier (quadratic)
 	eval_point_on_bezier3 :: #force_inline proc "contextless" ( p0, p1, p2 : Vec2, alpha : f32 ) -> Vec2
 	{
-		p0    := vec2_64(p0)
-		p1    := vec2_64(p1)
-		p2    := vec2_64(p2)
-		alpha := f64(alpha)
+		// p0    := vec2_64(p0)
+		// p1    := vec2_64(p1)
+		// p2    := vec2_64(p2)
+		// alpha := f64(alpha)
 
 		weight_start   := (1 - alpha) * (1 - alpha)
 		weight_control := 2.0 * (1 - alpha) * alpha
@@ -152,11 +152,11 @@ when ! Use_SIMD_For_Bezier_Ops
 	// ve_fontcache_eval_bezier (cubic)
 	eval_point_on_bezier4 :: #force_inline proc "contextless" ( p0, p1, p2, p3 : Vec2, alpha : f32 ) -> Vec2
 	{
-		p0    := vec2_64(p0)
-		p1    := vec2_64(p1)
-		p2    := vec2_64(p2)
-		p3    := vec2_64(p3)
-		alpha := f64(alpha)
+		// p0    := vec2_64(p0)
+		// p1    := vec2_64(p1)
+		// p2    := vec2_64(p2)
+		// p3    := vec2_64(p3)
+		// alpha := f64(alpha)
 
 		weight_start := (1 - alpha) * (1 - alpha) * (1 - alpha)
 		weight_c_a   := 3 * (1 - alpha) * (1 - alpha) * alpha

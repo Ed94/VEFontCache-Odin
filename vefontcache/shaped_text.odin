@@ -76,9 +76,7 @@ shape_text_uncached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, 
 
 	if ctx.text_shape_adv
 	{
-		// assert( entry.shaper_info != nil )
 		shaper_shape_from_text( & ctx.shaper_ctx, & entry.shaper_info, output, text_utf8, ascent_i32, descent_i32, line_gap_i32, entry.size, entry.size_scale )
-		// TODO(Ed): Need to be able to provide the text height as well
 		return
 	}
 	else

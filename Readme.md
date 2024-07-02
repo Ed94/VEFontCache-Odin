@@ -25,28 +25,19 @@ Note: freetype and harfbuzz could technically be gutted if the user removes thei
 
 ## TODOs
 
-### Documentation:
-
-* Pureref outline of draw_text exectuion
-* Markdown general documentation
-
-### Content:
-
-* Port over the original demo utilizing sokol libraries instead
-
 ### Additional Features:
 
 * Support for freetype (WIP, Currently a mess... and slow)
 * Add ability to conditionally compile dependencies (so that the user may not need to resolve those packages).
-  * Related to usage of //+build tags?
 * Ability to set a draw transform, viewport and projection
   * By default the library's position is in unsigned normalized render space
   * Could implement a similar design to sokol_gp's interface
 
 ### Optimization:
 
+* Check if its better to store the generated glyph vertices if they need to be re-cached or directly drawn.
 * Look into setting up multi-threading by giving each thread a context
-  * There is a heavy performance bottleneck in iterating the text/shape/glyphs on the cpu (single-thread) vs the actual rendering
+  * There is a heavy performance bottleneck in iterating the text/shape/glyphs on the cpu (single-thread) vs the actual rendering *(if doing thousands of drawing commands)*
   * draw_text can provide in the context a job list per thread for the user to thenk hookup to their own threading solution to handle.
   * Context would need to be segregated into staged data structures for each thread to utilize
     * Each should have their own?
