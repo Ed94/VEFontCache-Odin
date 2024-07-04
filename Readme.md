@@ -21,7 +21,7 @@ Note: freetype and harfbuzz could technically be gutted if the user removes thei
 * ve_fontcache_loadfile not ported (ust use core:os or os2, then call load_font)
 * Macro defines have been coverted (mostly) to runtime parameters
 * Support for hot_reloading
-* Curve quality step intropolation for glyph rendering can be set on a per font basis.
+* Curve quality step interpolation for glyph rendering can be set on a per font basis.
 
 ## TODOs
 
