@@ -4,24 +4,24 @@ This is a port of the [VEFontCache](https://github.com/hypernewbie/VEFontCache) 
 
 Its original purpose was for use in game engines, however its rendeirng quality and performance is more than adequate for many other applications.
 
-See: [docs/Readme.md](docs/Readme.md) for the library's interface
+See: [docs/Readme.md](docs/Readme.md) for the library's interface.
 
 ## Building
 
 See [scripts/Readme.md](scripts/Readme.md) for building examples or utilizing the provided backends.
 
-Currently the scripts provided & the library itself where developed & tested on Windows. The library itself should not be limited to that OS platform however, just don't have the configuration setup for alternative platforms (yet).
+Currently the scripts provided & the library itself were developed & tested on Windows. The library however should not be limited to that OS platform, just don't have the configuration for alternative platforms (yet).
 
-The library depends on freetype, harfbuzz, & stb_truetype currently to build.  
+The library depends on freetype, harfbuzz, & stb_truetype to build.  
 Note: freetype and harfbuzz could technically be gutted if the user removes their definitions, however they have not been made into a conditional compilation option (yet).
 
 ## Changes from orignal
 
-* Font Parser & Glyph shaper are abstracted to their own interface
+* Font Parser & Glyph shaper are abstracted to their own warpper interface
 * ve_fontcache_loadfile not ported (ust use core:os or os2, then call load_font)
 * Macro defines have been coverted (mostly) to runtime parameters
 * Support for hot_reloading
-* Curve quality step granularity for glyph rendering can be set on a per font basis.
+* Curve quality step intropolation for glyph rendering can be set on a per font basis.
 
 ## TODOs
 
@@ -35,18 +35,12 @@ Note: freetype and harfbuzz could technically be gutted if the user removes thei
 
 ### Optimization:
 
-* Check if its better to store the generated glyph vertices if they need to be re-cached or directly drawn.
+* Check if its better to store the glyph vertices if they need to be re-cached to atlas or directly drawn.
 * Look into setting up multi-threading by giving each thread a context
   * There is a heavy performance bottleneck in iterating the text/shape/glyphs on the cpu (single-thread) vs the actual rendering *(if doing thousands of drawing commands)*
   * draw_text can provide in the context a job list per thread for the user to thenk hookup to their own threading solution to handle.
   * Context would need to be segregated into staged data structures for each thread to utilize
-    * Each should have their own?
-      * draw_list
-      * draw_layer
-      * atlas.next_idx
-      * glyph_draw_buffer
-      * shape_cache
-    * This would need to converge to the singlar draw_list on a per layer basis (then user reqeusts a draw_list layer there could a yield to wait for the jobs to finish); if the interface expects the user to issue the commands single-threaded unless, we just assume the user is going to feed the gpu the commands & data through separate threads as well (not ideal ux).
+    * This would need to converge to the singlar draw_list on a per layer basis. The interface expects the user to issue commands single-threaded unless, its assumed the user is going to feed the gpu the commands & data through separate threads as well (not ideal ux).
   * How the contexts are given jobs should be left up to the user (can recommend a screen quadrant based approach in demo examples)
 
 Failed Attempts:
