@@ -49,7 +49,7 @@ reload_map :: proc( self : ^map [$KeyType] $EntryType, allocator : Allocator ) {
 	raw.allocator = allocator
 }
 
-font_glyph_lru_code :: #force_inline proc "contextless" ( font : FontID, glyph_index : Glyph ) -> (lru_code : u64) {
+font_glyph_lru_code :: #force_inline proc "contextless" ( font : Font_ID, glyph_index : Glyph ) -> (lru_code : u64) {
 	lru_code = u64(glyph_index) + ( ( 0x100000000 * u64(font) ) & 0xFFFFFFFF00000000 )
 	return
 }
@@ -71,9 +71,11 @@ reset_batch_codepoint_state :: #force_inline proc( ctx : ^Context ) {
 	ctx.temp_codepoint_seen_num = 0
 }
 
+USE_F64_PRECISION_ON_X_FORM_OPS :: false
+
 screenspace_x_form :: #force_inline proc "contextless" ( position, scale : ^Vec2, size : Vec2 )
 {
-	if true
+	when USE_F64_PRECISION_ON_X_FORM_OPS
 	{
 		pos_64   := vec2_64_from_vec2(position^)
 		scale_64 := vec2_64_from_vec2(scale^)
@@ -101,7 +103,7 @@ screenspace_x_form :: #force_inline proc "contextless" ( position, scale : ^Vec2
 
 textspace_x_form :: #force_inline proc "contextless" ( position, scale : ^Vec2, size : Vec2 )
 {
-	if true
+	when USE_F64_PRECISION_ON_X_FORM_OPS
 	{
 		pos_64   := vec2_64_from_vec2(position^)
 		scale_64 := vec2_64_from_vec2(scale^)
@@ -121,9 +123,9 @@ textspace_x_form :: #force_inline proc "contextless" ( position, scale : ^Vec2, 
 	}
 }
 
-Use_SIMD_For_Bezier_Ops :: false
+USE_MANUAL_SIMD_FOR_BEZIER_OPS :: false
 
-when ! Use_SIMD_For_Bezier_Ops
+when ! USE_MANUAL_SIMD_FOR_BEZIER_OPS
 {
 	// For a provided alpha value,
 	// allows the function to calculate the position of a point along the curve at any given fraction of its total length

@@ -1,14 +1,14 @@
 package vefontcache
 
-ShapedText :: struct {
+Shaped_Text :: struct {
 	glyphs         : [dynamic]Glyph,
 	positions      : [dynamic]Vec2,
 	end_cursor_pos : Vec2,
 	size           : Vec2,
 }
 
-ShapedTextCache :: struct {
-	storage       : [dynamic]ShapedText,
+Shaped_Text_Cache :: struct {
+	storage       : [dynamic]Shaped_Text,
 	state         : LRU_Cache,
 	next_cache_id : i32,
 }
@@ -19,11 +19,11 @@ shape_lru_hash :: #force_inline proc "contextless" ( hash : ^u64, bytes : []byte
 	}
 }
 
-shape_text_cached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, entry : ^Entry ) -> ^ShapedText
+shape_text_cached :: proc( ctx : ^Context, font : Font_ID, text_utf8 : string, entry : ^Entry ) -> ^Shaped_Text
 {
 	// profile(#procedure)
 	font        := font
-	font_bytes  := slice_ptr( transmute(^byte) & font,  size_of(FontID) )
+	font_bytes  := slice_ptr( transmute(^byte) & font,  size_of(Font_ID) )
 	text_bytes  := transmute( []byte) text_utf8
 
 	lru_code : u64
@@ -33,23 +33,23 @@ shape_text_cached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, en
 	shape_cache := & ctx.shape_cache
 	state       := & ctx.shape_cache.state
 
-	shape_cache_idx := LRU_get( state, lru_code )
+	shape_cache_idx := lru_get( state, lru_code )
 	if shape_cache_idx == -1
 	{
 		if shape_cache.next_cache_id < i32(state.capacity) {
 			shape_cache_idx            = shape_cache.next_cache_id
 			shape_cache.next_cache_id += 1
-			evicted := LRU_put( state, lru_code, shape_cache_idx )
+			evicted := lru_put( state, lru_code, shape_cache_idx )
 		}
 		else
 		{
-			next_evict_idx := LRU_get_next_evicted( state )
+			next_evict_idx := lru_get_next_evicted( state )
 			assert( next_evict_idx != 0xFFFFFFFFFFFFFFFF )
 
-			shape_cache_idx = LRU_peek( state, next_evict_idx, must_find = true )
+			shape_cache_idx = lru_peek( state, next_evict_idx, must_find = true )
 			assert( shape_cache_idx != - 1 )
 
-			LRU_put( state, lru_code, shape_cache_idx )
+			lru_put( state, lru_code, shape_cache_idx )
 		}
 
 		shape_entry := & shape_cache.storage[ shape_cache_idx ]
@@ -59,7 +59,7 @@ shape_text_cached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, en
 	return & shape_cache.storage[ shape_cache_idx ]
 }
 
-shape_text_uncached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, entry : ^Entry, output : ^ShapedText )
+shape_text_uncached :: proc( ctx : ^Context, font : Font_ID, text_utf8 : string, entry : ^Entry, output : ^Shaped_Text )
 {
 	// profile(#procedure)
 	assert( ctx != nil )
@@ -106,7 +106,7 @@ shape_text_uncached :: proc( ctx : ^Context, font : FontID, text_utf8 : string, 
 				prev_codepoint = rune(0)
 				continue
 			}
-			if abs( entry.size ) <= Advance_Snap_Smallfont_Size {
+			if abs( entry.size ) <= ADVANCE_SNAP_SMALLFONT_SIZE {
 				position.x = position.x
 			}
 

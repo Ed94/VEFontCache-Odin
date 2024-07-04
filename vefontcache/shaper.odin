@@ -6,35 +6,35 @@ Note(Ed): The only reason I didn't directly use harfbuzz is because hamza exists
 import "core:c"
 import "thirdparty:harfbuzz"
 
-ShaperKind :: enum {
+Shaper_Kind :: enum {
 	Naive    = 0,
 	Harfbuzz = 1,
 }
 
-ShaperContext :: struct {
+Shaper_Context :: struct {
 	hb_buffer : harfbuzz.Buffer,
 }
 
-ShaperInfo :: struct {
+Shaper_Info :: struct {
 	blob : harfbuzz.Blob,
 	face : harfbuzz.Face,
 	font : harfbuzz.Font,
 }
 
-shaper_init :: proc( ctx : ^ShaperContext )
+shaper_init :: proc( ctx : ^Shaper_Context )
 {
 	ctx.hb_buffer = harfbuzz.buffer_create()
 	assert( ctx.hb_buffer != nil, "VEFontCache.shaper_init: Failed to create harfbuzz buffer")
 }
 
-shaper_shutdown :: proc( ctx : ^ShaperContext )
+shaper_shutdown :: proc( ctx : ^Shaper_Context )
 {
 	if ctx.hb_buffer != nil {
 		harfbuzz.buffer_destroy( ctx.hb_buffer )
 	}
 }
 
-shaper_load_font :: proc( ctx : ^ShaperContext, label : string, data : []byte, user_data : rawptr ) -> (info : ShaperInfo)
+shaper_load_font :: proc( ctx : ^Shaper_Context, label : string, data : []byte, user_data : rawptr ) -> (info : Shaper_Info)
 {
 	using info
 	blob = harfbuzz.blob_create( raw_data(data), cast(c.uint) len(data), harfbuzz.Memory_Mode.READONLY, user_data, nil )
@@ -43,7 +43,7 @@ shaper_load_font :: proc( ctx : ^ShaperContext, label : string, data : []byte, u
 	return
 }
 
-shaper_unload_font :: proc( ctx : ^ShaperInfo )
+shaper_unload_font :: proc( ctx : ^Shaper_Info )
 {
 	using ctx
 	if blob != nil do harfbuzz.font_destroy( font )
@@ -51,7 +51,7 @@ shaper_unload_font :: proc( ctx : ^ShaperInfo )
 	if blob != nil do harfbuzz.blob_destroy( blob )
 }
 
-shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output :^ShapedText, text_utf8 : string,
+shaper_shape_from_text :: proc( ctx : ^Shaper_Context, info : ^Shaper_Info, output :^Shaped_Text, text_utf8 : string,
 	ascent, descent, line_gap : i32, size, size_scale : f32 )
 {
 	// profile(#procedure)
@@ -69,7 +69,7 @@ shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output
 	line_height    := (ascent - descent + line_gap) * size_scale
 
 	position, vertical_position : f32
-	shape_run :: proc( buffer : harfbuzz.Buffer, script : harfbuzz.Script, font : harfbuzz.Font, output : ^ShapedText,
+	shape_run :: proc( buffer : harfbuzz.Buffer, script : harfbuzz.Script, font : harfbuzz.Font, output : ^Shaped_Text,
 		position, vertical_position, max_line_width: ^f32, line_count: ^int,
 		ascent, descent, line_gap, size, size_scale: f32 )
 	{
@@ -105,7 +105,7 @@ shaper_shape_from_text :: proc( ctx : ^ShaperContext, info : ^ShaperInfo, output
 				(line_count^)         += 1
 				continue
 			}
-			if abs( size ) <= Advance_Snap_Smallfont_Size
+			if abs( size ) <= ADVANCE_SNAP_SMALLFONT_SIZE
 			{
 				(position^) = ceil( position^ )
 			}

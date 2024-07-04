@@ -6,33 +6,33 @@ The choice was made to keep the LRU cache implementation as close to the origina
 
 import "base:runtime"
 
-PoolListIter  :: i32
-PoolListValue :: u64
+Pool_ListIter  :: i32
+Pool_ListValue :: u64
 
-PoolListItem :: struct {
-	prev  : PoolListIter,
-	next  : PoolListIter,
-	value : PoolListValue,
+Pool_List_Item :: struct {
+	prev  : Pool_ListIter,
+	next  : Pool_ListIter,
+	value : Pool_ListValue,
 }
 
-PoolList :: struct {
-	items     : [dynamic]PoolListItem,
-	free_list : [dynamic]PoolListIter,
-	front     : PoolListIter,
-	back      : PoolListIter,
+Pool_List :: struct {
+	items     : [dynamic]Pool_List_Item,
+	free_list : [dynamic]Pool_ListIter,
+	front     : Pool_ListIter,
+	back      : Pool_ListIter,
 	size      : i32,
 	capacity  : i32,
 	dbg_name  : string,
 }
 
-pool_list_init :: proc( pool : ^PoolList, capacity : i32, dbg_name : string = "" )
+pool_list_init :: proc( pool : ^Pool_List, capacity : i32, dbg_name : string = "" )
 {
-	error : AllocatorError
-	pool.items, error = make( [dynamic]PoolListItem, int(capacity) )
+	error : Allocator_Error
+	pool.items, error = make( [dynamic]Pool_List_Item, int(capacity) )
 	assert( error == .None, "VEFontCache.pool_list_init : Failed to allocate items array")
 	resize( & pool.items, capacity )
 
-	pool.free_list, error = make( [dynamic]PoolListIter, len = 0, cap = int(capacity) )
+	pool.free_list, error = make( [dynamic]Pool_ListIter, len = 0, cap = int(capacity) )
 	assert( error == .None, "VEFontCache.pool_list_init : Failed to allocate free_list array")
 	resize( & pool.free_list, capacity )
 
@@ -53,17 +53,17 @@ pool_list_init :: proc( pool : ^PoolList, capacity : i32, dbg_name : string = ""
 	back  = -1
 }
 
-pool_list_free :: proc( pool : ^PoolList ) {
+pool_list_free :: proc( pool : ^Pool_List ) {
 	delete( pool.items)
 	delete( pool.free_list)
 }
 
-pool_list_reload :: proc( pool : ^PoolList, allocator : Allocator ) {
+pool_list_reload :: proc( pool : ^Pool_List, allocator : Allocator ) {
 	reload_array( & pool.items, allocator )
 	reload_array( & pool.free_list, allocator )
 }
 
-pool_list_push_front :: proc( pool : ^PoolList, value : PoolListValue )
+pool_list_push_front :: proc( pool : ^Pool_List, value : Pool_ListValue )
 {
 	using pool
 	if size >= capacity do return
@@ -90,7 +90,7 @@ pool_list_push_front :: proc( pool : ^PoolList, value : PoolListValue )
 	size  += 1
 }
 
-pool_list_erase :: proc( pool : ^PoolList, iter : PoolListIter )
+pool_list_erase :: proc( pool : ^Pool_List, iter : Pool_ListIter )
 {
 	using pool
 	if size <= 0 do return
@@ -119,7 +119,7 @@ pool_list_erase :: proc( pool : ^PoolList, iter : PoolListIter )
 	}
 }
 
-pool_list_move_to_front :: #force_inline proc( pool : ^PoolList, iter : PoolListIter )
+pool_list_move_to_front :: #force_inline proc( pool : ^Pool_List, iter : Pool_ListIter )
 {
 	using pool
 
@@ -136,13 +136,13 @@ pool_list_move_to_front :: #force_inline proc( pool : ^PoolList, iter : PoolList
 	front               = iter
 }
 
-pool_list_peek_back :: #force_inline proc ( pool : ^PoolList ) -> PoolListValue {
+pool_list_peek_back :: #force_inline proc ( pool : ^Pool_List ) -> Pool_ListValue {
 	assert( pool.back != - 1 )
 	value := pool.items[ pool.back ].value
 	return value
 }
 
-pool_list_pop_back :: #force_inline proc( pool : ^PoolList ) -> PoolListValue {
+pool_list_pop_back :: #force_inline proc( pool : ^Pool_List ) -> Pool_ListValue {
 	if pool.size <= 0 do return 0
 	assert( pool.back != -1 )
 
@@ -153,8 +153,10 @@ pool_list_pop_back :: #force_inline proc( pool : ^PoolList ) -> PoolListValue {
 
 LRU_Link :: struct {
 	pad_top : u64,
+
 	value : i32,
-	ptr   : PoolListIter,
+	ptr   : Pool_ListIter,
+
 	pad_bottom : u64,
 }
 
@@ -162,34 +164,34 @@ LRU_Cache :: struct {
 	capacity  : i32,
 	num       : i32,
 	table     :  map[u64]LRU_Link,
-	key_queue : PoolList,
+	key_queue : Pool_List,
 }
 
-LRU_init :: proc( cache : ^LRU_Cache, capacity : i32, dbg_name : string = "" ) {
-	error : AllocatorError
+lru_init :: proc( cache : ^LRU_Cache, capacity : i32, dbg_name : string = "" ) {
+	error : Allocator_Error
 	cache.capacity     = capacity
 	cache.table, error = make( map[u64]LRU_Link, uint(capacity) )
-	assert( error == .None, "VEFontCache.LRU_init : Failed to allocate cache's table")
+	assert( error == .None, "VEFontCache.lru_init : Failed to allocate cache's table")
 
 	pool_list_init( & cache.key_queue, capacity, dbg_name = dbg_name )
 }
 
-LRU_free :: proc( cache : ^LRU_Cache ) {
+lru_free :: proc( cache : ^LRU_Cache ) {
 	pool_list_free( & cache.key_queue )
 	delete( cache.table )
 }
 
-LRU_reload :: #force_inline proc( cache : ^LRU_Cache, allocator : Allocator ) {
+lru_reload :: #force_inline proc( cache : ^LRU_Cache, allocator : Allocator ) {
 	reload_map( & cache.table, allocator )
 	pool_list_reload( & cache.key_queue, allocator )
 }
 
-LRU_find :: #force_inline proc "contextless" ( cache : ^LRU_Cache, key : u64, must_find := false ) -> (LRU_Link, bool) {
+lru_find :: #force_inline proc "contextless" ( cache : ^LRU_Cache, key : u64, must_find := false ) -> (LRU_Link, bool) {
 	link, success := cache.table[key]
 	return link, success
 }
 
-LRU_get :: #force_inline proc( cache: ^LRU_Cache, key : u64 ) -> i32 {
+lru_get :: #force_inline proc( cache: ^LRU_Cache, key : u64 ) -> i32 {
 	if link, ok := &cache.table[ key ]; ok {
 			pool_list_move_to_front(&cache.key_queue, link.ptr)
 			return link.value
@@ -197,7 +199,7 @@ LRU_get :: #force_inline proc( cache: ^LRU_Cache, key : u64 ) -> i32 {
 	return -1
 }
 
-LRU_get_next_evicted :: #force_inline proc ( cache : ^LRU_Cache ) -> u64 {
+lru_get_next_evicted :: #force_inline proc ( cache : ^LRU_Cache ) -> u64 {
 	if cache.key_queue.size >= cache.capacity {
 		evict := pool_list_peek_back( & cache.key_queue )
 		return evict
@@ -205,15 +207,15 @@ LRU_get_next_evicted :: #force_inline proc ( cache : ^LRU_Cache ) -> u64 {
 	return 0xFFFFFFFFFFFFFFFF
 }
 
-LRU_peek :: #force_inline proc ( cache : ^LRU_Cache, key : u64, must_find := false ) -> i32 {
-	iter, success := LRU_find( cache, key, must_find )
+lru_peek :: #force_inline proc ( cache : ^LRU_Cache, key : u64, must_find := false ) -> i32 {
+	iter, success := lru_find( cache, key, must_find )
 	if success == false {
 		return -1
 	}
 	return iter.value
 }
 
-LRU_put :: #force_inline proc( cache : ^LRU_Cache, key : u64, value : i32 ) -> u64
+lru_put :: #force_inline proc( cache : ^LRU_Cache, key : u64, value : i32 ) -> u64
 {
 	if link, ok := & cache.table[ key ]; ok {
 		pool_list_move_to_front( & cache.key_queue, link.ptr )
@@ -237,8 +239,8 @@ LRU_put :: #force_inline proc( cache : ^LRU_Cache, key : u64, value : i32 ) -> u
 	return evict
 }
 
-LRU_refresh :: proc( cache : ^LRU_Cache, key : u64 ) {
-	link, success := LRU_find( cache, key )
+lru_refresh :: proc( cache : ^LRU_Cache, key : u64 ) {
+	link, success := lru_find( cache, key )
 	pool_list_erase( & cache.key_queue, link.ptr )
 	pool_list_push_front( & cache.key_queue, key )
 	link.ptr = cache.key_queue.front

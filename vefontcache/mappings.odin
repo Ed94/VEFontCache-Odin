@@ -27,8 +27,8 @@ import "core:mem"
 	Kilobyte  :: mem.Kilobyte
 	slice_ptr :: mem.slice_ptr
 
-	Allocator      :: mem.Allocator
-	AllocatorError :: mem.Allocator_Error
+	Allocator       :: mem.Allocator
+	Allocator_Error :: mem.Allocator_Error
 
 	Arena           :: mem.Arena
 	arena_allocator :: mem.arena_allocator

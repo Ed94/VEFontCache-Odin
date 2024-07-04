@@ -41,7 +41,7 @@ COLOR_WHITE :: RGBA8 { 255, 255, 255, 255 }
 FONT_LARGEST_PIXEL_SIZE       :: 400
 FONT_SIZE_INTERVAL         :: 2
 
-FONT_DEFAULT      :: FontID { "" }
+FONT_DEFAULT      :: Font_ID { "" }
 FONT_DEFAULT_SIZEZ :: 12.0
 
 FONT_LOAD_USE_DEFAULT_SIZE :: -1
@@ -52,17 +52,17 @@ PATH_FONTS :: "../fonts/"
 
 OVER_SAMPLE_ZOOM : f32 : 2.0  // Adjust this value as needed, used by draw_text_zoomed_norm
 
-FontID  :: struct {
+Font_ID  :: struct {
 	label : string,
 }
 
 FontDef :: struct {
 	path_file    : string,
 	default_size : i32,
-	size_table   : [FONT_LARGEST_PIXEL_SIZE / FONT_SIZE_INTERVAL] ve.FontID,
+	size_table   : [FONT_LARGEST_PIXEL_SIZE / FONT_SIZE_INTERVAL] ve.Font_ID,
 }
 
-DemoContext :: struct {
+Demo_Context :: struct {
 	ve_ctx     : ve.Context,
 	render_ctx : ve_sokol.Context,
 	font_ids   : map[string]FontDef,
@@ -70,43 +70,43 @@ DemoContext :: struct {
 	// Values between 1, & -1 on Y axis
 	mouse_scroll : Vec2,
 
-	font_firacode        : FontID,
-	font_logo            : FontID,
-	font_title           : FontID,
-	font_print           : FontID,
-	font_mono            : FontID,
-	font_small           : FontID,
-	font_demo_sans       : FontID,
-	font_demo_serif      : FontID,
-	font_demo_script     : FontID,
-	font_demo_mono       : FontID,
-	font_demo_chinese    : FontID,
-	font_demo_japanese   : FontID,
-	font_demo_korean     : FontID,
-	font_demo_thai       : FontID,
-	font_demo_arabic     : FontID,
-	font_demo_hebrew     : FontID,
-	font_demo_raincode   : FontID,
-	font_demo_grid2      : FontID,
-	font_demo_grid3      : FontID,
+	font_firacode        : Font_ID,
+	font_logo            : Font_ID,
+	font_title           : Font_ID,
+	font_print           : Font_ID,
+	font_mono            : Font_ID,
+	font_small           : Font_ID,
+	font_demo_sans       : Font_ID,
+	font_demo_serif      : Font_ID,
+	font_demo_script     : Font_ID,
+	font_demo_mono       : Font_ID,
+	font_demo_chinese    : Font_ID,
+	font_demo_japanese   : Font_ID,
+	font_demo_korean     : Font_ID,
+	font_demo_thai       : Font_ID,
+	font_demo_arabic     : Font_ID,
+	font_demo_hebrew     : Font_ID,
+	font_demo_raincode   : Font_ID,
+	font_demo_grid2      : Font_ID,
+	font_demo_grid3      : Font_ID,
 
 	screen_size : [2]f32,
 }
 
-demo_ctx : DemoContext
+demo_ctx : Demo_Context
 
 font_load :: proc(path_file : string,
 	default_size  : i32    = FONT_LOAD_USE_DEFAULT_SIZE,
 	desired_id    : string = FONT_LOAD_GEN_ID,
 	curve_quality : u32    = 3,
-) -> FontID
+) -> Font_ID
 {
 	msg := fmt.println("Loading font: %v", path_file)
 
 	font_data, read_succeded : = os.read_entire_file( path_file )
 	assert( bool(read_succeded), fmt.tprintf("Failed to read font file for: %v", path_file) )
 	font_data_size := cast(i32) len(font_data)
-font_firacode : FontID
+font_firacode : Font_ID
 
 
 	desired_id := desired_id
@@ -134,13 +134,13 @@ font_firacode : FontID
 		(ve_id^) = ve_ret_id
 	}
 
-	fid := FontID { desired_id }
+	fid := Font_ID { desired_id }
 	return fid
 }
 
 Font_Use_Default_Size :: f32(0.0)
 
-font_resolve_draw_id :: proc( id : FontID, size := Font_Use_Default_Size ) -> ( ve_id : ve.FontID, resolved_size : i32 )
+font_resolve_draw_id :: proc( id : Font_ID, size := Font_Use_Default_Size ) -> ( ve_id : ve.Font_ID, resolved_size : i32 )
 {
 	def           := demo_ctx.font_ids[ id.label ]
 	size          := size == 0.0 ? f32(def.default_size) : size
@@ -152,14 +152,14 @@ font_resolve_draw_id :: proc( id : FontID, size := Font_Use_Default_Size ) -> ( 
 	return
 }
 
-measure_text_size :: proc( text : string, font : FontID, font_size := Font_Use_Default_Size, spacing : f32 ) -> Vec2
+measure_text_size :: proc( text : string, font : Font_ID, font_size := Font_Use_Default_Size, spacing : f32 ) -> Vec2
 {
 	ve_id, size := font_resolve_draw_id( font, font_size )
 	measured    := ve.measure_text_size( & demo_ctx.ve_ctx, ve_id, text )
 	return measured
 }
 
-get_font_vertical_metrics :: #force_inline proc ( font : FontID, font_size := Font_Use_Default_Size ) -> ( ascent, descent, line_gap : f32 ) 
+get_font_vertical_metrics :: #force_inline proc ( font : Font_ID, font_size := Font_Use_Default_Size ) -> ( ascent, descent, line_gap : f32 ) 
 {
 	ve_id, size := font_resolve_draw_id( font, font_size )
 	ascent, descent, line_gap = ve.get_font_vertical_metrics( & demo_ctx.ve_ctx, ve_id )
@@ -167,7 +167,7 @@ get_font_vertical_metrics :: #force_inline proc ( font : FontID, font_size := Fo
 }
 
 // Draw text using a string and normalized render coordinates
-draw_text_string_pos_norm :: proc( content : string, id : FontID, size : f32, pos : Vec2, color := COLOR_WHITE, scale : f32 = 1.0 )
+draw_text_string_pos_norm :: proc( content : string, id : Font_ID, size : f32, pos : Vec2, color := COLOR_WHITE, scale : f32 = 1.0 )
 {
 	width  := demo_ctx.screen_size.x
 	height := demo_ctx.screen_size.y
@@ -181,14 +181,14 @@ draw_text_string_pos_norm :: proc( content : string, id : FontID, size : f32, po
 }
 
 // Draw text using a string and extent-based screen coordinates
-draw_text_string_pos_extent :: proc( content : string, id : FontID, size : f32, pos : Vec2, color := COLOR_WHITE ) {
+draw_text_string_pos_extent :: proc( content : string, id : Font_ID, size : f32, pos : Vec2, color := COLOR_WHITE ) {
 	render_pos     := pos + demo_ctx.screen_size * 0.5
 	normalized_pos := render_pos * (1.0 / demo_ctx.screen_size)
 	draw_text_string_pos_norm( content, id, size, normalized_pos, color )
 }
 
 // Adapt the draw_text_string_pos_extent_zoomed procedure
-draw_text_zoomed_norm :: proc(content : string, id : FontID, size : f32, pos : Vec2, zoom : f32, color := COLOR_WHITE)
+draw_text_zoomed_norm :: proc(content : string, id : Font_ID, size : f32, pos : Vec2, zoom : f32, color := COLOR_WHITE)
 {
 	screen_size      := demo_ctx.screen_size
 	screen_scale     := Vec2{1.0 / screen_size.x, 1.0 / screen_size.y}

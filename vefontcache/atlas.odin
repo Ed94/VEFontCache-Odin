@@ -1,6 +1,6 @@
 package vefontcache
 
-AtlasRegionKind :: enum u8 {
+Atlas_Region_Kind :: enum u8 {
 	None   = 0x00,
 	A      = 0x41,
 	B      = 0x42,
@@ -10,7 +10,7 @@ AtlasRegionKind :: enum u8 {
 	Ignore = 0xFF, // ve_fontcache_cache_glyph_to_atlas uses a -1 value in clear draw call
 }
 
-AtlasRegion :: struct {
+Atlas_Region :: struct {
 	state : LRU_Cache,
 
 	width  : i32,
@@ -29,13 +29,13 @@ Atlas :: struct {
 
 	glyph_padding : i32,
 
-	region_a : AtlasRegion,
-	region_b : AtlasRegion,
-	region_c : AtlasRegion,
-	region_d : AtlasRegion,
+	region_a : Atlas_Region,
+	region_b : Atlas_Region,
+	region_c : Atlas_Region,
+	region_d : Atlas_Region,
 }
 
-atlas_bbox :: proc( atlas : ^Atlas, region : AtlasRegionKind, local_idx : i32 ) -> (position, size: Vec2)
+atlas_bbox :: proc( atlas : ^Atlas, region : Atlas_Region_Kind, local_idx : i32 ) -> (position, size: Vec2)
 {
 	switch region
 	{
@@ -79,14 +79,12 @@ atlas_bbox :: proc( atlas : ^Atlas, region : AtlasRegionKind, local_idx : i32 ) 
 			position.x += f32(atlas.region_d.offset.x)
 			position.y += f32(atlas.region_d.offset.y)
 
-		case .Ignore: fallthrough
-		case .None: fallthrough
-		case .E:
+		case .Ignore, .None, .E:
 	}
 	return
 }
 
-decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Glyph ) -> (region_kind : AtlasRegionKind, region : ^AtlasRegion, over_sample : Vec2)
+decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Glyph ) -> (region_kind : Atlas_Region_Kind, region : ^Atlas_Region, over_sample : Vec2)
 {
 	if parser_is_glyph_empty(&entry.parser_info, glyph_index) {
 		return .None, nil, {}
@@ -104,11 +102,11 @@ decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Gl
 	bounds_height_scaled := i32(bounds_height * entry.size_scale + glyph_padding)
 
 	// Use a lookup table for faster region selection
-	region_lookup := [4]struct { kind: AtlasRegionKind, region: ^AtlasRegion } {
-			{ .A, & atlas.region_a },
-			{ .B, & atlas.region_b },
-			{ .C, & atlas.region_c },
-			{ .D, & atlas.region_d },
+	region_lookup := [4]struct { kind: Atlas_Region_Kind, region: ^Atlas_Region } {
+		{ .A, & atlas.region_a },
+		{ .B, & atlas.region_b },
+		{ .C, & atlas.region_c },
+		{ .D, & atlas.region_d },
 	}
 
 	for region in region_lookup do if bounds_width_scaled <= region.region.width && bounds_height_scaled <= region.region.height {
