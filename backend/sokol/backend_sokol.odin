@@ -164,7 +164,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 		glyph_rt_sampler = gfx.make_sampler( Sampler_Description {
 			min_filter     = Image_Filter,
 			mag_filter     = Image_Filter,
-			mipmap_filter  = Filter.NONE,
+			mipmap_filter  = Filter.NEAREST,
 			wrap_u         = .CLAMP_TO_EDGE,
 			wrap_v         = .CLAMP_TO_EDGE,
 			min_lod        = -1000.0,
@@ -302,7 +302,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 		atlas_rt_sampler = gfx.make_sampler( Sampler_Description {
 			min_filter     = Image_Filter,
 			mag_filter     = Image_Filter,
-			mipmap_filter  = Filter.NONE,
+			mipmap_filter  = Filter.NEAREST,
 			wrap_u         = .CLAMP_TO_EDGE,
 			wrap_v         = .CLAMP_TO_EDGE,
 			min_lod        = -1000.0,
