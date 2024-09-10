@@ -7,20 +7,19 @@ function clone-gitrepo { param( [string] $path, [string] $url )
 		git clone $url $path
 	}
 }
-
-function Get-IniContent { param([ string]$filePath )
+function Get-IniContent { param( [string] $path_file )
 	$ini            = @{}
 	$currentSection = $null
-	switch -regex -file $filePath
+	switch -regex -file $path_file
 	{
 		"^\[(.+)\]$" {
 			$currentSection       = $matches[1].Trim()
-			$ini[$currentSection] = @{}
+			$ini[ $currentSection ] = @{}
 		}
 		"^(.+?)\s*=\s*(.*)" {
 			$key, $value = $matches[1].Trim(), $matches[2].Trim()
 			if ($null -ne $currentSection) {
-				$ini[$currentSection][$key] = $value
+				$ini[ $currentSection ][ $key ] = $value
 			}
 		}
 	}
@@ -39,7 +38,6 @@ function Invoke-WithColorCodedOutput { param( [scriptblock] $command )
 		Write-Host "`t$_" -ForegroundColor $color
 	}
 }
-
 function Update-GitRepo
 {
 	param( [string] $path, [string] $url, [string] $build_command )
