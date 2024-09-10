@@ -79,8 +79,14 @@ parser_load_font :: proc( ctx : ^Parser_Context, label : string, data : []byte )
 	switch ctx.kind
 	{
 		case .Freetype:
-			error := freetype.new_memory_face( ctx.ft_library, raw_data(data), cast(i32) len(data), 0, & font.freetype_info )
-			if error != .Ok do return
+			when ODIN_OS == .Windows {
+				error := freetype.new_memory_face( ctx.ft_library, raw_data(data), cast(i32) len(data), 0, & font.freetype_info )
+				if error != .Ok do return
+			}
+			else when ODIN_OS == .Linux {
+				error := freetype.new_memory_face( ctx.ft_library, raw_data(data), cast(i64) len(data), 0, & font.freetype_info )
+				if error != .Ok do return
+			}
 
 		case .STB_TrueType:
 			success := stbtt.InitFont( & font.stbtt_info, raw_data(data), 0 )
@@ -110,7 +116,12 @@ parser_find_glyph_index :: #force_inline proc "contextless" ( font : ^Parser_Fon
 	switch font.kind
 	{
 		case .Freetype:
-			glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) codepoint )
+			when ODIN_OS == .Windows {
+				glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) codepoint )
+			}
+			else when ODIN_OS == .Linux {
+				glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, cast(u64) codepoint )
+			}
 			return
 
 		case .STB_TrueType:
@@ -137,7 +148,14 @@ parser_get_codepoint_horizontal_metrics :: #force_inline proc "contextless" ( fo
 	switch font.kind
 	{
 		case .Freetype:
-			glyph_index := transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) codepoint )
+			glyph_index : Glyph
+			when ODIN_OS == .Windows {
+				glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) codepoint )
+			}
+			else when ODIN_OS == .Linux {
+				glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, cast(u64) codepoint )
+			}
+
 			if glyph_index != 0
 			{
 				freetype.load_glyph( font.freetype_info, c.uint(codepoint), { .No_Bitmap, .No_Hinting, .No_Scale } )
@@ -161,8 +179,17 @@ parser_get_codepoint_kern_advance :: #force_inline proc "contextless" ( font : ^
 	switch font.kind
 	{
 		case .Freetype:
-			prev_glyph_index := transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) prev_codepoint )
-			glyph_index      := transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) codepoint )
+			prev_glyph_index : Glyph
+			glyph_index      : Glyph
+			when ODIN_OS == .Windows {
+				prev_glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) prev_codepoint )
+				glyph_index      = transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) codepoint )
+			}
+			else when ODIN_OS == .Linux {
+				prev_glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, cast(u64) prev_codepoint )
+				glyph_index      = transmute(Glyph) freetype.get_char_index( font.freetype_info, cast(u64) codepoint )
+			}
+
 			if prev_glyph_index != 0 && glyph_index != 0
 			{
 				kerning : freetype.Vector
