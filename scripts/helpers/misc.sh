@@ -102,10 +102,8 @@ update_git_repo() {
 
 verify_path() {
     local path="$1"
-    if [ -d "$path" ]; then
-        return 0
+    if [ ! -d "$path" ]; then
+        mkdir -p "$path"
+        echo "Created directory: $path"
     fi
-
-    mkdir -p "$path"
-    return 1
 }

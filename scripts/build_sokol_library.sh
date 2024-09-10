@@ -1,31 +1,40 @@
 #!/bin/bash
 
+set -e
+
 path_root="$(git rev-parse --show-toplevel)"
 path_backend="$path_root/backend"
 path_build="$path_root/build"
 path_scripts="$path_root/scripts"
 path_thirdparty="$path_root/thirdparty"
 
-path_sokol="$path_thirdparty/sokol"
-path_sokol_examples="$path_sokol/examples"
+path_sokol="."
+path_sokol_examples="./examples"
 
-if [ -d "$path_sokol" ] && [ -d "$path_sokol/sokol" ]; then
+echo "Checking sokol directory structure..."
+if [ ! -d "$path_sokol" ]; then
+    echo "Error: $path_sokol does not exist."
+    exit 1
+fi
+
+if [ -d "$path_sokol/sokol" ]; then
+    echo "Found nested sokol directory. Restructuring..."
     mv "$path_sokol/sokol/"* "$path_sokol/"
     rmdir "$path_sokol/sokol"
-    rm -rf "$path_sokol_examples"
-fi
-
-# pushd "$path_sokol"
-
-# Convert build_clibs_linux.sh to Unix line endings
-if command -v dos2unix &> /dev/null; then
-    dos2unix "./build_clibs_linux.sh"
+    echo "Nested sokol directory removed."
 else
-    sed -i 's/\r$//' "./build_clibs_linux.sh"
+    echo "No nested sokol directory found. Skipping restructure."
 fi
 
-# Make sure the script is executable
-chmod +x "./build_clibs_linux.sh"
+if [ -d "$path_sokol_examples" ]; then
+    echo "Removing examples directory..."
+    rm -rf "$path_sokol_examples"
+    echo "Examples directory removed."
+else
+    echo "No examples directory found. Skipping removal."
+fi
+
+pushd "$path_sokol"
 
 check_and_install() {
     if ! dpkg -s $1 &> /dev/null; then
@@ -50,4 +59,4 @@ check_and_install() {
 # Run the build script
 ./build_clibs_linux.sh
 
-# popd
+popd
