@@ -10,7 +10,7 @@ See: [docs/Readme.md](docs/Readme.md) for the library's interface.
 
 See [scripts/Readme.md](scripts/Readme.md) for building examples or utilizing the provided backends.
 
-Currently the scripts provided & the library itself were developed & tested on Windows. The library however should not be limited to that OS platform, just don't have the configuration for alternative platforms (yet).
+Currently the scripts provided & the library itself were developed & tested on Windows. There are bash scripts for building on linux (they build on WSL but need additional testing).
 
 The library depends on freetype, harfbuzz, & stb_truetype to build.  
 Note: freetype and harfbuzz could technically be gutted if the user removes their definitions, however they have not been made into a conditional compilation option (yet).

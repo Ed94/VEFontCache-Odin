@@ -2,7 +2,7 @@
 
 All scripts provided for utilizing the example demos or backends.
 
-## General
+## Windows
 
 ### build_sokol_demo.ps1
 
@@ -29,7 +29,7 @@ Will wipe the build folder.
 
 ### compile_sokol_shaders.ps1
 
-Will generate the odin files containing the sokol shader descriptions for the corresponding glsl shaders. Utilized by the sokol backend. Doesn't need to be runned unless modifications are made to the shaders (pre-generated files are commited to this repository).
+Will generate the odin files containing the sokol shader descriptions for the corresponding glsl shaders. Utilized by the sokol backend. Doesn't need to be run unless modifications are made to the shaders (pre-generated files are commited to this repository).
 
 ## Helpers
 
@@ -45,3 +45,21 @@ A few helper functions to utilize powerhsell & github repos as package managemen
 ### odin_compiler_defs.ps1
 
 Just variable declarations based on flags used with the odin compiler's CLI.
+
+# Linux
+
+Essentially equivalent scripts from the PS scripts used on windows were ported to bash. Tested in WSL ubuntu image (so far).
+
+#### Note on dependency packages
+
+Some dependencies are cloned directly into a created thirdparty directory.
+
+[harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it will use the MSVC toolchain (you can change it to use meson instead of preferred).  
+[freetype](https://github.com/Ed94/odin-freetype) package does not come with linux binaries.  
+[sokol](https://github.com/floooh/sokol) built using `build_sokol_library.ps`.  
+[sokol-tools](https://github.com/floooh/sokol-tools) used by `compile_sokol_shaders.ps1` to compile the glsl files into odin files for the sokol backend.
+
+Caveats:
+
+* The Freetype library's binary must be installed by the user ( Ex: `sudo apt install libfreetype6-dev` )
+* Sokol needs gl, x11, and alsa libs. The `build_sokol_library.sh` script has basic implementation listing which libraries those are for ubuntu.

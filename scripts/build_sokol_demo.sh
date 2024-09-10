@@ -2,10 +2,8 @@
 
 set -e
 
-# Source the misc.sh script
 source "$(dirname "$0")/helpers/misc.sh"
 
-# Get the root directory of the git repository
 path_root=$(git rev-parse --show-toplevel)
 path_backend="$path_root/backend"
 path_build="$path_root/build"
@@ -16,7 +14,6 @@ path_thirdparty="$path_root/thirdparty"
 verify_path "$path_build"
 verify_path "$path_thirdparty"
 
-# CPU Info
 path_system_details="$path_build/system_details.ini"
 if [ -f "$path_system_details" ]; then
     CoreCount_Physical=$(grep "PhysicalCores" "$path_system_details" | cut -d'=' -f2)
@@ -58,7 +55,6 @@ pushd "$path_thirdparty" > /dev/null
     fi
 popd > /dev/null
 
-# Source the odin compiler definitions
 source "$(dirname "$0")/helpers/odin_compiler_defs.sh"
 
 pkg_collection_backend="backend=$path_backend"
@@ -69,7 +65,6 @@ pushd "$path_build" > /dev/null
 function build_SokolBackendDemo {
     echo 'Building VEFontCache: Sokol Backend Demo'
 
-    # Uncomment the following lines if you need to compile shaders
     compile_shaders="$path_scripts/compile_sokol_shaders.sh"
     if [ -f "$compile_shaders" ]; then
         bash "$compile_shaders"
