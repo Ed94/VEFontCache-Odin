@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Source the misc.sh script
 source "$(dirname "$0")/helpers/misc.sh"
 
@@ -17,9 +19,8 @@ verify_path "$path_thirdparty"
 # CPU Info
 path_system_details="$path_build/system_details.ini"
 if [ -f "$path_system_details" ]; then
-    source "$path_system_details"
-    CoreCount_Physical=$PhysicalCores
-    CoreCount_Logical=$LogicalCores
+    CoreCount_Physical=$(grep "PhysicalCores" "$path_system_details" | cut -d'=' -f2)
+    CoreCount_Logical=$(grep "LogicalCores" "$path_system_details" | cut -d'=' -f2)
 else
     CoreCount_Physical=$(nproc --all)
     CoreCount_Logical=$(nproc)
@@ -49,16 +50,12 @@ update_git_repo "$path_sokol" "$url_sokol" "$sokol_build_clibs_command"
 update_git_repo "$path_harfbuzz" "$url_harfbuzz" "./scripts/build.sh"
 
 pushd "$path_thirdparty" > /dev/null
-    path_sokol_dlls="$path_sokol"
-    path_harfbuzz_dlls="$path_harfbuzz/lib/linux"
-
-    for dll in "$path_sokol_dlls"/*.so; do
-        cp "$dll" "$path_build/"
-    done
-
-    for dll in "$path_harfbuzz_dlls"/*.so; do
-        cp "$dll" "$path_build/"
-    done
+    path_harfbuzz_dlls="$path_harfbuzz/lib/linux64"
+    if ls "$path_harfbuzz_dlls"/*.so 1> /dev/null 2>&1; then
+        cp "$path_harfbuzz_dlls"/*.so "$path_build/"
+    else
+        echo "Warning: No .so files found in $path_harfbuzz_dlls"
+    fi
 popd > /dev/null
 
 # Source the odin compiler definitions
@@ -67,19 +64,24 @@ source "$(dirname "$0")/helpers/odin_compiler_defs.sh"
 pkg_collection_backend="backend=$path_backend"
 pkg_collection_thirdparty="thirdparty=$path_thirdparty"
 
-pushd "$path_examples" > /dev/null
+pushd "$path_build" > /dev/null
 
 function build_SokolBackendDemo {
     echo 'Building VEFontCache: Sokol Backend Demo'
 
-    # $compile_shaders="$path_scripts/compile_sokol_shaders.sh"
-    # bash "$compile_shaders"
+    # Uncomment the following lines if you need to compile shaders
+    compile_shaders="$path_scripts/compile_sokol_shaders.sh"
+    if [ -f "$compile_shaders" ]; then
+        bash "$compile_shaders"
+    else
+        echo "Warning: $compile_shaders not found. Skipping shader compilation."
+    fi
 
     executable="$path_build/sokol_demo"
 
     build_args=(
         "$command_build"
-        "./sokol_demo"
+        "../examples/sokol_demo"
         "$flag_output_path$executable"
         "${flag_collection}${pkg_collection_backend}"
         "${flag_collection}${pkg_collection_thirdparty}"
@@ -88,8 +90,8 @@ function build_SokolBackendDemo {
         "${flag_thread_count}${CoreCount_Physical}"
         # "$flag_optimize_none"
         # "$flag_optimize_minimal"
-        # "$flag_optimize_speed"
-        "$flag_optimize_aggressive"
+        "$flag_optimize_speed"
+        # "$flag_optimize_aggressive"
         # "$flag_debug"
         "$flag_show_timings"
         # "$flag_show_system_call"

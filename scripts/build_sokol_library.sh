@@ -15,7 +15,7 @@ if [ -d "$path_sokol" ] && [ -d "$path_sokol/sokol" ]; then
     rm -rf "$path_sokol_examples"
 fi
 
-pushd "$path_sokol" > /dev/null
+# pushd "$path_sokol"
 
 # Convert build_clibs_linux.sh to Unix line endings
 if command -v dos2unix &> /dev/null; then
@@ -50,4 +50,4 @@ check_and_install() {
 # Run the build script
 ./build_clibs_linux.sh
 
-popd > /dev/null
+# popd
