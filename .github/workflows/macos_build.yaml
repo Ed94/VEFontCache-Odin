@@ -21,6 +21,16 @@ jobs:
     - name: List directory contents
       run: ls -R
 
+    - name: Check for Git and install if necessary
+      run: |
+        if ! command -v git &> /dev/null; then
+          echo "Git not found. Installing Git..."
+          brew install git
+        else
+          echo "Git is already installed."
+        fi
+        git --version
+
     - name: Set up environment
       run: |
         brew install bash
