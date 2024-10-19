@@ -32,6 +32,7 @@ jobs:
         echo "Bash version: $(bash --version)"
 
         brew install freetype
+        brew install harfbuzz
         brew install odin
 
         make -C "/opt/homebrew/Cellar/odin/2024-10/libexec/vendor/stb/src"

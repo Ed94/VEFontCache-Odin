@@ -58,4 +58,6 @@ pushd "$path_backend_sokol" > /dev/null
               "$flag_target_lang" "glsl410:glsl300es:metal_macos:wgsl" \
               "$flag_format_odin" "$flag_module=draw_text"
 
+echo "Built sokol shaders"
+
 popd > /dev/null
