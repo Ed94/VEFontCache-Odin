@@ -21,7 +21,7 @@ jobs:
     - name: List directory contents
       run: ls -R
 
-    - name: Check for Git and install if necessary
+    - name: Set up environment
       run: |
         if ! command -v git &> /dev/null; then
           echo "Git not found. Installing Git..."
@@ -31,14 +31,15 @@ jobs:
         fi
         git --version
 
-    - name: Set up environment
-      run: |
         brew install bash
         echo "Bash version: $(bash --version)"
 
-    # - name: Check build script
-    #   run: |
-    #     ls -l ./scripts/build_sokol_demo.sh || echo "build_sokol_demo.sh not found in ./scripts/"
+        if command -v nproc &> /dev/null; then
+          echo "nproc is installed. Number of processors: $(nproc)"
+        else
+          echo "Error: nproc installation failed"
+          exit 1
+        fi
 
     - name: Run build script
       run: |
