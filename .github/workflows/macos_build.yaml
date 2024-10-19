@@ -38,15 +38,15 @@ jobs:
 
     - name: Check build script
       run: |
-        ls -l ./scripts/build_sokol_library.sh || echo "build_sokol_library.sh not found in ./scripts/"
+        ls -l ./scripts/build_sokol_demo.sh || echo "build_sokol_demo.sh not found in ./scripts/"
 
     - name: Run build script
       run: |
-        if [ -f "./scripts/build_sokol_library.sh" ]; then
-          chmod +x ./scripts/build_sokol_library.sh
-          ./scripts/build_sokol_library.sh
+        if [ -f "./scripts/build_sokol_demo.sh" ]; then
+          chmod +x ./scripts/build_sokol_demo.sh
+          ./scripts/build_sokol_demo.sh
         else
-          echo "Error: build_sokol_library.sh not found"
+          echo "Error: build_sokol_demo.sh not found"
           exit 1
         fi
       shell: bash
