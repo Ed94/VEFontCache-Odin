@@ -34,6 +34,8 @@ jobs:
         brew install freetype
         brew install odin
 
+        make -C "/opt/homebrew/Cellar/odin/2024-10/libexec/vendor/stb/src"
+
     - name: Run build script
       run: |
         echo "Setting execute permissions on specific .sh files"
