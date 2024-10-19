@@ -36,9 +36,7 @@ fi
 
 pushd "$path_sokol"
 
-# Detect the operating system
 OS=$(uname -s)
-
 case "$OS" in
     Linux*)
         echo "Detected Linux operating system"

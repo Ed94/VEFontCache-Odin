@@ -19,9 +19,7 @@ if [ -f "$path_system_details" ]; then
     CoreCount_Physical=$(grep "PhysicalCores" "$path_system_details" | cut -d'=' -f2)
     CoreCount_Logical=$(grep "LogicalCores" "$path_system_details" | cut -d'=' -f2)
 else
-    # Detect the operating system
     OS=$(uname -s)
-
     case "$OS" in
         Darwin*)
             # macOS-specific commands

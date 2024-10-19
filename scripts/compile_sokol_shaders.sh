@@ -1,5 +1,7 @@
 #!/bin/bash
 
+OS=$(uname -s)
+
 path_root="$(git rev-parse --show-toplevel)"
 path_backend="$path_root/backend"
 path_scripts="$path_root/scripts"
@@ -12,6 +14,11 @@ case "$OS" in
         ;;
     Linux*)
         sokol_shdc="$path_sokol_tools/bin/linux/sokol-shdc"
+        ;;
+    *)
+        echo "Unsupported operating system: $OS"
+        CoreCount_Physical=1
+        CoreCount_Logical=1
         ;;
 esac
 echo "Using sokol-shdc: $sokol_shdc"
