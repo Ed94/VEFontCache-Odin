@@ -68,6 +68,7 @@ case "$OS" in
     Darwin*)
         echo "Detected macOS operating system"
         echo "Running macOS build script..."
+        ls -al
         ./build_clibs_macos.sh
         ;;
     *)
