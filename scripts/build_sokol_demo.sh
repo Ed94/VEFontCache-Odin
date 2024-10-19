@@ -19,8 +19,22 @@ if [ -f "$path_system_details" ]; then
     CoreCount_Physical=$(grep "PhysicalCores" "$path_system_details" | cut -d'=' -f2)
     CoreCount_Logical=$(grep "LogicalCores" "$path_system_details" | cut -d'=' -f2)
 else
-    CoreCount_Physical=$(nproc --all)
-    CoreCount_Logical=$(nproc)
+    OS=$(uname -s)
+    case "$OS" in
+        Darwin*)
+            CoreCount_Physical=$(sysctl -n hw.physicalcpu)
+            CoreCount_Logical=$(sysctl -n hw.logicalcpu)
+            ;;
+        Linux*)
+            CoreCount_Physical=$(nproc --all)
+            CoreCount_Logical=$(nproc)
+            ;;
+        *)
+            echo "Unsupported operating system: $OS"
+            CoreCount_Physical=1
+            CoreCount_Logical=1
+            ;;
+    esac
 
     echo "[CPU]" > "$path_system_details"
     echo "PhysicalCores=$CoreCount_Physical" >> "$path_system_details"
@@ -47,7 +61,19 @@ update_git_repo "$path_sokol" "$url_sokol" "$sokol_build_clibs_command"
 update_git_repo "$path_harfbuzz" "$url_harfbuzz" "./scripts/build.sh"
 
 pushd "$path_thirdparty" > /dev/null
-    path_harfbuzz_dlls="$path_harfbuzz/lib/linux64"
+    case "$OS" in
+        Darwin*)
+            path_harfbuzz_dlls="$path_harfbuzz/lib/osx"
+            ;;
+        Linux*)
+            path_harfbuzz_dlls="$path_harfbuzz/lib/linux64"
+            ;;
+        *)
+            echo "Unsupported operating system: $OS"
+            CoreCount_Physical=1
+            CoreCount_Logical=1
+            ;;
+    esac
     if ls "$path_harfbuzz_dlls"/*.so 1> /dev/null 2>&1; then
         cp "$path_harfbuzz_dlls"/*.so "$path_build/"
     else

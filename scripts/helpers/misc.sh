@@ -67,6 +67,7 @@ update_git_repo() {
 
         echo "Building $url"
         pushd "$path" > /dev/null
+        chmod +x "$build_command"
         eval "$build_command"
         popd > /dev/null
 
@@ -92,6 +93,7 @@ update_git_repo() {
 
     echo "Building $url"
     pushd "$path" > /dev/null
+    chmod +x "$build_command"
     eval "$build_command"
     popd > /dev/null
 

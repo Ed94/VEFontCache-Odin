@@ -1,0 +1,62 @@
+name: MacOS Build
+
+on:
+  push:
+    branches:
+      - '**'
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up environment
+      run: |
+        if ! command -v git &> /dev/null; then
+          echo "Git not found. Installing Git..."
+          brew install git
+        else
+          echo "Git is already installed."
+        fi
+        git --version
+
+        brew install bash
+        echo "Bash version: $(bash --version)"
+
+        brew install freetype
+        brew install harfbuzz
+        brew install odin
+
+        make -C "/opt/homebrew/Cellar/odin/2024-10/libexec/vendor/stb/src"
+
+    - name: Run build script
+      run: |
+        echo "Setting execute permissions on specific .sh files"
+        chmod +x ./scripts/build_sokol_demo.sh
+        chmod +x ./scripts/build_sokol_library.sh
+        chmod +x ./scripts/compile_sokol_shaders.sh
+        chmod +x ./scripts/clean.sh
+        chmod +x ./scripts/helpers/misc.sh
+        chmod +x ./scripts/helpers/odin_compiler_defs.sh
+
+        echo "Running build_sokol_demo.sh"
+        ./scripts/build_sokol_demo.sh
+      shell: bash
+
+    - name: List build artifacts
+      run: ls -R ./build || echo "build directory not found"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-build
+        path: ./build/
+        if-no-files-found: warn

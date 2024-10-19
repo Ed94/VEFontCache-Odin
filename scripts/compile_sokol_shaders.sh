@@ -1,12 +1,28 @@
 #!/bin/bash
 
+OS=$(uname -s)
+
 path_root="$(git rev-parse --show-toplevel)"
 path_backend="$path_root/backend"
 path_scripts="$path_root/scripts"
 path_thirdparty="$path_root/thirdparty"
 
 path_sokol_tools="$path_thirdparty/sokol-tools"
-sokol_shdc="$path_sokol_tools/bin/linux/sokol-shdc"
+case "$OS" in
+    Darwin*)
+        sokol_shdc="$path_sokol_tools/bin/osx/sokol-shdc"
+        ;;
+    Linux*)
+        sokol_shdc="$path_sokol_tools/bin/linux/sokol-shdc"
+        ;;
+    *)
+        echo "Unsupported operating system: $OS"
+        CoreCount_Physical=1
+        CoreCount_Logical=1
+        ;;
+esac
+echo "Using sokol-shdc: $sokol_shdc"
+chmod +x "$sokol_shdc"
 
 path_backend_sokol="$path_backend/sokol"
 
@@ -41,5 +57,7 @@ pushd "$path_backend_sokol" > /dev/null
               "$flag_output" "$shaderout_draw_text" \
               "$flag_target_lang" "glsl410:glsl300es:hlsl4:metal_macos:wgsl" \
               "$flag_format_odin" "$flag_module=draw_text"
+
+echo "Built sokol shaders"
 
 popd > /dev/null
