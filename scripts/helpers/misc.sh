@@ -65,6 +65,8 @@ update_git_repo() {
         echo "Cloning repo from $url to $path"
         git clone "$url" "$path"
 
+        chmod +x "$build_command"
+
         echo "Building $url"
         pushd "$path" > /dev/null
         eval "$build_command"
