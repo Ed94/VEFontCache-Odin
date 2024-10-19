@@ -1,0 +1,31 @@
+name: MacOS Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up environment
+      run: |
+        brew install bash
+
+    - name: Run build script
+      run: |
+        chmod +x ./build_sokol_library.sh
+        ./build_sokol_library.sh
+      shell: bash
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-build
+        path: ./build/
+        if-no-files-found: error
