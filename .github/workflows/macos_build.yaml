@@ -36,9 +36,9 @@ jobs:
         brew install bash
         echo "Bash version: $(bash --version)"
 
-    - name: Check build script
-      run: |
-        ls -l ./scripts/build_sokol_demo.sh || echo "build_sokol_demo.sh not found in ./scripts/"
+    # - name: Check build script
+    #   run: |
+    #     ls -l ./scripts/build_sokol_demo.sh || echo "build_sokol_demo.sh not found in ./scripts/"
 
     - name: Run build script
       run: |
