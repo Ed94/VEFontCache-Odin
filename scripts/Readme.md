@@ -16,7 +16,7 @@ All dependencies are cloned directly into a created thirdparty directory.
 
 [harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it will use the MSVC toolchain (you can change it to use meson instead of preferred).  
 [freetype](https://github.com/Ed94/odin-freetype) package has pre-built .lib files for windows (debug/release).  
-[sokol](https://github.com/floooh/sokol) built using `build_sokol_library.ps`.  
+[sokol](https://github.com/floooh/sokol) built using `build_sokol_library.ps1`.  
 [sokol-tools](https://github.com/floooh/sokol-tools) used by `compile_sokol_shaders.ps1` to compile the glsl files into odin files for the sokol backend.
 
 ### build_sokol_library.ps1
@@ -46,7 +46,7 @@ A few helper functions to utilize powerhsell & github repos as package managemen
 
 Just variable declarations based on flags used with the odin compiler's CLI.
 
-# Linux
+# Mac & Linux
 
 Essentially equivalent scripts from the PS scripts used on windows were ported to bash. Tested in WSL ubuntu image (so far).
 
@@ -54,10 +54,14 @@ Essentially equivalent scripts from the PS scripts used on windows were ported t
 
 Some dependencies are cloned directly into a created thirdparty directory.
 
-[harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it will use the MSVC toolchain (you can change it to use meson instead of preferred).  
-[freetype](https://github.com/Ed94/odin-freetype) package does not come with linux binaries.  
-[sokol](https://github.com/floooh/sokol) built using `build_sokol_library.ps`.  
-[sokol-tools](https://github.com/floooh/sokol-tools) used by `compile_sokol_shaders.ps1` to compile the glsl files into odin files for the sokol backend.
+[harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it will use the gcc toolchain (you can change it to use meson instead of preferred).  
+
+* On MacOS, harbuzz imports through system:harfbuzz instead as there is an issue with importing via relative directories.
+  * Use for example `brew install harfbuzz`
+
+[freetype](https://github.com/Ed94/odin-freetype) package does not come with binaries (uses "system:" instead)  
+[sokol](https://github.com/floooh/sokol) built using `build_sokol_library.sh`.  
+[sokol-tools](https://github.com/floooh/sokol-tools) used by `compile_sokol_shaders.sh` to compile the glsl files into odin files for the sokol backend.
 
 Caveats:
 
