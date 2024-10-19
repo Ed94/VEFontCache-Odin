@@ -19,8 +19,26 @@ if [ -f "$path_system_details" ]; then
     CoreCount_Physical=$(grep "PhysicalCores" "$path_system_details" | cut -d'=' -f2)
     CoreCount_Logical=$(grep "LogicalCores" "$path_system_details" | cut -d'=' -f2)
 else
-    CoreCount_Physical=$(nproc --all)
-    CoreCount_Logical=$(nproc)
+    # Detect the operating system
+    OS=$(uname -s)
+
+    case "$OS" in
+        Darwin*)
+            # macOS-specific commands
+            CoreCount_Physical=$(sysctl -n hw.physicalcpu)
+            CoreCount_Logical=$(sysctl -n hw.logicalcpu)
+            ;;
+        Linux*)
+            # Linux-specific commands
+            CoreCount_Physical=$(nproc --all)
+            CoreCount_Logical=$(nproc)
+            ;;
+        *)
+            echo "Unsupported operating system: $OS"
+            CoreCount_Physical=1
+            CoreCount_Logical=1
+            ;;
+    esac
 
     echo "[CPU]" > "$path_system_details"
     echo "PhysicalCores=$CoreCount_Physical" >> "$path_system_details"

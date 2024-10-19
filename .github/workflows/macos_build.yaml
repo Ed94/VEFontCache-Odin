@@ -34,13 +34,6 @@ jobs:
         brew install bash
         echo "Bash version: $(bash --version)"
 
-        if command -v nproc &> /dev/null; then
-          echo "nproc is installed. Number of processors: $(nproc)"
-        else
-          echo "Error: nproc installation failed"
-          exit 1
-        fi
-
     - name: Run build script
       run: |
         if [ -f "./scripts/build_sokol_demo.sh" ]; then
