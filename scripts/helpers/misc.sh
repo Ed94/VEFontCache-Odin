@@ -90,6 +90,8 @@ update_git_repo() {
     echo 'Pulling...'
     git -C "$path" pull
 
+    chmod +x "$build_command"
+
     echo "Building $url"
     pushd "$path" > /dev/null
     eval "$build_command"
