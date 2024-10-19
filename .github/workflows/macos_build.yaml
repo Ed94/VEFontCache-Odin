@@ -18,9 +18,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: List directory contents
-      run: ls -R
-
     - name: Set up environment
       run: |
         if ! command -v git &> /dev/null; then
@@ -33,6 +30,8 @@ jobs:
 
         brew install bash
         echo "Bash version: $(bash --version)"
+
+        brew install odin
 
     - name: Run build script
       run: |
