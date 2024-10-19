@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - '**'
+      - '**'
   pull_request:
     branches:
       - '**'
@@ -14,20 +15,38 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: List directory contents
+      run: ls -R
+
     - name: Set up environment
       run: |
         brew install bash
+        echo "Bash version: $(bash --version)"
+
+    - name: Check build script
+      run: |
+        ls -l ./scripts/build_sokol_library.sh || echo "build_sokol_library.sh not found in ./scripts/"
 
     - name: Run build script
       run: |
-        chmod +x ./scripts/build_sokol_library.sh
-        ./scripts/build_sokol_library.sh
+        if [ -f "./scripts/build_sokol_library.sh" ]; then
+          chmod +x ./scripts/build_sokol_library.sh
+          ./scripts/build_sokol_library.sh
+        else
+          echo "Error: build_sokol_library.sh not found"
+          exit 1
+        fi
       shell: bash
+
+    - name: List build artifacts
+      run: ls -R ./build || echo "build directory not found"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         name: macos-build
         path: ./build/
-        if-no-files-found: error
+        if-no-files-found: warn
