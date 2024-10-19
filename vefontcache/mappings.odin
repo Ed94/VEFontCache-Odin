@@ -79,6 +79,7 @@ make :: proc {
 	make_dynamic_array_len,
 	make_dynamic_array_len_cap,
 	make_map,
+	make_map_cap,
 }
 
 resize :: proc {
