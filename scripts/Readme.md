@@ -48,7 +48,7 @@ Just variable declarations based on flags used with the odin compiler's CLI.
 
 # Mac & Linux
 
-Essentially equivalent scripts from the PS scripts used on windows were ported to bash. Tested in WSL ubuntu image (so far).
+Essentially equivalent scripts from the PS scripts used on windows were ported to bash. Tested in WSL ubuntu image for Linux, and a github action workflow for MacOS.
 
 #### Note on dependency packages
 
