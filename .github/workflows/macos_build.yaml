@@ -36,13 +36,14 @@ jobs:
 
     - name: Run build script
       run: |
-        if [ -f "./scripts/build_sokol_demo.sh" ]; then
-          chmod +x ./scripts/build_sokol_demo.sh
-          ./scripts/build_sokol_demo.sh
-        else
-          echo "Error: build_sokol_demo.sh not found"
-          exit 1
-        fi
+        echo "Setting execute permissions on specific .sh files"
+        chmod +x ./scripts/build_sokol_demo.sh
+        chmod +x ./scripts/build_sokol_library.sh
+        chmod +x ./scripts/compile_sokol_shaders.sh
+        chmod +x ./scripts/clean.sh
+        chmod +x ./scripts/helpers/misc.sh
+        chmod +x ./scripts/helpers/odin_compiler_defs.sh
+        ./scripts/build_sokol_demo.sh
       shell: bash
 
     - name: List build artifacts
