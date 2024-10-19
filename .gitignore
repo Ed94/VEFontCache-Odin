@@ -1,6 +1,6 @@
 ﻿build
 thirdparty
 .vscode
-backend/sokol/render_glyph.odin
-backend/sokol/blit_atlas.odin
-backend/sokol/draw_text.odin
+# backend/sokol/render_glyph.odin
+# backend/sokol/blit_atlas.odin
+# backend/sokol/draw_text.odin

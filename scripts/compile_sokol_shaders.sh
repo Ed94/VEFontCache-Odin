@@ -29,17 +29,17 @@ pushd "$path_backend_sokol" > /dev/null
 
 "$sokol_shdc" "$flag_input" "$shadersrc_blit_atlas" \
               "$flag_output" "$shaderout_blit_atlas" \
-              "$flag_target_lang" "glsl410:glsl300es:metal_macos:wgsl" \
+              "$flag_target_lang" "glsl410:glsl300es:hlsl4:metal_macos:wgsl" \
               "$flag_format_odin" "$flag_module=blit_atlas"
 
 "$sokol_shdc" "$flag_input" "$shadersrc_render_glyph" \
               "$flag_output" "$shaderout_render_glyph" \
-              "$flag_target_lang" "glsl410:glsl300es:metal_macos:wgsl" \
+              "$flag_target_lang" "glsl410:glsl300es:hlsl4:metal_macos:wgsl" \
               "$flag_format_odin" "$flag_module=render_glyph"
 
 "$sokol_shdc" "$flag_input" "$shadersrc_draw_text" \
               "$flag_output" "$shaderout_draw_text" \
-              "$flag_target_lang" "glsl410:glsl300es:metal_macos:wgsl" \
+              "$flag_target_lang" "glsl410:glsl300es:hlsl4:metal_macos:wgsl" \
               "$flag_format_odin" "$flag_module=draw_text"
 
 popd > /dev/null
