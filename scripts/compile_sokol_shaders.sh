@@ -6,7 +6,16 @@ path_scripts="$path_root/scripts"
 path_thirdparty="$path_root/thirdparty"
 
 path_sokol_tools="$path_thirdparty/sokol-tools"
-sokol_shdc="$path_sokol_tools/bin/linux/sokol-shdc"
+case "$OS" in
+    Darwin*)
+        sokol_shdc="$path_sokol_tools/bin/osx/sokol-shdc"
+        ;;
+    Linux*)
+        sokol_shdc="$path_sokol_tools/bin/linux/sokol-shdc"
+        ;;
+esac
+echo "Using sokol-shdc: $sokol_shdc"
+chmod +x "$sokol_shdc"
 
 path_backend_sokol="$path_backend/sokol"
 
