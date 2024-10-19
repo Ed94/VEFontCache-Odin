@@ -43,6 +43,11 @@ jobs:
         chmod +x ./scripts/clean.sh
         chmod +x ./scripts/helpers/misc.sh
         chmod +x ./scripts/helpers/odin_compiler_defs.sh
+        chmod +x ./thirdparty/sokol/build_clibs_macos.sh
+        chmod +x ./thirdparty/harfbuzz/scripts/misc.sh
+        chmod +x ./thirdparty/harfbuzz/scripts/build.sh
+
+        echo "Running build_sokol_demo.sh"
         ./scripts/build_sokol_demo.sh
       shell: bash
 
