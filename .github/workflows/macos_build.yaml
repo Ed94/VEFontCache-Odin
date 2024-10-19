@@ -21,8 +21,8 @@ jobs:
 
     - name: Run build script
       run: |
-        chmod +x ./build_sokol_library.sh
-        ./build_sokol_library.sh
+        chmod +x ./scripts/build_sokol_library.sh
+        ./scripts/build_sokol_library.sh
       shell: bash
 
     - name: Upload artifacts
