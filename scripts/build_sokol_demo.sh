@@ -40,6 +40,7 @@ path_sokol_tools="$path_thirdparty/sokol-tools"
 
 sokol_build_clibs_command="$path_scripts/build_sokol_library.sh"
 
+echo "Should be cloning...?"
 clone_gitrepo "$path_freetype" "$url_freetype"
 clone_gitrepo "$path_sokol_tools" "$url_sokol_tools"
 
