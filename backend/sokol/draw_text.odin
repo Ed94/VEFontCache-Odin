@@ -12,31 +12,29 @@ import sg "thirdparty:sokol/gfx"
     =========
     Shader program: 'draw_text':
         Get shader desc: draw_text_shader_desc(sg.query_backend())
-        Vertex shader: draw_text_vs
-            Attributes:
-                ATTR_draw_text_vs_v_position => 0
-                ATTR_draw_text_vs_v_texture => 1
-        Fragment shader: draw_text_fs
-            Uniform block 'draw_text_fs_params':
-                Odin struct: Draw_Text_Fs_Params
-                Bind slot: SLOT_draw_text_fs_params => 0
-            Image 'draw_text_src_texture':
-                Image type: ._2D
-                Sample type: .FLOAT
-                Multisampled: false
-                Bind slot: SLOT_draw_text_src_texture => 0
-            Sampler 'draw_text_src_sampler':
-                Type: .FILTERING
-                Bind slot: SLOT_draw_text_src_sampler => 0
-            Image Sampler Pair 'draw_text_src_texture_draw_text_src_sampler':
-                Image: draw_text_src_texture
-                Sampler: draw_text_src_sampler
+        Vertex Shader: draw_text_vs
+        Fragment Shader: draw_text_fs
+        Attributes:
+            ATTR_draw_text_v_position => 0
+            ATTR_draw_text_v_texture => 1
+    Bindings:
+        Uniform block 'draw_text_fs_params':
+            Odin struct: Draw_Text_Fs_Params
+            Bind slot: UB_draw_text_fs_params => 0
+        Image 'draw_text_src_texture':
+            Image type: ._2D
+            Sample type: .FLOAT
+            Multisampled: false
+            Bind slot: IMG_draw_text_src_texture => 0
+        Sampler 'draw_text_src_sampler':
+            Type: .FILTERING
+            Bind slot: SMP_draw_text_src_sampler => 0
 */
-ATTR_draw_text_vs_v_position :: 0
-ATTR_draw_text_vs_v_texture :: 1
-SLOT_draw_text_fs_params :: 0
-SLOT_draw_text_src_texture :: 0
-SLOT_draw_text_src_sampler :: 0
+ATTR_draw_text_v_position :: 0
+ATTR_draw_text_v_texture :: 1
+UB_draw_text_fs_params :: 0
+IMG_draw_text_src_texture :: 0
+SMP_draw_text_src_sampler :: 0
 Draw_Text_Fs_Params :: struct #align(16) {
     using _: struct #packed {
         down_sample: i32,
@@ -58,7 +56,7 @@ Draw_Text_Fs_Params :: struct #align(16) {
     }
 
 */
-@(private)
+@(private="file")
 draw_text_vs_source_glsl410 := [255]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x34,0x31,0x30,0x0a,0x0a,0x6c,0x61,
     0x79,0x6f,0x75,0x74,0x28,0x6c,0x6f,0x63,0x61,0x74,0x69,0x6f,0x6e,0x20,0x3d,0x20,
@@ -104,7 +102,7 @@ draw_text_vs_source_glsl410 := [255]u8 {
     }
 
 */
-@(private)
+@(private="file")
 draw_text_fs_source_glsl410 := [882]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x34,0x31,0x30,0x0a,0x0a,0x73,0x74,
     0x72,0x75,0x63,0x74,0x20,0x64,0x72,0x61,0x77,0x5f,0x74,0x65,0x78,0x74,0x5f,0x66,
@@ -177,7 +175,7 @@ draw_text_fs_source_glsl410 := [882]u8 {
     }
 
 */
-@(private)
+@(private="file")
 draw_text_vs_source_glsl300es := [237]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x0a,0x6f,0x75,0x74,0x20,0x76,0x65,0x63,0x32,0x20,0x75,0x76,0x3b,0x0a,0x6c,0x61,
@@ -224,7 +222,7 @@ draw_text_vs_source_glsl300es := [237]u8 {
     }
 
 */
-@(private)
+@(private="file")
 draw_text_fs_source_glsl300es := [940]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x70,0x72,0x65,0x63,0x69,0x73,0x69,0x6f,0x6e,0x20,0x6d,0x65,0x64,0x69,0x75,0x6d,
@@ -321,7 +319,7 @@ draw_text_fs_source_glsl300es := [940]u8 {
         return stage_output;
     }
 */
-@(private)
+@(private="file")
 draw_text_vs_source_hlsl4 := [724]u8 {
     0x73,0x74,0x61,0x74,0x69,0x63,0x20,0x66,0x6c,0x6f,0x61,0x74,0x34,0x20,0x67,0x6c,
     0x5f,0x50,0x6f,0x73,0x69,0x74,0x69,0x6f,0x6e,0x3b,0x0a,0x73,0x74,0x61,0x74,0x69,
@@ -412,7 +410,7 @@ draw_text_vs_source_hlsl4 := [724]u8 {
         return stage_output;
     }
 */
-@(private)
+@(private="file")
 draw_text_fs_source_hlsl4 := [1257]u8 {
     0x63,0x62,0x75,0x66,0x66,0x65,0x72,0x20,0x64,0x72,0x61,0x77,0x5f,0x74,0x65,0x78,
     0x74,0x5f,0x66,0x73,0x5f,0x70,0x61,0x72,0x61,0x6d,0x73,0x20,0x3a,0x20,0x72,0x65,
@@ -521,7 +519,7 @@ draw_text_fs_source_hlsl4 := [1257]u8 {
     }
 
 */
-@(private)
+@(private="file")
 draw_text_vs_source_metal_macos := [495]u8 {
     0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,0x20,0x3c,0x6d,0x65,0x74,0x61,0x6c,0x5f,
     0x73,0x74,0x64,0x6c,0x69,0x62,0x3e,0x0a,0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,
@@ -590,7 +588,7 @@ draw_text_vs_source_metal_macos := [495]u8 {
     }
 
 */
-@(private)
+@(private="file")
 draw_text_fs_source_metal_macos := [1141]u8 {
     0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,0x20,0x3c,0x6d,0x65,0x74,0x61,0x6c,0x5f,
     0x73,0x74,0x64,0x6c,0x69,0x62,0x3e,0x0a,0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,
@@ -702,7 +700,7 @@ draw_text_fs_source_metal_macos := [1141]u8 {
     }
 
 */
-@(private)
+@(private="file")
 draw_text_vs_source_wgsl := [756]u8 {
     0x64,0x69,0x61,0x67,0x6e,0x6f,0x73,0x74,0x69,0x63,0x28,0x6f,0x66,0x66,0x2c,0x20,
     0x64,0x65,0x72,0x69,0x76,0x61,0x74,0x69,0x76,0x65,0x5f,0x75,0x6e,0x69,0x66,0x6f,
@@ -763,13 +761,13 @@ draw_text_vs_source_wgsl := [756]u8 {
       colour : vec4f,
     }
 
-    @group(1) @binding(48) var draw_text_src_texture : texture_2d<f32>;
+    @group(1) @binding(64) var draw_text_src_texture : texture_2d<f32>;
 
-    @group(1) @binding(64) var draw_text_src_sampler : sampler;
+    @group(1) @binding(80) var draw_text_src_sampler : sampler;
 
     var<private> uv : vec2f;
 
-    @group(0) @binding(4) var<uniform> x_31 : draw_text_fs_params;
+    @group(0) @binding(8) var<uniform> x_31 : draw_text_fs_params;
 
     var<private> frag_color : vec4f;
 
@@ -811,7 +809,7 @@ draw_text_vs_source_wgsl := [756]u8 {
     }
 
 */
-@(private)
+@(private="file")
 draw_text_fs_source_wgsl := [1772]u8 {
     0x64,0x69,0x61,0x67,0x6e,0x6f,0x73,0x74,0x69,0x63,0x28,0x6f,0x66,0x66,0x2c,0x20,
     0x64,0x65,0x72,0x69,0x76,0x61,0x74,0x69,0x76,0x65,0x5f,0x75,0x6e,0x69,0x66,0x6f,
@@ -823,17 +821,17 @@ draw_text_fs_source_wgsl := [1772]u8 {
     0x2f,0x2a,0x20,0x40,0x6f,0x66,0x66,0x73,0x65,0x74,0x28,0x31,0x36,0x29,0x20,0x2a,
     0x2f,0x0a,0x20,0x20,0x63,0x6f,0x6c,0x6f,0x75,0x72,0x20,0x3a,0x20,0x76,0x65,0x63,
     0x34,0x66,0x2c,0x0a,0x7d,0x0a,0x0a,0x40,0x67,0x72,0x6f,0x75,0x70,0x28,0x31,0x29,
-    0x20,0x40,0x62,0x69,0x6e,0x64,0x69,0x6e,0x67,0x28,0x34,0x38,0x29,0x20,0x76,0x61,
+    0x20,0x40,0x62,0x69,0x6e,0x64,0x69,0x6e,0x67,0x28,0x36,0x34,0x29,0x20,0x76,0x61,
     0x72,0x20,0x64,0x72,0x61,0x77,0x5f,0x74,0x65,0x78,0x74,0x5f,0x73,0x72,0x63,0x5f,
     0x74,0x65,0x78,0x74,0x75,0x72,0x65,0x20,0x3a,0x20,0x74,0x65,0x78,0x74,0x75,0x72,
     0x65,0x5f,0x32,0x64,0x3c,0x66,0x33,0x32,0x3e,0x3b,0x0a,0x0a,0x40,0x67,0x72,0x6f,
-    0x75,0x70,0x28,0x31,0x29,0x20,0x40,0x62,0x69,0x6e,0x64,0x69,0x6e,0x67,0x28,0x36,
-    0x34,0x29,0x20,0x76,0x61,0x72,0x20,0x64,0x72,0x61,0x77,0x5f,0x74,0x65,0x78,0x74,
+    0x75,0x70,0x28,0x31,0x29,0x20,0x40,0x62,0x69,0x6e,0x64,0x69,0x6e,0x67,0x28,0x38,
+    0x30,0x29,0x20,0x76,0x61,0x72,0x20,0x64,0x72,0x61,0x77,0x5f,0x74,0x65,0x78,0x74,
     0x5f,0x73,0x72,0x63,0x5f,0x73,0x61,0x6d,0x70,0x6c,0x65,0x72,0x20,0x3a,0x20,0x73,
     0x61,0x6d,0x70,0x6c,0x65,0x72,0x3b,0x0a,0x0a,0x76,0x61,0x72,0x3c,0x70,0x72,0x69,
     0x76,0x61,0x74,0x65,0x3e,0x20,0x75,0x76,0x20,0x3a,0x20,0x76,0x65,0x63,0x32,0x66,
     0x3b,0x0a,0x0a,0x40,0x67,0x72,0x6f,0x75,0x70,0x28,0x30,0x29,0x20,0x40,0x62,0x69,
-    0x6e,0x64,0x69,0x6e,0x67,0x28,0x34,0x29,0x20,0x76,0x61,0x72,0x3c,0x75,0x6e,0x69,
+    0x6e,0x64,0x69,0x6e,0x67,0x28,0x38,0x29,0x20,0x76,0x61,0x72,0x3c,0x75,0x6e,0x69,
     0x66,0x6f,0x72,0x6d,0x3e,0x20,0x78,0x5f,0x33,0x31,0x20,0x3a,0x20,0x64,0x72,0x61,
     0x77,0x5f,0x74,0x65,0x78,0x74,0x5f,0x66,0x73,0x5f,0x70,0x61,0x72,0x61,0x6d,0x73,
     0x3b,0x0a,0x0a,0x76,0x61,0x72,0x3c,0x70,0x72,0x69,0x76,0x61,0x74,0x65,0x3e,0x20,
@@ -930,109 +928,123 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
     desc.label = "draw_text_shader"
     #partial switch backend {
     case .GLCORE:
-        desc.attrs[0].name = "v_position"
-        desc.attrs[1].name = "v_texture"
-        desc.vs.source = transmute(cstring)&draw_text_vs_source_glsl410
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&draw_text_fs_source_glsl410
-        desc.fs.entry = "main"
-        desc.fs.uniform_blocks[0].size = 32
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.uniform_blocks[0].uniforms[0].name = "_31.down_sample"
-        desc.fs.uniform_blocks[0].uniforms[0].type = .INT
-        desc.fs.uniform_blocks[0].uniforms[0].array_count = 0
-        desc.fs.uniform_blocks[0].uniforms[1].name = "_31.colour"
-        desc.fs.uniform_blocks[0].uniforms[1].type = .FLOAT4
-        desc.fs.uniform_blocks[0].uniforms[1].array_count = 0
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
-        desc.fs.image_sampler_pairs[0].glsl_name = "draw_text_src_texture_draw_text_src_sampler"
+        desc.vertex_func.source = transmute(cstring)&draw_text_vs_source_glsl410
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_glsl410
+        desc.fragment_func.entry = "main"
+        desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].glsl_name = "v_texture"
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 32
+        desc.uniform_blocks[0].glsl_uniforms[0].type = .INT
+        desc.uniform_blocks[0].glsl_uniforms[0].array_count = 0
+        desc.uniform_blocks[0].glsl_uniforms[0].glsl_name = "_31.down_sample"
+        desc.uniform_blocks[0].glsl_uniforms[1].type = .FLOAT4
+        desc.uniform_blocks[0].glsl_uniforms[1].array_count = 0
+        desc.uniform_blocks[0].glsl_uniforms[1].glsl_name = "_31.colour"
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
+        desc.image_sampler_pairs[0].glsl_name = "draw_text_src_texture_draw_text_src_sampler"
     case .GLES3:
-        desc.attrs[0].name = "v_position"
-        desc.attrs[1].name = "v_texture"
-        desc.vs.source = transmute(cstring)&draw_text_vs_source_glsl300es
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&draw_text_fs_source_glsl300es
-        desc.fs.entry = "main"
-        desc.fs.uniform_blocks[0].size = 32
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.uniform_blocks[0].uniforms[0].name = "_31.down_sample"
-        desc.fs.uniform_blocks[0].uniforms[0].type = .INT
-        desc.fs.uniform_blocks[0].uniforms[0].array_count = 0
-        desc.fs.uniform_blocks[0].uniforms[1].name = "_31.colour"
-        desc.fs.uniform_blocks[0].uniforms[1].type = .FLOAT4
-        desc.fs.uniform_blocks[0].uniforms[1].array_count = 0
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
-        desc.fs.image_sampler_pairs[0].glsl_name = "draw_text_src_texture_draw_text_src_sampler"
+        desc.vertex_func.source = transmute(cstring)&draw_text_vs_source_glsl300es
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_glsl300es
+        desc.fragment_func.entry = "main"
+        desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].glsl_name = "v_texture"
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 32
+        desc.uniform_blocks[0].glsl_uniforms[0].type = .INT
+        desc.uniform_blocks[0].glsl_uniforms[0].array_count = 0
+        desc.uniform_blocks[0].glsl_uniforms[0].glsl_name = "_31.down_sample"
+        desc.uniform_blocks[0].glsl_uniforms[1].type = .FLOAT4
+        desc.uniform_blocks[0].glsl_uniforms[1].array_count = 0
+        desc.uniform_blocks[0].glsl_uniforms[1].glsl_name = "_31.colour"
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
+        desc.image_sampler_pairs[0].glsl_name = "draw_text_src_texture_draw_text_src_sampler"
     case .D3D11:
-        desc.attrs[0].sem_name = "TEXCOORD"
-        desc.attrs[0].sem_index = 0
-        desc.attrs[1].sem_name = "TEXCOORD"
-        desc.attrs[1].sem_index = 1
-        desc.vs.source = transmute(cstring)&draw_text_vs_source_hlsl4
-        desc.vs.d3d11_target = "vs_4_0"
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&draw_text_fs_source_hlsl4
-        desc.fs.d3d11_target = "ps_4_0"
-        desc.fs.entry = "main"
-        desc.fs.uniform_blocks[0].size = 32
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
+        desc.vertex_func.source = transmute(cstring)&draw_text_vs_source_hlsl4
+        desc.vertex_func.d3d11_target = "vs_4_0"
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_hlsl4
+        desc.fragment_func.d3d11_target = "ps_4_0"
+        desc.fragment_func.entry = "main"
+        desc.attrs[0].hlsl_sem_name = "TEXCOORD"
+        desc.attrs[0].hlsl_sem_index = 0
+        desc.attrs[1].hlsl_sem_name = "TEXCOORD"
+        desc.attrs[1].hlsl_sem_index = 1
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 32
+        desc.uniform_blocks[0].hlsl_register_b_n = 0
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.images[0].hlsl_register_t_n = 0
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.samplers[0].hlsl_register_s_n = 0
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
     case .METAL_MACOS:
-        desc.vs.source = transmute(cstring)&draw_text_vs_source_metal_macos
-        desc.vs.entry = "main0"
-        desc.fs.source = transmute(cstring)&draw_text_fs_source_metal_macos
-        desc.fs.entry = "main0"
-        desc.fs.uniform_blocks[0].size = 32
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
+        desc.vertex_func.source = transmute(cstring)&draw_text_vs_source_metal_macos
+        desc.vertex_func.entry = "main0"
+        desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_metal_macos
+        desc.fragment_func.entry = "main0"
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 32
+        desc.uniform_blocks[0].msl_buffer_n = 0
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.images[0].msl_texture_n = 0
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.samplers[0].msl_sampler_n = 0
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
     case .WGPU:
-        desc.vs.source = transmute(cstring)&draw_text_vs_source_wgsl
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&draw_text_fs_source_wgsl
-        desc.fs.entry = "main"
-        desc.fs.uniform_blocks[0].size = 32
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
+        desc.vertex_func.source = transmute(cstring)&draw_text_vs_source_wgsl
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_wgsl
+        desc.fragment_func.entry = "main"
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 32
+        desc.uniform_blocks[0].wgsl_group0_binding_n = 8
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.images[0].wgsl_group1_binding_n = 64
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.samplers[0].wgsl_group1_binding_n = 80
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
     }
     return desc
 }

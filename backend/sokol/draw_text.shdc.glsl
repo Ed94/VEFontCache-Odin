@@ -23,10 +23,10 @@ void main()
 in  vec2 uv;
 out vec4 frag_color;
 
-uniform texture2D draw_text_src_texture;
-uniform sampler   draw_text_src_sampler;
+layout(binding = 0) uniform texture2D draw_text_src_texture;
+layout(binding = 0) uniform sampler   draw_text_src_sampler;
 
-uniform draw_text_fs_params {
+layout(binding = 0) uniform draw_text_fs_params {
 	int  down_sample;
 	vec4 colour;
 };

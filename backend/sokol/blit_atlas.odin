@@ -12,31 +12,29 @@ import sg "thirdparty:sokol/gfx"
     =========
     Shader program: 'blit_atlas':
         Get shader desc: blit_atlas_shader_desc(sg.query_backend())
-        Vertex shader: blit_atlas_vs
-            Attributes:
-                ATTR_blit_atlas_vs_v_position => 0
-                ATTR_blit_atlas_vs_v_texture => 1
-        Fragment shader: blit_atlas_fs
-            Uniform block 'blit_atlas_fs_params':
-                Odin struct: Blit_Atlas_Fs_Params
-                Bind slot: SLOT_blit_atlas_fs_params => 0
-            Image 'blit_atlas_src_texture':
-                Image type: ._2D
-                Sample type: .FLOAT
-                Multisampled: false
-                Bind slot: SLOT_blit_atlas_src_texture => 0
-            Sampler 'blit_atlas_src_sampler':
-                Type: .FILTERING
-                Bind slot: SLOT_blit_atlas_src_sampler => 0
-            Image Sampler Pair 'blit_atlas_src_texture_blit_atlas_src_sampler':
-                Image: blit_atlas_src_texture
-                Sampler: blit_atlas_src_sampler
+        Vertex Shader: blit_atlas_vs
+        Fragment Shader: blit_atlas_fs
+        Attributes:
+            ATTR_blit_atlas_v_position => 0
+            ATTR_blit_atlas_v_texture => 1
+    Bindings:
+        Uniform block 'blit_atlas_fs_params':
+            Odin struct: Blit_Atlas_Fs_Params
+            Bind slot: UB_blit_atlas_fs_params => 0
+        Image 'blit_atlas_src_texture':
+            Image type: ._2D
+            Sample type: .FLOAT
+            Multisampled: false
+            Bind slot: IMG_blit_atlas_src_texture => 0
+        Sampler 'blit_atlas_src_sampler':
+            Type: .FILTERING
+            Bind slot: SMP_blit_atlas_src_sampler => 0
 */
-ATTR_blit_atlas_vs_v_position :: 0
-ATTR_blit_atlas_vs_v_texture :: 1
-SLOT_blit_atlas_fs_params :: 0
-SLOT_blit_atlas_src_texture :: 0
-SLOT_blit_atlas_src_sampler :: 0
+ATTR_blit_atlas_v_position :: 0
+ATTR_blit_atlas_v_texture :: 1
+UB_blit_atlas_fs_params :: 0
+IMG_blit_atlas_src_texture :: 0
+SMP_blit_atlas_src_sampler :: 0
 Blit_Atlas_Fs_Params :: struct #align(16) {
     using _: struct #packed {
         region: i32,
@@ -57,7 +55,7 @@ Blit_Atlas_Fs_Params :: struct #align(16) {
     }
 
 */
-@(private)
+@(private="file")
 blit_atlas_vs_source_glsl410 := [235]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x34,0x31,0x30,0x0a,0x0a,0x6c,0x61,
     0x79,0x6f,0x75,0x74,0x28,0x6c,0x6f,0x63,0x61,0x74,0x69,0x6f,0x6e,0x20,0x3d,0x20,
@@ -129,7 +127,7 @@ blit_atlas_vs_source_glsl410 := [235]u8 {
     }
 
 */
-@(private)
+@(private="file")
 blit_atlas_fs_source_glsl410 := [1700]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x34,0x31,0x30,0x0a,0x0a,0x75,0x6e,
     0x69,0x66,0x6f,0x72,0x6d,0x20,0x69,0x76,0x65,0x63,0x34,0x20,0x62,0x6c,0x69,0x74,
@@ -253,7 +251,7 @@ blit_atlas_fs_source_glsl410 := [1700]u8 {
     }
 
 */
-@(private)
+@(private="file")
 blit_atlas_vs_source_glsl300es := [217]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x0a,0x6f,0x75,0x74,0x20,0x76,0x65,0x63,0x32,0x20,0x75,0x76,0x3b,0x0a,0x6c,0x61,
@@ -326,7 +324,7 @@ blit_atlas_vs_source_glsl300es := [217]u8 {
     }
 
 */
-@(private)
+@(private="file")
 blit_atlas_fs_source_glsl300es := [1806]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x70,0x72,0x65,0x63,0x69,0x73,0x69,0x6f,0x6e,0x20,0x6d,0x65,0x64,0x69,0x75,0x6d,
@@ -477,7 +475,7 @@ blit_atlas_fs_source_glsl300es := [1806]u8 {
         return stage_output;
     }
 */
-@(private)
+@(private="file")
 blit_atlas_vs_source_hlsl4 := [705]u8 {
     0x73,0x74,0x61,0x74,0x69,0x63,0x20,0x66,0x6c,0x6f,0x61,0x74,0x34,0x20,0x67,0x6c,
     0x5f,0x50,0x6f,0x73,0x69,0x74,0x69,0x6f,0x6e,0x3b,0x0a,0x73,0x74,0x61,0x74,0x69,
@@ -600,7 +598,7 @@ blit_atlas_vs_source_hlsl4 := [705]u8 {
         return stage_output;
     }
 */
-@(private)
+@(private="file")
 blit_atlas_fs_source_hlsl4 := [2107]u8 {
     0x63,0x62,0x75,0x66,0x66,0x65,0x72,0x20,0x62,0x6c,0x69,0x74,0x5f,0x61,0x74,0x6c,
     0x61,0x73,0x5f,0x66,0x73,0x5f,0x70,0x61,0x72,0x61,0x6d,0x73,0x20,0x3a,0x20,0x72,
@@ -762,7 +760,7 @@ blit_atlas_fs_source_hlsl4 := [2107]u8 {
     }
 
 */
-@(private)
+@(private="file")
 blit_atlas_vs_source_metal_macos := [473]u8 {
     0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,0x20,0x3c,0x6d,0x65,0x74,0x61,0x6c,0x5f,
     0x73,0x74,0x64,0x6c,0x69,0x62,0x3e,0x0a,0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,
@@ -866,7 +864,7 @@ blit_atlas_vs_source_metal_macos := [473]u8 {
     }
 
 */
-@(private)
+@(private="file")
 blit_atlas_fs_source_metal_macos := [2373]u8 {
     0x23,0x70,0x72,0x61,0x67,0x6d,0x61,0x20,0x63,0x6c,0x61,0x6e,0x67,0x20,0x64,0x69,
     0x61,0x67,0x6e,0x6f,0x73,0x74,0x69,0x63,0x20,0x69,0x67,0x6e,0x6f,0x72,0x65,0x64,
@@ -1054,7 +1052,7 @@ blit_atlas_fs_source_metal_macos := [2373]u8 {
     }
 
 */
-@(private)
+@(private="file")
 blit_atlas_vs_source_wgsl := [698]u8 {
     0x64,0x69,0x61,0x67,0x6e,0x6f,0x73,0x74,0x69,0x63,0x28,0x6f,0x66,0x66,0x2c,0x20,
     0x64,0x65,0x72,0x69,0x76,0x61,0x74,0x69,0x76,0x65,0x5f,0x75,0x6e,0x69,0x66,0x6f,
@@ -1109,11 +1107,11 @@ blit_atlas_vs_source_wgsl := [698]u8 {
       region : i32,
     }
 
-    @group(1) @binding(48) var blit_atlas_src_texture : texture_2d<f32>;
+    @group(1) @binding(64) var blit_atlas_src_texture : texture_2d<f32>;
 
-    @group(1) @binding(64) var blit_atlas_src_sampler : sampler;
+    @group(1) @binding(80) var blit_atlas_src_sampler : sampler;
 
-    @group(0) @binding(4) var<uniform> x_88 : blit_atlas_fs_params;
+    @group(0) @binding(8) var<uniform> x_88 : blit_atlas_fs_params;
 
     var<private> uv_1 : vec2f;
 
@@ -1219,7 +1217,7 @@ blit_atlas_vs_source_wgsl := [698]u8 {
     }
 
 */
-@(private)
+@(private="file")
 blit_atlas_fs_source_wgsl := [3640]u8 {
     0x64,0x69,0x61,0x67,0x6e,0x6f,0x73,0x74,0x69,0x63,0x28,0x6f,0x66,0x66,0x2c,0x20,
     0x64,0x65,0x72,0x69,0x76,0x61,0x74,0x69,0x76,0x65,0x5f,0x75,0x6e,0x69,0x66,0x6f,
@@ -1229,15 +1227,15 @@ blit_atlas_fs_source_wgsl := [3640]u8 {
     0x73,0x65,0x74,0x28,0x30,0x29,0x20,0x2a,0x2f,0x0a,0x20,0x20,0x72,0x65,0x67,0x69,
     0x6f,0x6e,0x20,0x3a,0x20,0x69,0x33,0x32,0x2c,0x0a,0x7d,0x0a,0x0a,0x40,0x67,0x72,
     0x6f,0x75,0x70,0x28,0x31,0x29,0x20,0x40,0x62,0x69,0x6e,0x64,0x69,0x6e,0x67,0x28,
-    0x34,0x38,0x29,0x20,0x76,0x61,0x72,0x20,0x62,0x6c,0x69,0x74,0x5f,0x61,0x74,0x6c,
+    0x36,0x34,0x29,0x20,0x76,0x61,0x72,0x20,0x62,0x6c,0x69,0x74,0x5f,0x61,0x74,0x6c,
     0x61,0x73,0x5f,0x73,0x72,0x63,0x5f,0x74,0x65,0x78,0x74,0x75,0x72,0x65,0x20,0x3a,
     0x20,0x74,0x65,0x78,0x74,0x75,0x72,0x65,0x5f,0x32,0x64,0x3c,0x66,0x33,0x32,0x3e,
     0x3b,0x0a,0x0a,0x40,0x67,0x72,0x6f,0x75,0x70,0x28,0x31,0x29,0x20,0x40,0x62,0x69,
-    0x6e,0x64,0x69,0x6e,0x67,0x28,0x36,0x34,0x29,0x20,0x76,0x61,0x72,0x20,0x62,0x6c,
+    0x6e,0x64,0x69,0x6e,0x67,0x28,0x38,0x30,0x29,0x20,0x76,0x61,0x72,0x20,0x62,0x6c,
     0x69,0x74,0x5f,0x61,0x74,0x6c,0x61,0x73,0x5f,0x73,0x72,0x63,0x5f,0x73,0x61,0x6d,
     0x70,0x6c,0x65,0x72,0x20,0x3a,0x20,0x73,0x61,0x6d,0x70,0x6c,0x65,0x72,0x3b,0x0a,
     0x0a,0x40,0x67,0x72,0x6f,0x75,0x70,0x28,0x30,0x29,0x20,0x40,0x62,0x69,0x6e,0x64,
-    0x69,0x6e,0x67,0x28,0x34,0x29,0x20,0x76,0x61,0x72,0x3c,0x75,0x6e,0x69,0x66,0x6f,
+    0x69,0x6e,0x67,0x28,0x38,0x29,0x20,0x76,0x61,0x72,0x3c,0x75,0x6e,0x69,0x66,0x6f,
     0x72,0x6d,0x3e,0x20,0x78,0x5f,0x38,0x38,0x20,0x3a,0x20,0x62,0x6c,0x69,0x74,0x5f,
     0x61,0x74,0x6c,0x61,0x73,0x5f,0x66,0x73,0x5f,0x70,0x61,0x72,0x61,0x6d,0x73,0x3b,
     0x0a,0x0a,0x76,0x61,0x72,0x3c,0x70,0x72,0x69,0x76,0x61,0x74,0x65,0x3e,0x20,0x75,
@@ -1455,103 +1453,117 @@ blit_atlas_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
     desc.label = "blit_atlas_shader"
     #partial switch backend {
     case .GLCORE:
-        desc.attrs[0].name = "v_position"
-        desc.attrs[1].name = "v_texture"
-        desc.vs.source = transmute(cstring)&blit_atlas_vs_source_glsl410
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&blit_atlas_fs_source_glsl410
-        desc.fs.entry = "main"
-        desc.fs.uniform_blocks[0].size = 16
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.uniform_blocks[0].uniforms[0].name = "blit_atlas_fs_params"
-        desc.fs.uniform_blocks[0].uniforms[0].type = .INT4
-        desc.fs.uniform_blocks[0].uniforms[0].array_count = 1
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
-        desc.fs.image_sampler_pairs[0].glsl_name = "blit_atlas_src_texture_blit_atlas_src_sampler"
+        desc.vertex_func.source = transmute(cstring)&blit_atlas_vs_source_glsl410
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&blit_atlas_fs_source_glsl410
+        desc.fragment_func.entry = "main"
+        desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].glsl_name = "v_texture"
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 16
+        desc.uniform_blocks[0].glsl_uniforms[0].type = .INT4
+        desc.uniform_blocks[0].glsl_uniforms[0].array_count = 1
+        desc.uniform_blocks[0].glsl_uniforms[0].glsl_name = "blit_atlas_fs_params"
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
+        desc.image_sampler_pairs[0].glsl_name = "blit_atlas_src_texture_blit_atlas_src_sampler"
     case .GLES3:
-        desc.attrs[0].name = "v_position"
-        desc.attrs[1].name = "v_texture"
-        desc.vs.source = transmute(cstring)&blit_atlas_vs_source_glsl300es
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&blit_atlas_fs_source_glsl300es
-        desc.fs.entry = "main"
-        desc.fs.uniform_blocks[0].size = 16
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.uniform_blocks[0].uniforms[0].name = "blit_atlas_fs_params"
-        desc.fs.uniform_blocks[0].uniforms[0].type = .INT4
-        desc.fs.uniform_blocks[0].uniforms[0].array_count = 1
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
-        desc.fs.image_sampler_pairs[0].glsl_name = "blit_atlas_src_texture_blit_atlas_src_sampler"
+        desc.vertex_func.source = transmute(cstring)&blit_atlas_vs_source_glsl300es
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&blit_atlas_fs_source_glsl300es
+        desc.fragment_func.entry = "main"
+        desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].glsl_name = "v_texture"
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 16
+        desc.uniform_blocks[0].glsl_uniforms[0].type = .INT4
+        desc.uniform_blocks[0].glsl_uniforms[0].array_count = 1
+        desc.uniform_blocks[0].glsl_uniforms[0].glsl_name = "blit_atlas_fs_params"
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
+        desc.image_sampler_pairs[0].glsl_name = "blit_atlas_src_texture_blit_atlas_src_sampler"
     case .D3D11:
-        desc.attrs[0].sem_name = "TEXCOORD"
-        desc.attrs[0].sem_index = 0
-        desc.attrs[1].sem_name = "TEXCOORD"
-        desc.attrs[1].sem_index = 1
-        desc.vs.source = transmute(cstring)&blit_atlas_vs_source_hlsl4
-        desc.vs.d3d11_target = "vs_4_0"
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&blit_atlas_fs_source_hlsl4
-        desc.fs.d3d11_target = "ps_4_0"
-        desc.fs.entry = "main"
-        desc.fs.uniform_blocks[0].size = 16
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
+        desc.vertex_func.source = transmute(cstring)&blit_atlas_vs_source_hlsl4
+        desc.vertex_func.d3d11_target = "vs_4_0"
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&blit_atlas_fs_source_hlsl4
+        desc.fragment_func.d3d11_target = "ps_4_0"
+        desc.fragment_func.entry = "main"
+        desc.attrs[0].hlsl_sem_name = "TEXCOORD"
+        desc.attrs[0].hlsl_sem_index = 0
+        desc.attrs[1].hlsl_sem_name = "TEXCOORD"
+        desc.attrs[1].hlsl_sem_index = 1
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 16
+        desc.uniform_blocks[0].hlsl_register_b_n = 0
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.images[0].hlsl_register_t_n = 0
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.samplers[0].hlsl_register_s_n = 0
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
     case .METAL_MACOS:
-        desc.vs.source = transmute(cstring)&blit_atlas_vs_source_metal_macos
-        desc.vs.entry = "main0"
-        desc.fs.source = transmute(cstring)&blit_atlas_fs_source_metal_macos
-        desc.fs.entry = "main0"
-        desc.fs.uniform_blocks[0].size = 16
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
+        desc.vertex_func.source = transmute(cstring)&blit_atlas_vs_source_metal_macos
+        desc.vertex_func.entry = "main0"
+        desc.fragment_func.source = transmute(cstring)&blit_atlas_fs_source_metal_macos
+        desc.fragment_func.entry = "main0"
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 16
+        desc.uniform_blocks[0].msl_buffer_n = 0
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.images[0].msl_texture_n = 0
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.samplers[0].msl_sampler_n = 0
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
     case .WGPU:
-        desc.vs.source = transmute(cstring)&blit_atlas_vs_source_wgsl
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&blit_atlas_fs_source_wgsl
-        desc.fs.entry = "main"
-        desc.fs.uniform_blocks[0].size = 16
-        desc.fs.uniform_blocks[0].layout = .STD140
-        desc.fs.images[0].used = true
-        desc.fs.images[0].multisampled = false
-        desc.fs.images[0].image_type = ._2D
-        desc.fs.images[0].sample_type = .FLOAT
-        desc.fs.samplers[0].used = true
-        desc.fs.samplers[0].sampler_type = .FILTERING
-        desc.fs.image_sampler_pairs[0].used = true
-        desc.fs.image_sampler_pairs[0].image_slot = 0
-        desc.fs.image_sampler_pairs[0].sampler_slot = 0
+        desc.vertex_func.source = transmute(cstring)&blit_atlas_vs_source_wgsl
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&blit_atlas_fs_source_wgsl
+        desc.fragment_func.entry = "main"
+        desc.uniform_blocks[0].stage = .FRAGMENT
+        desc.uniform_blocks[0].layout = .STD140
+        desc.uniform_blocks[0].size = 16
+        desc.uniform_blocks[0].wgsl_group0_binding_n = 8
+        desc.images[0].stage = .FRAGMENT
+        desc.images[0].multisampled = false
+        desc.images[0].image_type = ._2D
+        desc.images[0].sample_type = .FLOAT
+        desc.images[0].wgsl_group1_binding_n = 64
+        desc.samplers[0].stage = .FRAGMENT
+        desc.samplers[0].sampler_type = .FILTERING
+        desc.samplers[0].wgsl_group1_binding_n = 80
+        desc.image_sampler_pairs[0].stage = .FRAGMENT
+        desc.image_sampler_pairs[0].image_slot = 0
+        desc.image_sampler_pairs[0].sampler_slot = 0
     }
     return desc
 }

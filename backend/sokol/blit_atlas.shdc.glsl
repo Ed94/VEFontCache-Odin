@@ -11,10 +11,10 @@
 in  vec2 uv;
 out vec4 frag_color;
 
-uniform texture2D blit_atlas_src_texture;
-uniform sampler   blit_atlas_src_sampler;
+layout(binding = 0) uniform texture2D blit_atlas_src_texture;
+layout(binding = 0) uniform sampler   blit_atlas_src_sampler;
 
-uniform blit_atlas_fs_params {
+layout(binding = 0) uniform blit_atlas_fs_params {
 	int region;
 };
 

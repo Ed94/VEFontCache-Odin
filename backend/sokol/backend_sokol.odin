@@ -65,14 +65,14 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	screen_shader = gfx.make_shader(draw_text_shader_desc(backend) )
 
 	draw_list_vbuf = gfx.make_buffer( Buffer_Desciption {
-		size  = size_of([4]f32) * vert_cap,
+		size  = cast(uint)(size_of([4]f32) * vert_cap),
 		usage = Buffer_Usage.STREAM,
 		type  = Buffer_Type.VERTEXBUFFER,
 	})
 	assert( gfx.query_buffer_state( draw_list_vbuf) < Resource_State.FAILED, "Failed to make draw_list_vbuf" )
 
 	draw_list_ibuf = gfx.make_buffer( Buffer_Desciption {
-		size  = size_of(u32) * index_cap,
+		size  = cast(uint)(size_of(u32) * index_cap),
 		usage = Buffer_Usage.STREAM,
 		type  = Buffer_Type.INDEXBUFFER,
 	})
@@ -85,12 +85,12 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 		vs_layout : Vertex_Layout_State
 		{
 			using vs_layout
-			attrs[ATTR_render_glyph_vs_v_position] = Vertex_Attribute_State {
+			attrs[ATTR_render_glyph_v_position] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = 0,
 				buffer_index = 0,
 			}
-			attrs[ATTR_render_glyph_vs_v_texture] = Vertex_Attribute_State {
+			attrs[ATTR_render_glyph_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = size_of(ve.Vec2),
 				buffer_index = 0,
@@ -221,12 +221,12 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 		vs_layout : Vertex_Layout_State
 		{
 			using vs_layout
-			attrs[ATTR_blit_atlas_vs_v_position] = Vertex_Attribute_State {
+			attrs[ATTR_blit_atlas_v_position] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = 0,
 				buffer_index = 0,
 			}
-			attrs[ATTR_blit_atlas_vs_v_texture] = Vertex_Attribute_State {
+			attrs[ATTR_blit_atlas_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = size_of(ve.Vec2),
 				buffer_index = 0,
@@ -358,12 +358,12 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 		vs_layout : Vertex_Layout_State
 		{
 			using vs_layout
-			attrs[ATTR_draw_text_vs_v_position] = Vertex_Attribute_State {
+			attrs[ATTR_draw_text_v_position] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = 0,
 				buffer_index = 0,
 			}
-			attrs[ATTR_draw_text_vs_v_texture] = Vertex_Attribute_State {
+			attrs[ATTR_draw_text_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = size_of(ve.Vec2),
 				buffer_index = 0,
@@ -456,8 +456,8 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 
 	vbuf_layer_slice, ibuf_layer_slice, calls_layer_slice := ve.get_draw_list_layer( ve_ctx, optimize_before_returning = true )
 
-	vbuf_ve_range := Range{ raw_data(vbuf_layer_slice), cast(u64) len(vbuf_layer_slice) * size_of(ve.Vertex) }
-	ibuf_ve_range := Range{ raw_data(ibuf_layer_slice), cast(u64) len(ibuf_layer_slice) * size_of(u32)       }
+	vbuf_ve_range := Range{ raw_data(vbuf_layer_slice), cast(uint) len(vbuf_layer_slice) * size_of(ve.Vertex) }
+	ibuf_ve_range := Range{ raw_data(ibuf_layer_slice), cast(uint) len(ibuf_layer_slice) * size_of(u32)       }
 
 	gfx.append_buffer( draw_list_vbuf, vbuf_ve_range )
 	gfx.append_buffer( draw_list_ibuf, ibuf_ve_range )
@@ -508,7 +508,6 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					},
 					index_buffer        = draw_list_ibuf,
 					index_buffer_offset = 0,
-					fs = {},
 				}
 				gfx.apply_bindings( bindings )
 
@@ -536,7 +535,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 				gfx.apply_pipeline( atlas_pipeline )
 
 				fs_uniform := Blit_Atlas_Fs_Params { region = cast(i32) draw_call.region }
-				gfx.apply_uniforms( Shader_Stage.FS, SLOT_blit_atlas_fs_params, Range { & fs_uniform, size_of(Blit_Atlas_Fs_Params) })
+				gfx.apply_uniforms( UB_blit_atlas_fs_params, Range { & fs_uniform, size_of(Blit_Atlas_Fs_Params) })
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {
@@ -547,10 +546,8 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					},
 					index_buffer        = draw_list_ibuf,
 					index_buffer_offset = 0,
-					fs = {
-						images   = { SLOT_blit_atlas_src_texture = glyph_rt_color, },
-						samplers = { SLOT_blit_atlas_src_sampler = glyph_rt_sampler, },
-					},
+					images   = { IMG_blit_atlas_src_texture = glyph_rt_color, },
+					samplers = { SMP_blit_atlas_src_sampler = glyph_rt_sampler, },
 				})
 
 			// 3. Use the atlas to then render the text.
@@ -583,7 +580,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					src_rt      = glyph_rt_color
 					src_sampler = glyph_rt_sampler
 				}
-				gfx.apply_uniforms( Shader_Stage.FS, SLOT_draw_text_fs_params, Range { & fs_target_uniform, size_of(Draw_Text_Fs_Params) })
+				gfx.apply_uniforms( UB_draw_text_fs_params, Range { & fs_target_uniform, size_of(Draw_Text_Fs_Params) })
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {
@@ -594,10 +591,8 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					},
 					index_buffer        = draw_list_ibuf,
 					index_buffer_offset = 0,
-					fs = {
-						images   = { SLOT_draw_text_src_texture = src_rt, },
-						samplers = { SLOT_draw_text_src_sampler = src_sampler, },
-					},
+					images   = { IMG_draw_text_src_texture = src_rt, },
+					samplers = { SMP_draw_text_src_sampler = src_sampler, },
 				})
 		}
 

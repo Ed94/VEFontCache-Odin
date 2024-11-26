@@ -217,7 +217,7 @@ draw_text_zoomed_norm :: proc(content : string, id : Font_ID, size : f32, pos : 
 	ve.draw_text(&demo_ctx.ve_ctx, ve_id, content, pos, text_scale)
 }
 
-sokol_app_alloc :: proc "c" ( size : u64, user_data : rawptr ) -> rawptr {
+sokol_app_alloc :: proc "c" ( size : uint, user_data : rawptr ) -> rawptr {
 	context = runtime.default_context()
 	block, error := mem.alloc( int(size), allocator = context.allocator )
 	assert(error == .None, "sokol_app allocation failed")
@@ -229,7 +229,7 @@ sokol_app_free :: proc "c" ( data : rawptr, user_data : rawptr ) {
 	free(data, allocator = context.allocator)
 }
 
-sokol_gfx_alloc :: proc "c" ( size : u64, user_data : rawptr ) -> rawptr {
+sokol_gfx_alloc :: proc "c" ( size : uint, user_data : rawptr ) -> rawptr {
 	context = runtime.default_context()
 	block, error := mem.alloc( int(size), allocator = context.allocator )
 	assert(error == .None, "sokol_gfx allocation failed")

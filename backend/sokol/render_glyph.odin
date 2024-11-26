@@ -12,14 +12,15 @@ import sg "thirdparty:sokol/gfx"
     =========
     Shader program: 'render_glyph':
         Get shader desc: render_glyph_shader_desc(sg.query_backend())
-        Vertex shader: render_glyph_vs
-            Attributes:
-                ATTR_render_glyph_vs_v_position => 0
-                ATTR_render_glyph_vs_v_texture => 1
-        Fragment shader: render_glyph_fs
+        Vertex Shader: render_glyph_vs
+        Fragment Shader: render_glyph_fs
+        Attributes:
+            ATTR_render_glyph_v_position => 0
+            ATTR_render_glyph_v_texture => 1
+    Bindings:
 */
-ATTR_render_glyph_vs_v_position :: 0
-ATTR_render_glyph_vs_v_texture :: 1
+ATTR_render_glyph_v_position :: 0
+ATTR_render_glyph_v_texture :: 1
 /*
     #version 410
 
@@ -34,7 +35,7 @@ ATTR_render_glyph_vs_v_texture :: 1
     }
 
 */
-@(private)
+@(private="file")
 render_glyph_vs_source_glsl410 := [235]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x34,0x31,0x30,0x0a,0x0a,0x6c,0x61,
     0x79,0x6f,0x75,0x74,0x28,0x6c,0x6f,0x63,0x61,0x74,0x69,0x6f,0x6e,0x20,0x3d,0x20,
@@ -64,7 +65,7 @@ render_glyph_vs_source_glsl410 := [235]u8 {
     }
 
 */
-@(private)
+@(private="file")
 render_glyph_fs_source_glsl410 := [136]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x34,0x31,0x30,0x0a,0x0a,0x6c,0x61,
     0x79,0x6f,0x75,0x74,0x28,0x6c,0x6f,0x63,0x61,0x74,0x69,0x6f,0x6e,0x20,0x3d,0x20,
@@ -90,7 +91,7 @@ render_glyph_fs_source_glsl410 := [136]u8 {
     }
 
 */
-@(private)
+@(private="file")
 render_glyph_vs_source_glsl300es := [217]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x0a,0x6f,0x75,0x74,0x20,0x76,0x65,0x63,0x32,0x20,0x75,0x76,0x3b,0x0a,0x6c,0x61,
@@ -121,7 +122,7 @@ render_glyph_vs_source_glsl300es := [217]u8 {
     }
 
 */
-@(private)
+@(private="file")
 render_glyph_fs_source_glsl300es := [176]u8 {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x70,0x72,0x65,0x63,0x69,0x73,0x69,0x6f,0x6e,0x20,0x6d,0x65,0x64,0x69,0x75,0x6d,
@@ -171,7 +172,7 @@ render_glyph_fs_source_glsl300es := [176]u8 {
         return stage_output;
     }
 */
-@(private)
+@(private="file")
 render_glyph_vs_source_hlsl4 := [705]u8 {
     0x73,0x74,0x61,0x74,0x69,0x63,0x20,0x66,0x6c,0x6f,0x61,0x74,0x34,0x20,0x67,0x6c,
     0x5f,0x50,0x6f,0x73,0x69,0x74,0x69,0x6f,0x6e,0x3b,0x0a,0x73,0x74,0x61,0x74,0x69,
@@ -247,7 +248,7 @@ render_glyph_vs_source_hlsl4 := [705]u8 {
         return stage_output;
     }
 */
-@(private)
+@(private="file")
 render_glyph_fs_source_hlsl4 := [427]u8 {
     0x73,0x74,0x61,0x74,0x69,0x63,0x20,0x66,0x6c,0x6f,0x61,0x74,0x34,0x20,0x66,0x72,
     0x61,0x67,0x5f,0x63,0x6f,0x6c,0x6f,0x72,0x3b,0x0a,0x73,0x74,0x61,0x74,0x69,0x63,
@@ -304,7 +305,7 @@ render_glyph_fs_source_hlsl4 := [427]u8 {
     }
 
 */
-@(private)
+@(private="file")
 render_glyph_vs_source_metal_macos := [473]u8 {
     0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,0x20,0x3c,0x6d,0x65,0x74,0x61,0x6c,0x5f,
     0x73,0x74,0x64,0x6c,0x69,0x62,0x3e,0x0a,0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,
@@ -356,7 +357,7 @@ render_glyph_vs_source_metal_macos := [473]u8 {
     }
 
 */
-@(private)
+@(private="file")
 render_glyph_fs_source_metal_macos := [238]u8 {
     0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,0x20,0x3c,0x6d,0x65,0x74,0x61,0x6c,0x5f,
     0x73,0x74,0x64,0x6c,0x69,0x62,0x3e,0x0a,0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,
@@ -410,7 +411,7 @@ render_glyph_fs_source_metal_macos := [238]u8 {
     }
 
 */
-@(private)
+@(private="file")
 render_glyph_vs_source_wgsl := [698]u8 {
     0x64,0x69,0x61,0x67,0x6e,0x6f,0x73,0x74,0x69,0x63,0x28,0x6f,0x66,0x66,0x2c,0x20,
     0x64,0x65,0x72,0x69,0x76,0x61,0x74,0x69,0x76,0x65,0x5f,0x75,0x6e,0x69,0x66,0x6f,
@@ -482,7 +483,7 @@ render_glyph_vs_source_wgsl := [698]u8 {
     }
 
 */
-@(private)
+@(private="file")
 render_glyph_fs_source_wgsl := [361]u8 {
     0x64,0x69,0x61,0x67,0x6e,0x6f,0x73,0x74,0x69,0x63,0x28,0x6f,0x66,0x66,0x2c,0x20,
     0x64,0x65,0x72,0x69,0x76,0x61,0x74,0x69,0x76,0x65,0x5f,0x75,0x6e,0x69,0x66,0x6f,
@@ -513,40 +514,40 @@ render_glyph_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
     desc.label = "render_glyph_shader"
     #partial switch backend {
     case .GLCORE:
-        desc.attrs[0].name = "v_position"
-        desc.attrs[1].name = "v_texture"
-        desc.vs.source = transmute(cstring)&render_glyph_vs_source_glsl410
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&render_glyph_fs_source_glsl410
-        desc.fs.entry = "main"
+        desc.vertex_func.source = transmute(cstring)&render_glyph_vs_source_glsl410
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_glsl410
+        desc.fragment_func.entry = "main"
+        desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].glsl_name = "v_texture"
     case .GLES3:
-        desc.attrs[0].name = "v_position"
-        desc.attrs[1].name = "v_texture"
-        desc.vs.source = transmute(cstring)&render_glyph_vs_source_glsl300es
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&render_glyph_fs_source_glsl300es
-        desc.fs.entry = "main"
+        desc.vertex_func.source = transmute(cstring)&render_glyph_vs_source_glsl300es
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_glsl300es
+        desc.fragment_func.entry = "main"
+        desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].glsl_name = "v_texture"
     case .D3D11:
-        desc.attrs[0].sem_name = "TEXCOORD"
-        desc.attrs[0].sem_index = 0
-        desc.attrs[1].sem_name = "TEXCOORD"
-        desc.attrs[1].sem_index = 1
-        desc.vs.source = transmute(cstring)&render_glyph_vs_source_hlsl4
-        desc.vs.d3d11_target = "vs_4_0"
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&render_glyph_fs_source_hlsl4
-        desc.fs.d3d11_target = "ps_4_0"
-        desc.fs.entry = "main"
+        desc.vertex_func.source = transmute(cstring)&render_glyph_vs_source_hlsl4
+        desc.vertex_func.d3d11_target = "vs_4_0"
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_hlsl4
+        desc.fragment_func.d3d11_target = "ps_4_0"
+        desc.fragment_func.entry = "main"
+        desc.attrs[0].hlsl_sem_name = "TEXCOORD"
+        desc.attrs[0].hlsl_sem_index = 0
+        desc.attrs[1].hlsl_sem_name = "TEXCOORD"
+        desc.attrs[1].hlsl_sem_index = 1
     case .METAL_MACOS:
-        desc.vs.source = transmute(cstring)&render_glyph_vs_source_metal_macos
-        desc.vs.entry = "main0"
-        desc.fs.source = transmute(cstring)&render_glyph_fs_source_metal_macos
-        desc.fs.entry = "main0"
+        desc.vertex_func.source = transmute(cstring)&render_glyph_vs_source_metal_macos
+        desc.vertex_func.entry = "main0"
+        desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_metal_macos
+        desc.fragment_func.entry = "main0"
     case .WGPU:
-        desc.vs.source = transmute(cstring)&render_glyph_vs_source_wgsl
-        desc.vs.entry = "main"
-        desc.fs.source = transmute(cstring)&render_glyph_fs_source_wgsl
-        desc.fs.entry = "main"
+        desc.vertex_func.source = transmute(cstring)&render_glyph_vs_source_wgsl
+        desc.vertex_func.entry = "main"
+        desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_wgsl
+        desc.fragment_func.entry = "main"
     }
     return desc
 }
