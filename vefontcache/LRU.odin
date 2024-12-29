@@ -63,6 +63,26 @@ pool_list_reload :: proc( pool : ^Pool_List, allocator : Allocator ) {
 	reload_array( & pool.free_list, allocator )
 }
 
+pool_list_clear :: proc( pool: ^Pool_List ) {
+	using pool
+	clear(& items)
+	clear(& free_list)
+	resize( & pool.items, cap(pool.items) )
+	resize( & pool.free_list, cap(pool.free_list) )
+
+	for id in 0 ..< capacity {
+		free_list[id] = i32(id)
+		items[id] = {
+			prev = -1,
+			next = -1,
+		}
+	}
+
+	front = -1
+	back  = -1
+	size  = 0
+}
+
 pool_list_push_front :: proc( pool : ^Pool_List, value : Pool_ListValue )
 {
 	using pool
@@ -184,6 +204,12 @@ lru_free :: proc( cache : ^LRU_Cache ) {
 lru_reload :: #force_inline proc( cache : ^LRU_Cache, allocator : Allocator ) {
 	reload_map( & cache.table, allocator )
 	pool_list_reload( & cache.key_queue, allocator )
+}
+
+lru_clear :: proc ( cache : ^LRU_Cache ) {
+	pool_list_clear( & cache.key_queue )
+	clear(& cache.table)
+	cache.num = 0
 }
 
 lru_find :: #force_inline proc "contextless" ( cache : ^LRU_Cache, key : u64, must_find := false ) -> (LRU_Link, bool) {

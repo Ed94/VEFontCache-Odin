@@ -27,7 +27,8 @@ Atlas :: struct {
 	width  : i32,
 	height : i32,
 
-	glyph_padding : i32,
+	glyph_padding     : i32, // Padding to add to bounds_<width/height>_scaled for choosing which atlas region.
+	glyph_over_scalar : f32, // Scalar to apply to bounds_<width/height>_scaled for choosing which atlas region.
 
 	region_a : Atlas_Region,
 	region_b : Atlas_Region,
@@ -98,8 +99,8 @@ decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Gl
 	glyph_buffer  := & ctx.glyph_buffer
 	glyph_padding := f32( atlas.glyph_padding ) * 2
 
-	bounds_width_scaled  := i32(bounds_width  * entry.size_scale + glyph_padding)
-	bounds_height_scaled := i32(bounds_height * entry.size_scale + glyph_padding)
+	bounds_width_scaled  := i32(bounds_width  * entry.size_scale * atlas.glyph_over_scalar + glyph_padding)
+	bounds_height_scaled := i32(bounds_height * entry.size_scale * atlas.glyph_over_scalar + glyph_padding)
 
 	// Use a lookup table for faster region selection
 	region_lookup := [4]struct { kind: Atlas_Region_Kind, region: ^Atlas_Region } {
@@ -118,7 +119,7 @@ decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Gl
 		over_sample = \
 			bounds_width_scaled  <= glyph_buffer.width  / 2 &&
 			bounds_height_scaled <= glyph_buffer.height / 2 ? \
-			  {2.0, 2.0} \
+			  {2.0, 2.0}                                      \
 			: {1.0, 1.0}
 		return .E, nil, over_sample
 	}

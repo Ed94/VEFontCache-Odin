@@ -271,7 +271,7 @@ init :: proc "c" ()
 		case .DUMMY: fmt.println(">> using dummy backend")
 	}
 
-	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, snap_shape_position = false, use_advanced_text_shaper = true )
+	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator )
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 1024 * 1024, index_cap = 1024 * 1024 )
 
 	error : mem.Allocator_Error

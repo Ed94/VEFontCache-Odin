@@ -174,9 +174,9 @@ cache_glyph_freetype :: proc(ctx: ^Context, font: Font_ID, glyph_index: Glyph, e
 	start_index: int = 0
 	for contour_index in 0 ..< int(outline.n_contours)
 	{
-		end_index := int(contours[contour_index]) + 1
-		prev_point: Vec2
-		first_point: Vec2
+		end_index   := int(contours[contour_index]) + 1
+		prev_point  : Vec2
+		first_point : Vec2
 
 		for idx := start_index; idx < end_index; idx += 1
 		{
@@ -272,6 +272,7 @@ cache_glyph :: proc(ctx : ^Context, font : Font_ID, glyph_index : Glyph, entry :
 	path := &ctx.temp_path
 	clear(path)
 
+	step := 1.0 / entry.curve_quality
 	for edge in shape do #partial switch edge.type
 	{
 		case .Move:
@@ -290,7 +291,6 @@ cache_glyph :: proc(ctx : ^Context, font : Font_ID, glyph_index : Glyph, entry :
 			p1 := Vec2{ f32(edge.contour_x0), f32(edge.contour_y0) }
 			p2 := Vec2{ f32(edge.x), f32(edge.y) }
 
-			step := 1.0 / entry.curve_quality
 			for index : f32 = 1; index <= entry.curve_quality; index += 1 {
 				alpha := index * step
 				append( path, Vertex { pos = eval_point_on_bezier3(p0, p1, p2, alpha) } )
@@ -303,7 +303,6 @@ cache_glyph :: proc(ctx : ^Context, font : Font_ID, glyph_index : Glyph, entry :
 			p2 := Vec2{ f32(edge.contour_x1), f32(edge.contour_y1) }
 			p3 := Vec2{ f32(edge.x), f32(edge.y) }
 
-			step := 1.0 / entry.curve_quality
 			for index : f32 = 1; index <= entry.curve_quality; index += 1 {
 				alpha := index * step
 				append( path, Vertex { pos = eval_point_on_bezier4(p0, p1, p2, p3, alpha) } )
@@ -342,10 +341,9 @@ cache_glyph_to_atlas :: proc( ctx : ^Context,
 
 	// Get hb_font text metrics. These are unscaled!
 	bounds_0, bounds_1 := parser_get_glyph_box( & entry.parser_info, glyph_index )
-	bounds_size := Vec2 {
-		f32(bounds_1.x - bounds_0.x),
-		f32(bounds_1.y - bounds_0.y)
-	}
+	vbounds_0 := vec2(bounds_0)
+	vbounds_1 := vec2(bounds_1)
+	bounds_size := vbounds_1 - vbounds_0
 
 	// E region is special case and not cached to atlas.
 	if region_kind == .None || region_kind == .E do return
@@ -390,33 +388,31 @@ cache_glyph_to_atlas :: proc( ctx : ^Context,
 		debug_total_cached += 1
 	}
 
-	// Draw oversized glyph to update FBO
+	// Draw oversized glyph to glyph render target (FBO)
 	glyph_draw_scale       := over_sample * entry.size_scale
-	glyph_draw_translate   := -1 * vec2(bounds_0) * glyph_draw_scale + vec2( glyph_padding )
-	glyph_draw_translate.x  = cast(f32) (i32(glyph_draw_translate.x + 0.9999999))
-	glyph_draw_translate.y  = cast(f32) (i32(glyph_draw_translate.y + 0.9999999))
+	glyph_draw_translate   := -1 * vbounds_0 * glyph_draw_scale + vec2( glyph_padding )
 
-	// Allocate a glyph_update_FBO region
-	gwidth_scaled_px := bounds_size.x * glyph_draw_scale.x + 1.0 + over_sample.x * glyph_padding
-  if i32(f32(glyph_buffer.batch_x) + gwidth_scaled_px) >= i32(glyph_buffer.width) {
+	// Allocate a glyph glyph render target region (FBO)
+	gwidth_scaled_px := bounds_size.x * glyph_draw_scale.x + over_sample.x * glyph_padding + 1.0
+	if i32(f32(glyph_buffer.batch_x) + gwidth_scaled_px) >= i32(glyph_buffer.width) {
 		flush_glyph_buffer_to_atlas( ctx )
 	}
 
 	// Calculate the src and destination regions
-	slot_position, slot_szie := atlas_bbox( atlas, region_kind, atlas_index )
+	slot_position, slot_size := atlas_bbox( atlas, region_kind, atlas_index )
 
 	dst_glyph_position := slot_position
-	dst_glyph_size     := bounds_size * entry.size_scale + glyph_padding
-	dst_size           := slot_szie
+	dst_glyph_size     := (bounds_size * entry.size_scale + glyph_padding)
+	dst_size           := (slot_size)
 	screenspace_x_form( & dst_glyph_position, & dst_glyph_size, atlas_size )
 	screenspace_x_form( & slot_position,      & dst_size,       atlas_size )
 
 	src_position := Vec2 { f32(glyph_buffer.batch_x), 0 }
-	src_size     := bounds_size * glyph_draw_scale + over_sample * glyph_padding
+	src_size     := (bounds_size * glyph_draw_scale + over_sample * glyph_padding)
 	textspace_x_form( & src_position, & src_size, glyph_buffer_size )
 
 	// Advance glyph_update_batch_x and calculate final glyph drawing transform
-	glyph_draw_translate.x += f32(glyph_buffer.batch_x)
+	glyph_draw_translate.x  = (glyph_draw_translate.x + f32(glyph_buffer.batch_x))
 	glyph_buffer.batch_x   += i32(gwidth_scaled_px)
 	screenspace_x_form( & glyph_draw_translate, & glyph_draw_scale, glyph_buffer_size )
 
@@ -451,8 +447,8 @@ cache_glyph_to_atlas :: proc( ctx : ^Context,
 	append( & glyph_buffer.clear_draw_list.calls, clear_target_region )
 	append( & glyph_buffer.draw_list.calls, blit_to_atlas )
 
-	// Render glyph to glyph_update_FBO
-	cache_glyph( ctx, font, glyph_index, entry, vec2(bounds_0), vec2(bounds_1), glyph_draw_scale, glyph_draw_translate )
+	// Render glyph to glyph render target (FBO)
+	cache_glyph( ctx, font, glyph_index, entry, vbounds_0, vbounds_1, glyph_draw_scale, glyph_draw_translate )
 }
 
 // If the glyuph is found in the atlas, nothing occurs, otherwise, the glyph call is setup to catch it to the atlas
@@ -525,17 +521,14 @@ directly_draw_massive_glyph :: proc( ctx : ^Context,
 
 	// Figure out the source rect.
 	glyph_position := Vec2 {}
-	glyph_size     := vec2(glyph_padding_dbl)
+	glyph_size     := vec2(glyph_padding)
 	glyph_dst_size := glyph_size    + bounds_scaled
 	glyph_size     += bounds_scaled * over_sample
 
 	// Figure out the destination rect.
-	bounds_0_scaled := Vec2 {
-		cast(f32) i32(bounds_0.x * entry.size_scale - 0.5),
-		cast(f32) i32(bounds_0.y * entry.size_scale - 0.5),
-	}
-	dst        := position + scale * bounds_0_scaled - glyph_padding * scale
-	dst_size   := glyph_dst_size * scale
+	bounds_0_scaled := (bounds_0 * entry.size_scale)
+	dst             := position + scale * bounds_0_scaled - glyph_padding * scale
+	dst_size        := glyph_dst_size * scale
 	textspace_x_form( & glyph_position, & glyph_size, glyph_buffer_size )
 
 	// Add the glyph Draw_Call.
@@ -557,7 +550,7 @@ directly_draw_massive_glyph :: proc( ctx : ^Context,
 
 	clear_glyph_update := & calls[1]
 	{
-		// Clear glyph_update_FBO.
+		// Clear glyph render target (FBO)
 		clear_glyph_update.pass              = .Glyph
 		clear_glyph_update.start_index       = 0
 		clear_glyph_update.end_index         = 0
@@ -638,7 +631,7 @@ draw_text_batch :: proc(ctx: ^Context, entry: ^Entry, shaped: ^Shaped_Text,
 		bounds_0, bounds_1               := parser_get_glyph_box( & entry.parser_info, glyph_index )
 		vbounds_0   := vec2(bounds_0)
 		vbounds_1   := vec2(bounds_1)
-		bounds_size := Vec2 { vbounds_1.x - vbounds_0.x, vbounds_1.y - vbounds_0.y }
+		bounds_size := vbounds_1 - vbounds_0
 
 		shaped_position := shaped.positions[index]
 		glyph_translate := position + (shaped_position) * scale
@@ -652,10 +645,10 @@ draw_text_batch :: proc(ctx: ^Context, entry: ^Entry, shaped: ^Shaped_Text,
 		}
 		else if atlas_index != -1
 		{
-			// Draw cacxhed glyph
+			// Draw cached glyph
 			slot_position, _ := atlas_bbox( atlas, region_kind, atlas_index )
 			glyph_scale      := bounds_size * entry.size_scale + glyph_padding
-			bounds_0_scaled  := ceil(vbounds_0 * entry.size_scale)
+			bounds_0_scaled  := ceil(vbounds_0 * entry.size_scale - 0.5 )
 			dst              := glyph_translate + bounds_0_scaled * scale
 			dst_scale        := glyph_scale * scale
 			textspace_x_form( & slot_position, & glyph_scale, atlas_size )
@@ -726,7 +719,7 @@ flush_glyph_buffer_to_atlas :: proc( ctx : ^Context )
 	clear_draw_list( & ctx.glyph_buffer.draw_list )
 	clear_draw_list( & ctx.glyph_buffer.clear_draw_list )
 
-	// Clear glyph_update_FBO
+	// Clear glyph render target (FBO)
 	if ctx.glyph_buffer.batch_x != 0
 	{
 		call := Draw_Call_Default
@@ -766,7 +759,8 @@ merge_draw_list :: proc( dst, src : ^Draw_List )
 	}
 }
 
-optimize_draw_list :: proc(draw_list: ^Draw_List, call_offset: int) {
+optimize_draw_list :: proc(draw_list: ^Draw_List, call_offset: int)
+{
 	// profile(#procedure)
 	assert(draw_list != nil)
 

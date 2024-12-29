@@ -33,6 +33,7 @@ import "core:mem"
 	Arena           :: mem.Arena
 	arena_allocator :: mem.arena_allocator
 	arena_init      :: mem.arena_init
+import "core:slice"
 
 //#region("Proc overload mappings")
 
@@ -58,6 +59,7 @@ ceil :: proc {
 
 clear :: proc {
 	clear_dynamic_array,
+	clear_map,
 }
 
 floor :: proc {
@@ -72,6 +74,10 @@ floor :: proc {
 	math.floor_f64be,
 
 	floor_vec2,
+}
+
+fill :: proc {
+	slice.fill,
 }
 
 make :: proc {
