@@ -31,6 +31,8 @@ Much of the data structures within the context struct are not fixed-capacity all
 
 The library supports being used in a dynamically loaded module. If its hot-reloaded simply make sure to call this procedure with a reference to the backing allocator provided during startup as all dynamic containers tend to lose a proper reference to the allocator's procedure.
 
+Call clear_atlas_region_caches & clear_shape_cache to reset the library's shape and glyph cache state if doing tuning of the library.
+
 ### shutdown
 
 Release resources from the context.
@@ -77,3 +79,11 @@ Provides a Vec2 the width and height occupied by the provided text string. The y
 ### get_font_vertical_metrics
 
 A wrapper for `parser_get_font_vertical_metrics`. Will provide the ascent, descent, and line_gap for a font entry.
+
+### clear_atlas_region_caches
+
+Clears the LRU caches of regions A-D of the Atlas & sets their next_idx to 0. Effectively will force a re-cache of all previously rendered glyphs. Shape configuration for the glyph will remain unchanged unless clear_shape_cache is also called.
+
+## clear_shape_cache
+
+Clears the LRU cache of the shaper along with clearing all existing storage entries. Effectively will force a re-cache of previously cached text shapes (Does not recache their rendered glyphs).
