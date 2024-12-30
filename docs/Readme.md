@@ -84,6 +84,6 @@ A wrapper for `parser_get_font_vertical_metrics`. Will provide the ascent, desce
 
 Clears the LRU caches of regions A-D of the Atlas & sets their next_idx to 0. Effectively will force a re-cache of all previously rendered glyphs. Shape configuration for the glyph will remain unchanged unless clear_shape_cache is also called.
 
-## clear_shape_cache
+### clear_shape_cache
 
 Clears the LRU cache of the shaper along with clearing all existing storage entries. Effectively will force a re-cache of previously cached text shapes (Does not recache their rendered glyphs).
