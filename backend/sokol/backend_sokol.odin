@@ -83,18 +83,17 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	{
 		vs_layout : Vertex_Layout_State
 		{
-			using vs_layout
-			attrs[ATTR_render_glyph_v_position] = Vertex_Attribute_State {
+			vs_layout.attrs[ATTR_render_glyph_v_position] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = 0,
 				buffer_index = 0,
 			}
-			attrs[ATTR_render_glyph_v_texture] = Vertex_Attribute_State {
+			vs_layout.attrs[ATTR_render_glyph_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = size_of(ve.Vec2),
 				buffer_index = 0,
 			}
-			buffers[0] = Vertex_Buffer_Layout_State {
+			vs_layout.buffers[0] = Vertex_Buffer_Layout_State {
 				stride    = size_of([4]f32),
 				step_func = Vertex_Step.PER_VERTEX
 			}
@@ -219,18 +218,17 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	{
 		vs_layout : Vertex_Layout_State
 		{
-			using vs_layout
-			attrs[ATTR_ve_blit_atlas_v_position] = Vertex_Attribute_State {
+			vs_layout.attrs[ATTR_ve_blit_atlas_v_position] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = 0,
 				buffer_index = 0,
 			}
-			attrs[ATTR_ve_blit_atlas_v_texture] = Vertex_Attribute_State {
+			vs_layout.attrs[ATTR_ve_blit_atlas_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = size_of(ve.Vec2),
 				buffer_index = 0,
 			}
-			buffers[0] = Vertex_Buffer_Layout_State {
+			vs_layout.buffers[0] = Vertex_Buffer_Layout_State {
 				stride    = size_of([4]f32),
 				step_func = Vertex_Step.PER_VERTEX
 			}
@@ -356,18 +354,17 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	{
 		vs_layout : Vertex_Layout_State
 		{
-			using vs_layout
-			attrs[ATTR_ve_draw_text_v_position] = Vertex_Attribute_State {
+			vs_layout.attrs[ATTR_ve_draw_text_v_position] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = 0,
 				buffer_index = 0,
 			}
-			attrs[ATTR_ve_draw_text_v_texture] = Vertex_Attribute_State {
+			vs_layout.attrs[ATTR_ve_draw_text_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = size_of(ve.Vec2),
 				buffer_index = 0,
 			}
-			buffers[0] = Vertex_Buffer_Layout_State {
+			vs_layout.buffers[0] = Vertex_Buffer_Layout_State {
 				stride    = size_of([4]f32),
 				step_func = Vertex_Step.PER_VERTEX
 			}
@@ -447,8 +444,6 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : Context )
 {
 	// profile("VEFontCache: render text layer")
-	using ctx
-
 	Bindings     :: gfx.Bindings
 	Range        :: gfx.Range
 	Shader_Stage :: gfx.Shader_Stage
@@ -458,8 +453,8 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 	vbuf_ve_range := Range{ raw_data(vbuf_layer_slice), cast(uint) len(vbuf_layer_slice) * size_of(ve.Vertex) }
 	ibuf_ve_range := Range{ raw_data(ibuf_layer_slice), cast(uint) len(ibuf_layer_slice) * size_of(u32)       }
 
-	gfx.append_buffer( draw_list_vbuf, vbuf_ve_range )
-	gfx.append_buffer( draw_list_ibuf, ibuf_ve_range )
+	gfx.append_buffer( ctx.draw_list_vbuf, vbuf_ve_range )
+	gfx.append_buffer( ctx.draw_list_ibuf, ibuf_ve_range )
 
 	ve.flush_draw_list_layer( ve_ctx )
 
@@ -486,7 +481,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 				width  := ve_ctx.glyph_buffer.size.x
 				height := ve_ctx.glyph_buffer.size.y
 
-				pass := glyph_pass
+				pass := ctx.glyph_pass
 				if draw_call.clear_before_draw {
 					pass.action.colors[0].load_action   = .CLEAR
 					pass.action.colors[0].clear_value.a = 1.0
@@ -496,16 +491,16 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 				gfx.apply_viewport( 0,0, width, height, origin_top_left = true )
 				gfx.apply_scissor_rect( 0,0, width, height, origin_top_left = true )
 
-				gfx.apply_pipeline( glyph_pipeline )
+				gfx.apply_pipeline( ctx.glyph_pipeline )
 
 				bindings := Bindings {
 					vertex_buffers = {
-						0 = draw_list_vbuf,
+						0 = ctx.draw_list_vbuf,
 					},
 					vertex_buffer_offsets = {
 						0 = 0,
 					},
-					index_buffer        = draw_list_ibuf,
+					index_buffer        = ctx.draw_list_ibuf,
 					index_buffer_offset = 0,
 				}
 				gfx.apply_bindings( bindings )
@@ -521,7 +516,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 				width  := ve_ctx.atlas.size.x
 				height := ve_ctx.atlas.size.y
 
-				pass := atlas_pass
+				pass := ctx.atlas_pass
 				if draw_call.clear_before_draw {
 					pass.action.colors[0].load_action   = .CLEAR
 					pass.action.colors[0].clear_value.a = 1.0
@@ -531,7 +526,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 				gfx.apply_viewport( 0, 0, width, height, origin_top_left = true )
 				gfx.apply_scissor_rect( 0, 0, width, height, origin_top_left = true )
 
-				gfx.apply_pipeline( atlas_pipeline )
+				gfx.apply_pipeline( ctx.atlas_pipeline )
 
 				fs_uniform := Ve_Blit_Atlas_Fs_Params {
 					glyph_buffer_size = ve.vec2(ve_ctx.glyph_buffer.size),
@@ -542,15 +537,15 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {
-						0 = draw_list_vbuf,
+						0 = ctx.draw_list_vbuf,
 					},
 					vertex_buffer_offsets = {
 						0 = 0,
 					},
-					index_buffer        = draw_list_ibuf,
+					index_buffer        = ctx.draw_list_ibuf,
 					index_buffer_offset = 0,
-					images              = { IMG_ve_blit_atlas_src_texture = glyph_rt_color,   },
-					samplers            = { SMP_ve_blit_atlas_src_sampler = glyph_rt_sampler, },
+					images              = { IMG_ve_blit_atlas_src_texture = ctx.glyph_rt_color,   },
+					samplers            = { SMP_ve_blit_atlas_src_sampler = ctx.glyph_rt_sampler, },
 				})
 
 			// 3. Use the atlas to then render the text.
@@ -561,17 +556,17 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 
 				// profile("VEFontCache: draw call: target")
 
-				pass := screen_pass
+				pass := ctx.screen_pass
 				pass.swapchain = glue.swapchain()
 				gfx.begin_pass( pass )
 
 				gfx.apply_viewport( 0, 0, screen_width, screen_height, origin_top_left = true )
 				gfx.apply_scissor_rect( 0, 0, screen_width, screen_height, origin_top_left = true )
 
-				gfx.apply_pipeline( screen_pipeline )
+				gfx.apply_pipeline( ctx.screen_pipeline )
 
-				src_rt      := atlas_rt_color
-				src_sampler := atlas_rt_sampler
+				src_rt      := ctx.atlas_rt_color
+				src_sampler := ctx.atlas_rt_sampler
 
 				fs_target_uniform := Ve_Draw_Text_Fs_Params {
 					// glyph_buffer_size = glyph_buf_size,
@@ -581,19 +576,19 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 
 				if draw_call.pass == .Target_Uncached {
 					// fs_target_uniform.over_sample = 1.0
-					src_rt      = glyph_rt_color
-					src_sampler = glyph_rt_sampler
+					src_rt      = ctx.glyph_rt_color
+					src_sampler = ctx.glyph_rt_sampler
 				}
 				gfx.apply_uniforms( UB_ve_draw_text_fs_params, Range { & fs_target_uniform, size_of(Ve_Draw_Text_Fs_Params) })
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {
-						0 = draw_list_vbuf,
+						0 = ctx.draw_list_vbuf,
 					},
 					vertex_buffer_offsets = {
 						0 = 0,
 					},
-					index_buffer        = draw_list_ibuf,
+					index_buffer        = ctx.draw_list_ibuf,
 					index_buffer_offset = 0,
 					images              = { IMG_ve_draw_text_src_texture = src_rt, },
 					samplers            = { SMP_ve_draw_text_src_sampler = src_sampler, },
