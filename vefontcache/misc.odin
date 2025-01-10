@@ -61,7 +61,7 @@ vec2i_from_vec2   :: #force_inline proc "contextless" ( v2     : Vec2  ) -> Vec2
 @(require_results) ceil_vec2  :: proc "contextless" ( v : Vec2 ) -> Vec2 { return { ceil_f32(v.x), ceil_f32(v.y) } }
 @(require_results) floor_vec2 :: proc "contextless" ( v : Vec2 ) -> Vec2 { return { floor_f32(v.x), floor_f32(v.y) } }
 
-// This buffer is used below excluisvely to prevent any allocator recusion when verbose logging from allocators.
+// This buffer is used below excluisvely to prevent any allocator recursion when verbose logging from allocators.
 // This means a single line is limited to 4k buffer
 // Logger_Allocator_Buffer : [4 * Kilobyte]u8
 

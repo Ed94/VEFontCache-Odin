@@ -2,10 +2,10 @@ package vefontcache
 
 /*
 Notes:
-This is a minimal wrapper I originally did incase something than stb_truetype is introduced in the future.
+This is a minimal wrapper I originally did incase a font parser other than stb_truetype is introduced in the future.
 Otherwise, its essentially 1:1 with it.
 
-Freetype isn't really supported and its not a high priority (pretty sure its too slow).
+Freetype isn't really supported and its not a high priority.
 ~~Freetype will do memory allocations and has an interface the user can implement.~~
 ~~That interface is not exposed from this parser but could be added to parser_init.~~
 
@@ -19,7 +19,7 @@ import "base:runtime"
 import "core:c"
 import "core:math"
 import "core:slice"
-import stbtt    "vendor:stb/truetype"
+import stbtt    "thirdparty:stb/truetype"
 // import freetype "thirdparty:freetype"
 
 Parser_Kind :: enum u32 {

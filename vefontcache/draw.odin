@@ -109,7 +109,7 @@ Glyph_Draw_Buffer :: struct{
 	cached     : [dynamic]i32,
 }
 
-// Contructs a quad mesh for bliting a texture from one render target (src uv0 & 1) to the destination rendertarget (p0, p1)
+// Contructs a quad mesh for bliting a texture from source render target (src uv0 & 1) to the destination render target (p0, p1)
 @(optimization_mode="favor_size")
 blit_quad :: #force_inline proc ( draw_list : ^Draw_List, 
 	p0  : Vec2 = {0, 0}, 
@@ -279,24 +279,15 @@ generate_shapes_draw_list :: #force_inline proc ( ctx : ^Context,
 }
 
 /* Generator pipeline for shapes
-
-	If you'd like to make a custom draw procedure, this can either be used directly or 
-    modified to create an augmented derivative for a specific code path.
-
 	This procedure has no awareness of layers. That should be handled by a higher-order codepath. 
-	For this level of codepaths what matters is maximizing memory locality for:
-	  * Dealing with shaping (essentially minimizing having to ever deal with it in a hot path if possible)
-		* Dealing with atlas regioning (the expensive region resolution & parser calls are done on the shape pass)
 
 	Pipleine order:
 	* Resolve the glyph's position offset from the target position
 	* Segregate the glyphs into three slices: oversized, to_cache, cached. 
-	  * If oversized is not necessary for your use case and your hitting a bottleneck, omit it with setting ENABLE_OVERSIZED_GLYPHS to false.
-		  * You have to to be drawing a px font size > ~140 px for it to trigger.
-			* The atlas can be scaled with the size_multiplier parameter of startup so that it becomes more irrelevant if processing a larger atlas is a non-issue.
+		* If oversized is not necessary for your use case and your hitting a bottleneck, omit it with setting ENABLE_OVERSIZED_GLYPHS to false.
 		* The segregation will not allow slices to exceed the batch_cache capacity of the glyph_buffer (configurable within startup params)
-		  * When The capacity is reached batch_generate_glyphs_draw_list will be called which will do futher compute and then finally draw_list generation.
-	* This may perform better with smaller shapes vs larger shapes, but having more shapes has a cache lookup penatly so keep that in mind.
+		* When The capacity is reached batch_generate_glyphs_draw_list will be called which will do futher compute and then finally draw_list generation.
+	* This may perform better with smaller shapes vs larger shapes, but having more shapes has a cache lookup penatly (if done per frame) so keep that in mind.
 */
 generate_shape_draw_list :: proc( draw_list : ^Draw_List, shape : Shaped_Text,
 	atlas        : ^Atlas,
@@ -463,16 +454,16 @@ generate_shape_draw_list :: proc( draw_list : ^Draw_List, shape : Shaped_Text,
 
 /*
 	The glyphs types have been segregated by this point into a batch slice of indices to the glyph_pack
-	The transform and draw quads are computed first (getting the math done in one spot as possible...)
-	Some of the math from to_cache pass for glyph generation was not moved over (it could be but I'm not sure its worth it...)
+	The transform and draw quads are computed first (getting the math done in one spot as possible)
+	Some of the math from to_cache pass for glyph generation was not moved over (it could be but I'm not sure its worth it)
 
 	Order: Oversized first, then to_cache, then cached.
 
 	Oversized and to_cache will both enqueue operations for rendering glyphs to the glyph buffer render target.
-	The compute section will have operations reguarding how many glyphs they may alloate before a flush must occur.
+	The compute section will have operations regarding how many glyphs they may alloate before a flush must occur.
 	A flush will force one of the following:
 	  * Oversized will have a draw call setup to blit directly from the glyph buffer to the target.
-		* to_cache will blit the glyphs rendered to the buffer to the atlas.
+		* to_cache will blit the glyphs rendered from the buffer to the atlas.
 */
 @(optimization_mode = "favor_size")
 batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,

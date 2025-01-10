@@ -105,6 +105,8 @@ Context :: struct {
 	px_scalar      : f32,   // Improves hinting, positioning, etc. Can make zoomed out text too jagged.
 
 	default_curve_quality : i32,
+
+
 }
 
 Init_Atlas_Params :: struct {
@@ -657,6 +659,15 @@ get_snapped_position :: #force_inline proc "contextless" ( position : Vec2, view
 	return snapped_position
 }
 
+resolve_draw_px_size :: #force_inline proc "contextless" ( px_size, default_size, interval, min, max : f32 ) -> (resolved_size : f32)
+{
+	interval_quotient := 1.0 / f32(interval)
+	size              := px_size == 0.0 ? default_size : px_size
+	even_size         := math.round(size * interval_quotient) * interval
+	resolved_size      = clamp( even_size, min, max )
+	return
+}
+
 set_alpha_scalar :: #force_inline proc( ctx : ^Context, scalar : f32    )      { assert(ctx != nil); ctx.alpha_sharpen = scalar }
 set_colour       :: #force_inline proc( ctx : ^Context, colour : RGBAN  )      { assert(ctx != nil); ctx.colour        = colour }
 set_px_scalar    :: #force_inline proc( ctx : ^Context, scalar : f32    )      { assert(ctx != nil); ctx.px_scalar     = scalar } 
@@ -761,7 +772,7 @@ draw_text_normalized_space :: proc( ctx : ^Context,
 	)
 }
 
-// Equivalent to draw_text_shape_normalized_space, however position's units is scaled to view and must be normalized.
+// Equivalent to draw_text_shape_normalized_space, however position's unit convention is expected to be relative to the view
 // @(optimization_mode="favor_size")
 draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 	font     : Font_ID,
@@ -803,7 +814,7 @@ draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 	)
 }
 
-// Equivalent to draw_text_normalized_space, however position's units is scaled to view and must be normalized.
+// Equivalent to draw_text_shape_normalized_space, however position's unit convention is expected to be relative to the view
 // @(optimization_mode = "favor_size")
 draw_text_view_space :: proc(ctx : ^Context,
 	font      : Font_ID,
@@ -854,6 +865,7 @@ draw_text_view_space :: proc(ctx : ^Context,
 	)
 }
 
+// Uses the ctx.stack, position and scale are relative to the position and scale on the stack.
 // @(optimization_mode = "favor_size")
 draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text )
 {
@@ -907,6 +919,7 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 	)
 }
 
+// Uses the ctx.stack, position and scale are relative to the position and scale on the stack.
 // @(optimization_mode = "favor_size")
 draw_text :: proc( ctx : ^Context, position, scale : Vec2, text_utf8 : string )
 {
@@ -916,11 +929,11 @@ draw_text :: proc( ctx : ^Context, position, scale : Vec2, text_utf8 : string )
 
 	stack := & ctx.stack
 	assert(len(stack.font) > 0)
-	assert(len(stack.view) > 0)
+	assert(len(stack.font_size) > 0)
 	assert(len(stack.colour) > 0)
+	assert(len(stack.view) > 0)
 	assert(len(stack.position) > 0)
 	assert(len(stack.scale) > 0)
-	assert(len(stack.font_size) > 0)
 	assert(len(stack.zoom) > 0)
 
 	font := peek(stack.font)

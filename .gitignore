@@ -1,5 +1,5 @@
 ﻿build
-thirdparty
+# thirdparty
 .vscode
 # backend/sokol/render_glyph.odin
 # backend/sokol/blit_atlas.odin

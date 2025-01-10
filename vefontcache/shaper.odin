@@ -1,6 +1,8 @@
 package vefontcache
 /*
-Note(Ed): The only reason I didn't directly use harfbuzz is because hamza exists and seems to be under active development as an alternative.
+Note(Ed): The only reason I didn't directly use harfbuzz is:
+https://github.com/saidwho12/hamza 
+and seems to be under active development as an alternative.
 */
 
 import "core:c"
@@ -165,11 +167,11 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 
 			if hb_glyph.cluster > 0
 			{
-				(max_line_width^)     = max( max_line_width^, position.x )
-				position.x            = 0.0
-				position.y           -= line_height
-				position.y            = floor(position.y)
-				(line_count^)         += 1
+				(max_line_width^) = max( max_line_width^, position.x )
+				position.x        = 0.0
+				position.y       -= line_height
+				position.y        = floor(position.y)
+				(line_count^)     += 1
 				continue
 			}
 			if abs( font_px_size ) <= adv_snap_small_font_threshold
@@ -394,8 +396,8 @@ shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 
 // Shapes are tracked by the library's context using the shape cache 
 // and the key is resolved using the font, the desired pixel size, and the text bytes to be shaped.
-// Thus this procedures cost will be proporitonal to how muh text it has to sift through.
-// djb8_hash is used as its been pretty good for thousands of hashed lines that around 6-120 charactes long
+// Thus this procedures cost will be proporitonal to how much text it has to sift through.
+// djb8_hash is used as its been pretty good for thousands of hashed lines that around 6-250 charactes long
 // (and its very fast).
 @(optimization_mode="favor_size")
 shaper_shape_text_cached :: proc( text_utf8 : string, 
