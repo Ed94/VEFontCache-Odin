@@ -39,19 +39,19 @@ Entry_Default :: Entry {
 
 // Ease of use encapsulation of common fields for a canvas space
 VPZ_Transform :: struct {
-	view         : Vec2,
-	position     : Vec2,
-	zoom         : f32,
+	view     : Vec2,
+	position : Vec2,
+	zoom     : f32,
 }
 
 Scope_Stack :: struct {
-	font         : [dynamic]Font_ID,
-	font_size    : [dynamic]f32,
-	colour       : [dynamic]RGBAN,
-	view         : [dynamic]Vec2,
-	position     : [dynamic]Vec2,
-	scale        : [dynamic]Vec2,
-	zoom         : [dynamic]f32,
+	font      : [dynamic]Font_ID,
+	font_size : [dynamic]f32,
+	colour    : [dynamic]RGBAN,
+	view      : [dynamic]Vec2,
+	position  : [dynamic]Vec2,
+	scale     : [dynamic]Vec2,
+	zoom      : [dynamic]f32,
 }
 
 Context :: struct {
@@ -104,8 +104,6 @@ Context :: struct {
 	px_scalar      : f32,   // Improves hinting, positioning, etc. Can make zoomed out text too jagged.
 
 	default_curve_quality : i32,
-
-
 }
 
 Init_Atlas_Params :: struct {
@@ -644,21 +642,29 @@ auto_pop_vpz :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform ) {
 
 get_cursor_pos :: #force_inline proc "contextless" ( ctx : Context ) -> Vec2 { return ctx.cursor_pos }
 
-// Does nothing when view is 1 or 0.
-get_snapped_position :: #force_inline proc "contextless" ( position : Vec2, view : Vec2 ) -> (snapped_position : Vec2) {
+// Will normalize the value of the position and scale based on the provided view.
+// Position will also be snapped to the nearest pixel via ceil.
+// (Does nothing if view is 1 or 0)
+get_normalized_position_scale :: #force_inline proc "contextless" ( position, scale, view : Vec2 ) -> (position_norm, scale_norm : Vec2)
+{
 	snap_quotient := 1 / Vec2 { max(view.x, 1), max(view.y, 1) }
 	should_snap   := view * snap_quotient
-	snapped_position   = position 
+
+	snapped_position  := position 
 	snapped_position.x = ceil(position.x * view.x) * snap_quotient.x 
 	snapped_position.y = ceil(position.y * view.y) * snap_quotient.y
+
 	snapped_position  *= should_snap
 	snapped_position.x = max(snapped_position.x, position.x)
 	snapped_position.y = max(snapped_position.y, position.y)
-	return snapped_position
+
+	position_norm = snapped_position
+	scale_norm    = scale * snap_quotient
+	return
 }
 
-resolve_draw_px_size :: #force_inline proc "contextless" ( px_size, default_size, interval, min, max : f32 ) -> (resolved_size : f32)
-{
+// Used to constrain the px_size used in draw calls.
+resolve_draw_px_size :: #force_inline proc "contextless" ( px_size, default_size, interval, min, max : f32 ) -> (resolved_size : f32) {
 	interval_quotient := 1.0 / f32(interval)
 	size              := px_size == 0.0 ? default_size : px_size
 	even_size         := round(size * interval_quotient) * interval
@@ -666,27 +672,49 @@ resolve_draw_px_size :: #force_inline proc "contextless" ( px_size, default_size
 	return
 }
 
-set_alpha_scalar :: #force_inline proc( ctx : ^Context, scalar : f32    )      { assert(ctx != nil); ctx.alpha_sharpen = scalar }
-set_px_scalar    :: #force_inline proc( ctx : ^Context, scalar : f32    )      { assert(ctx != nil); ctx.px_scalar     = scalar } 
+set_alpha_scalar :: #force_inline proc( ctx : ^Context, scalar : f32    ) { assert(ctx != nil); ctx.alpha_sharpen = scalar }
+set_px_scalar    :: #force_inline proc( ctx : ^Context, scalar : f32    ) { assert(ctx != nil); ctx.px_scalar     = scalar } 
 
+// During a shaping pass on text, will snap each glyph's position via ceil.
 set_snap_glyph_shape_position :: #force_inline proc( ctx : ^Context, should_snap : b32 ) {
 	assert(ctx != nil)
 	ctx.shaper_ctx.snap_glyph_position = should_snap
 }
 
+// During to_cache pass within batch_generate_glyphs_draw_list, will snap the quad's size using ceil.
 set_snap_glyph_render_height :: #force_inline proc( ctx : ^Context, should_snap : b32 ) { 
 	assert(ctx != nil)
 	ctx.glyph_buffer.snap_glyph_height = cast(f32) i32(should_snap)
 }
 
-// Non-scoping context. The most fundamental interface-level draw shape procedure.
-// (everything else is quality of life warppers)
+/* The most fundamental interface-level draw shape procedure.
+	Context's stack is not used. Only modifications for alpha sharpen and px_scalar are applied.
+	view, position, and scale are expected to be in unsigned normalized space:
+                                                          
+|            +----------------------------------+ (1.0, 1.0)
+|            |                                  |
+|            |                                  |
+|            |          Glyph Quad              |
+|            |          +---------+ < scale.y   |
+|            |          |   **   |  *     |     |
+|            |          |  *  *  |  ****  |     |
+|            |          |  ****  |  *  *  |     |
+|            |          |  *  *  |  ****  |     |
+|            |          +--------+--------+.... |
+|            | position ^        ^ scale.x      |
+|            |                                  |
+|            |                                  |
+|            |                                  |
+| (0.0, 0.0) +----------------------------------+
+
+    •   position: Anchor point in normalized space (where the bottom-right vertex of the first glyph quad will be positioned)
+    <-> scale   : Scale the glyph beyond its default scaling from its px_size.
+*/
 @(optimization_mode="favor_size")
 draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context,
 	font     : Font_ID,
 	px_size  : f32, 
 	colour   : RGBAN, 
-	view     : Vec2, // Screen
 	position : Vec2,
 	scale    : Vec2, 
 	zoom     : f32, // TODO(Ed): Implement zoom support
@@ -697,18 +725,13 @@ draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context,
 	assert( ctx != nil )
 	assert( font >= 0 && int(font) < len(ctx.entries) )
 
-	adjusted_position := get_snapped_position( position, view )
-
 	entry := ctx.entries[ font ]
 
 	adjusted_colour   := colour
 	adjusted_colour.a += ctx.alpha_sharpen
 
-	view_norm  := 1 / view
-	scale_norm := scale * view_norm
-
 	target_px_size     := px_size * ctx.px_scalar
-	target_scale       := scale_norm * (1 / ctx.px_scalar)
+	target_scale       := scale * (1 / ctx.px_scalar)
 	target_font_scale  := parser_scale( entry.parser_info, target_px_size )
 
 	ctx.cursor_pos = generate_shape_draw_list( & ctx.draw_list, shape, & ctx.atlas, & ctx.glyph_buffer,
@@ -722,14 +745,35 @@ draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context,
 	)
 }
 
-// Non-scoping context. The most fundamental interface-level draw text procedure.
-// (everything else is quality of life warppers)
+/* Non-scoping context. The most fundamental interface-level draw shape procedure (everything else is quality of life warppers).
+
+	Context's stack is not used. Only modifications for alpha sharpen and px_scalar are applied.
+	view, position, and scale are expected to be in unsigned normalized space:
+                                                          
+|            +----------------------------------+ (1.0, 1.0)
+|            |                                  |
+|            |                                  |
+|            |          Glyph Quad              |
+|            |          +---------+ < scale.y   |
+|            |          |   **   |  *     |     |
+|            |          |  *  *  |  ****  |     |
+|            |          |  ****  |  *  *  |     |
+|            |          |  *  *  |  ****  |     |
+|            |          +--------+--------+.... |
+|            | position ^        ^ scale.x      |
+|            |                                  |
+|            |                                  |
+|            |                                  |
+| (0.0, 0.0) +----------------------------------+
+
+    •   position: Anchor point in normalized space (where the bottom-right vertex of the first glyph quad will be positioned)
+    <-> scale   : Scale the glyph beyond its default scaling from its px_size.
+*/
 @(optimization_mode = "favor_size")
 draw_text_normalized_space :: proc( ctx : ^Context, 
 	font      : Font_ID,
 	px_size   : f32,
 	colour    : RGBAN,
-	view      : Vec2,
 	position  : Vec2,
 	scale     : Vec2, 
 	zoom      : f32, // TODO(Ed): Implement Zoom support
@@ -744,17 +788,12 @@ draw_text_normalized_space :: proc( ctx : ^Context,
 	ctx.cursor_pos = {}
 	entry := ctx.entries[ font ]
 
-	adjusted_position := get_snapped_position( position, view )
-
 	adjusted_colour    := colour
 	adjusted_colour.a  += ctx.alpha_sharpen
 
-	view_norm  := 1 / view
-	scale_norm := scale * view_norm
-
 	// Does nothing when px_scalar is 1.0
 	target_px_size     := px_size * ctx.px_scalar
-	target_scale       := scale_norm * (1 / ctx.px_scalar)
+	target_scale       := scale * (1 / ctx.px_scalar)
 	target_font_scale  := parser_scale( entry.parser_info, target_px_size )
 
 	shape := shaper_shape_text_cached( text_utf8, & ctx.shaper_ctx, & ctx.shape_cache, ctx.atlas, vec2(ctx.glyph_buffer.size),
@@ -770,12 +809,33 @@ draw_text_normalized_space :: proc( ctx : ^Context,
 		entry, 
 		target_px_size,
 		target_font_scale, 
-		adjusted_position,
+		position,
 		target_scale, 
 	)
 }
 
-// Equivalent to draw_text_shape_normalized_space, however position's unit convention is expected to be relative to the view
+/* Equivalent to draw_text_shape_normalized_space, however the coordinate space is expected to be relative to the view.
+	view, position, and scale are expected to be in unsigned view space:
+                                                          
+|            +----------------------------------+ (view.x, view.y)
+|            |                                  |
+|            |                                  |
+|            |          Glyph Quad              |
+|            |          +---------+ < scale.y   |
+|            |          |   **   |  *     |     |
+|            |          |  *  *  |  ****  |     |
+|            |          |  ****  |  *  *  |     |
+|            |          |  *  *  |  ****  |     |
+|            |          +--------+--------+.... |
+|            | position ^        ^ scale.x      |
+|            |                                  |
+|            |                                  |
+|            |                                  |
+| (0.0, 0.0) +----------------------------------+
+
+    •   position: Anchor point in normalized space (where the bottom-right vertex of the first glyph quad will be positioned)
+    <-> scale   : Scale the glyph beyond its default scaling from its px_size.
+*/
 // @(optimization_mode="favor_size")
 draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 	font     : Font_ID,
@@ -791,19 +851,18 @@ draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 	profile(#procedure)
 	assert( ctx != nil )
 	assert( font >= 0 && int(font) < len(ctx.entries) )
-
-	norm_position := position * (1 / view)
-
-	view := view; view.x = max(view.x, 1); view.y = max(view.y, 1)
-	adjusted_position := get_snapped_position( norm_position, view )
+	assert( ctx.px_scalar > 0.0 )
 
 	entry := ctx.entries[ font ]
 
 	adjusted_colour   := colour
 	adjusted_colour.a  = 1.0 + ctx.alpha_sharpen
 
-	target_px_size     := px_size * ctx.px_scalar
-	target_scale       := scale   * (1 / ctx.px_scalar)
+	norm_position, norm_scale := get_normalized_position_scale( position, scale, view )
+
+	// Does nothing if px_scalar is 1.0
+	target_px_size     := px_size    * ctx.px_scalar
+	target_scale       := norm_scale * (1 / ctx.px_scalar)
 	target_font_scale  := parser_scale( entry.parser_info, target_px_size )
 
 	ctx.cursor_pos = generate_shape_draw_list( & ctx.draw_list, shape, & ctx.atlas, & ctx.glyph_buffer,
@@ -812,12 +871,33 @@ draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 		entry, 
 		target_px_size,
 		target_font_scale, 
-		position, 
+		norm_position, 
 		target_scale, 
 	)
 }
 
-// Equivalent to draw_text_shape_normalized_space, however position's unit convention is expected to be relative to the view
+/* Equivalent to draw_text_shape_normalized_space, however the coordinate space is expected to be relative to the view.
+	view, position, and scale are expected to be in unsigned view space:
+                                                          
+|            +----------------------------------+ (view.x, view.y)
+|            |                                  |
+|            |                                  |
+|            |          Glyph Quad              |
+|            |          +---------+ < scale.y   |
+|            |          |   **   |  *     |     |
+|            |          |  *  *  |  ****  |     |
+|            |          |  ****  |  *  *  |     |
+|            |          |  *  *  |  ****  |     |
+|            |          +--------+--------+.... |
+|            | position ^        ^ scale.x      |
+|            |                                  |
+|            |                                  |
+|            |                                  |
+| (0.0, 0.0) +----------------------------------+
+
+    •   position: Anchor point in normalized space (where the bottom-right vertex of the first glyph quad will be positioned)
+    <-> scale   : Scale the glyph beyond its default scaling from its px_size.
+*/
 // @(optimization_mode = "favor_size")
 draw_text_view_space :: proc(ctx : ^Context,
 	font      : Font_ID,
@@ -834,20 +914,19 @@ draw_text_view_space :: proc(ctx : ^Context,
 	assert( ctx != nil )
 	assert( font >= 0 && int(font) < len(ctx.entries) )
 	assert( len(text_utf8) > 0 )
+	assert( ctx.px_scalar > 0.0 )
 
 	ctx.cursor_pos = {}
 	entry := ctx.entries[ font ]
 
-	norm_position := position * (1 / view)
+	adjusted_colour    := colour
+	adjusted_colour.a  += ctx.alpha_sharpen
 
-	adjusted_position := get_snapped_position( norm_position, view )
+	norm_position, norm_scale := get_normalized_position_scale( position, scale, view )
 
-	adjusted_colour := colour
-	adjusted_colour.a  = 1.0 + ctx.alpha_sharpen
-
-	// Does nothing when px_scalar is 1.0
-	target_px_size     := px_size * ctx.px_scalar
-	target_scale       := scale   * (1 / ctx.px_scalar)
+	// Does nothing if px_scalar is 1.0
+	target_px_size     := px_size    * ctx.px_scalar
+	target_scale       := norm_scale * (1 / ctx.px_scalar)
 	target_font_scale  := parser_scale( entry.parser_info, target_px_size )
 
 	shape := shaper_shape_text_cached( text_utf8, & ctx.shaper_ctx, & ctx.shape_cache, ctx.atlas, vec2(ctx.glyph_buffer.size),
@@ -863,26 +942,48 @@ draw_text_view_space :: proc(ctx : ^Context,
 		entry, 
 		target_px_size,
 		target_font_scale, 
-		adjusted_position,
+		norm_position,
 		target_scale, 
 	)
 }
 
-// Uses the ctx.stack, position and scale are relative to the position and scale on the stack.
+/* Uses the ctx.stack, position and scale are relative to the position and scale on the stack.
+
+absolute_position := peek(stack.position) + position
+absolute_scale    := peek(stack.scale   ) * scale
+
+|            +-----------------------------------+ (view.x, view.y)
+|            |                                   |
+|            |                                   |
+|            |          Glyph Quad    absolute   |
+|            |          +---------+ < scale.y    |
+|            |          |   **    |  *     |     |
+|            |          |  *  *   |  ****  |     |
+|            |          |  ****   |  *  *  |     |
+|            |          |  *  *   |  ****  |     |
+|            |          +---------+--------+.... |
+|            | absolute ^        ^ absolute      |
+|            | position            scale.x       |
+|            |                                   |
+|            |                                   |
+|            |                                   |
+| (0.0, 0.0) +-----------------------------------+
+*/
 // @(optimization_mode = "favor_size")
 draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text )
 {
 	profile(#procedure)
 	assert( ctx != nil )
+	assert( ctx.px_scalar > 0.0 )
 
 	stack := & ctx.stack
-	assert(len(stack.font) > 0)
-	assert(len(stack.view) > 0)
-	assert(len(stack.colour) > 0)
-	assert(len(stack.position) > 0)
-	assert(len(stack.scale) > 0)
+	assert(len(stack.font)      > 0)
+	assert(len(stack.view)      > 0)
+	assert(len(stack.colour)    > 0)
+	assert(len(stack.position)  > 0)
+	assert(len(stack.scale)     > 0)
 	assert(len(stack.font_size) > 0)
-	assert(len(stack.zoom) > 0)
+	assert(len(stack.zoom)      > 0)
 
 	// TODO(Ed): This should be taken from the shape instead (you cannot use a different font with a shape)
 	font := peek(stack.font)
@@ -893,8 +994,8 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 	ctx.cursor_pos = {}
 	entry := ctx.entries[ font ]
 
-	adjusted_colour := peek(stack.colour)
-	adjusted_colour.a = 1.0 + ctx.alpha_sharpen
+	adjusted_colour   := peek(stack.colour)
+	adjusted_colour.a += ctx.alpha_sharpen
 
 	// TODO(Ed): Implement zoom for draw_text
 	zoom := peek(stack.zoom)
@@ -922,22 +1023,44 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 	)
 }
 
-// Uses the ctx.stack, position and scale are relative to the position and scale on the stack.
+/* Uses the ctx.stack, position and scale are relative to the position and scale on the stack.
+
+absolute_position := peek(stack.position) + position
+absolute_scale    := peek(stack.scale   ) * scale
+
+|            +-----------------------------------+ (view.x, view.y)
+|            |                                   |
+|            |                                   |
+|            |          Glyph Quad    absolute   |
+|            |          +---------+ < scale.y    |
+|            |          |   **    |  *     |     |
+|            |          |  *  *   |  ****  |     |
+|            |          |  ****   |  *  *  |     |
+|            |          |  *  *   |  ****  |     |
+|            |          +---------+--------+.... |
+|            | absolute ^        ^ absolute      |
+|            | position            scale.x       |
+|            |                                   |
+|            |                                   |
+|            |                                   |
+| (0.0, 0.0) +-----------------------------------+
+*/
 // @(optimization_mode = "favor_size")
 draw_text :: proc( ctx : ^Context, position, scale : Vec2, text_utf8 : string )
 {
 	profile(#procedure)
 	assert( ctx != nil )
 	assert( len(text_utf8) > 0 )
+	assert( ctx.px_scalar > 0.0 )
 
 	stack := & ctx.stack
-	assert(len(stack.font) > 0)
+	assert(len(stack.font)      > 0)
 	assert(len(stack.font_size) > 0)
-	assert(len(stack.colour) > 0)
-	assert(len(stack.view) > 0)
-	assert(len(stack.position) > 0)
-	assert(len(stack.scale) > 0)
-	assert(len(stack.zoom) > 0)
+	assert(len(stack.colour)    > 0)
+	assert(len(stack.view)      > 0)
+	assert(len(stack.position)  > 0)
+	assert(len(stack.scale)     > 0)
+	assert(len(stack.zoom)      > 0)
 
 	font := peek(stack.font)
 	assert( font >= 0 &&int(font) < len(ctx.entries) )
@@ -947,8 +1070,8 @@ draw_text :: proc( ctx : ^Context, position, scale : Vec2, text_utf8 : string )
 	ctx.cursor_pos = {}
 	entry := ctx.entries[ font ]
 
-	adjusted_colour := peek(stack.colour)
-	adjusted_colour.a = 1.0 + ctx.alpha_sharpen
+	adjusted_colour   := peek(stack.colour)
+	adjusted_colour.a += ctx.alpha_sharpen
 
 	// TODO(Ed): Implement zoom for draw_text
 	zoom := peek(stack.zoom)

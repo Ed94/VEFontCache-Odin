@@ -156,16 +156,28 @@ draw_text_string_pos_norm :: proc( content : string, font : Font_ID, size : f32,
 	def        := demo_ctx.font_ids[ font.label ]
 	size       := size > 2.0 ? size : f32(def.default_size)
 
+	norm_pos, norm_scale := ve.get_normalized_position_scale( pos, scale, demo_ctx.screen_size )
+
 	ve.draw_text_normalized_space( & demo_ctx.ve_ctx, 
 		def.ve_id, 
 		size,
 		color_norm,
-		demo_ctx.screen_size,
-		pos, 
-		scale,
+		norm_pos, 
+		norm_scale,
 		1.0,
 		content
 	)
+
+	// ve.draw_text_view_space( & demo_ctx.ve_ctx, 
+	// 	def.ve_id, 
+	// 	size,
+	// 	color_norm,
+	// 	demo_ctx.screen_size,
+	// 	pos, 
+	// 	scale,
+	// 	1.0,
+	// 	content
+	// )
 	return
 }
 
@@ -193,7 +205,6 @@ draw_text_zoomed_norm :: proc(content : string, font : Font_ID, size : f32, pos 
 		def.ve_id, 
 		resolved_size,
 		color_norm,
-		screen_size,
 		pos, 
 		text_scale,
 		1.0,
