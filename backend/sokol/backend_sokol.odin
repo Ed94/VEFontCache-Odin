@@ -12,12 +12,12 @@ Context :: struct {
 	atlas_shader  : gfx.Shader,
 	screen_shader : gfx.Shader,
 
-	// 2k x 512, R8
+	// ve.glyph_buffer.(width, height), R8
 	glyph_rt_color   : gfx.Image,
 	glyph_rt_depth   : gfx.Image,
 	glyph_rt_sampler : gfx.Sampler,
 
-	// 4k x 2k, R8
+	// ve.atlas.(width, height), R8
 	atlas_rt_color   : gfx.Image,
 	atlas_rt_depth   : gfx.Image,
 	atlas_rt_sampler : gfx.Sampler,
@@ -33,7 +33,6 @@ Context :: struct {
 
 setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index_cap : u64 )
 {
-	using ctx
 	Attachment_Desc            :: gfx.Attachment_Desc
 	Blend_Factor               :: gfx.Blend_Factor
 	Blend_Op                   :: gfx.Blend_Op
@@ -60,18 +59,18 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	backend := gfx.query_backend()
 	app_env := glue.environment()
 
-	glyph_shader  = gfx.make_shader(render_glyph_shader_desc(backend) )
-	atlas_shader  = gfx.make_shader(blit_atlas_shader_desc(backend) )
-	screen_shader = gfx.make_shader(draw_text_shader_desc(backend) )
+	ctx.glyph_shader  = gfx.make_shader(render_glyph_shader_desc(backend) )
+	ctx.atlas_shader  = gfx.make_shader(blit_atlas_shader_desc(backend) )
+	ctx.screen_shader = gfx.make_shader(ve_draw_text_shader_desc(backend) )
 
-	draw_list_vbuf = gfx.make_buffer( Buffer_Desciption {
+	ctx.draw_list_vbuf = gfx.make_buffer( Buffer_Desciption {
 		size  = cast(uint)(size_of([4]f32) * vert_cap),
 		usage = Buffer_Usage.STREAM,
 		type  = Buffer_Type.VERTEXBUFFER,
 	})
-	assert( gfx.query_buffer_state( draw_list_vbuf) < Resource_State.FAILED, "Failed to make draw_list_vbuf" )
+	assert( gfx.query_buffer_state( ctx.draw_list_vbuf) < Resource_State.FAILED, "Failed to make draw_list_vbuf" )
 
-	draw_list_ibuf = gfx.make_buffer( Buffer_Desciption {
+	ctx.draw_list_ibuf = gfx.make_buffer( Buffer_Desciption {
 		size  = cast(uint)(size_of(u32) * index_cap),
 		usage = Buffer_Usage.STREAM,
 		type  = Buffer_Type.INDEXBUFFER,
@@ -305,8 +304,8 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 			mipmap_filter  = Filter.NEAREST,
 			wrap_u         = .CLAMP_TO_EDGE,
 			wrap_v         = .CLAMP_TO_EDGE,
-			min_lod        = -1000.0,
-			max_lod        =  1000.0,
+			min_lod        = -1.0,
+			max_lod        =  1.0,
 			border_color   = Border_Color.OPAQUE_BLACK,
 			compare        = .NEVER,
 			max_anisotropy = 1,
@@ -534,8 +533,12 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 
 				gfx.apply_pipeline( atlas_pipeline )
 
-				fs_uniform := Blit_Atlas_Fs_Params { region = cast(i32) draw_call.region }
-				gfx.apply_uniforms( UB_blit_atlas_fs_params, Range { & fs_uniform, size_of(Blit_Atlas_Fs_Params) })
+				fs_uniform := Ve_Blit_Atlas_Fs_Params {
+					glyph_buffer_size = glyph_buf_size,
+					over_sample       = glyph_buffer.over_sample.x,
+					region            = cast(i32) draw_call.region,
+				}
+				gfx.apply_uniforms( UB_ve_blit_atlas_fs_params, Range { & fs_uniform, size_of(Ve_Blit_Atlas_Fs_Params) })
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {
@@ -546,8 +549,8 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					},
 					index_buffer        = draw_list_ibuf,
 					index_buffer_offset = 0,
-					images   = { IMG_blit_atlas_src_texture = glyph_rt_color, },
-					samplers = { SMP_blit_atlas_src_sampler = glyph_rt_sampler, },
+					images              = { IMG_ve_blit_atlas_src_texture = glyph_rt_color,   },
+					samplers            = { SMP_ve_blit_atlas_src_sampler = glyph_rt_sampler, },
 				})
 
 			// 3. Use the atlas to then render the text.
@@ -570,17 +573,18 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 				src_rt      := atlas_rt_color
 				src_sampler := atlas_rt_sampler
 
-				fs_target_uniform := Draw_Text_Fs_Params {
-					down_sample = 0,
-					colour      = draw_call.colour,
+				fs_target_uniform := Ve_Draw_Text_Fs_Params {
+					// glyph_buffer_size = glyph_buf_size,
+					over_sample       = glyph_buffer.over_sample.x,
+					colour            = draw_call.colour,
 				}
 
 				if draw_call.pass == .Target_Uncached {
-					fs_target_uniform.down_sample = 1
+					// fs_target_uniform.over_sample = 1.0
 					src_rt      = glyph_rt_color
 					src_sampler = glyph_rt_sampler
 				}
-				gfx.apply_uniforms( UB_draw_text_fs_params, Range { & fs_target_uniform, size_of(Draw_Text_Fs_Params) })
+				gfx.apply_uniforms( UB_ve_draw_text_fs_params, Range { & fs_target_uniform, size_of(Ve_Draw_Text_Fs_Params) })
 
 				gfx.apply_bindings(Bindings {
 					vertex_buffers = {
@@ -591,8 +595,8 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					},
 					index_buffer        = draw_list_ibuf,
 					index_buffer_offset = 0,
-					images   = { IMG_draw_text_src_texture = src_rt, },
-					samplers = { SMP_draw_text_src_sampler = src_sampler, },
+					images              = { IMG_ve_draw_text_src_texture = src_rt, },
+					samplers            = { SMP_ve_draw_text_src_sampler = src_sampler, },
 				})
 		}
 

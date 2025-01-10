@@ -1,6 +1,6 @@
 @module ve_draw_text
 
-@header package sectr
+@header package ve_sokol
 @header import sg "thirdparty:sokol/gfx"
 
 @vs ve_draw_text_vs

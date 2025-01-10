@@ -1,6 +1,6 @@
 @module ve_blit_atlas
 
-@header package sectr
+@header package ve_sokol
 @header import sg "thirdparty:sokol/gfx"
 
 @vs ve_blit_atlas_vs
