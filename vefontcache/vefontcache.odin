@@ -177,8 +177,8 @@ startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // N
 	glyph_draw_params           := Init_Glyph_Draw_Params_Default,
 	shape_cache_params          := Init_Shape_Cache_Params_Default,
 	shaper_params               := Init_Shaper_Params_Default,
-	alpha_sharpen               : f32 = 0.1,
-	px_scalar                   : f32 = 1.89,
+	alpha_sharpen               : f32 = 0.0,
+	px_scalar                   : f32 = 1,
 	
 	// Curve quality to use for a font when unspecified,
 	// Affects step size for bezier curve passes in generate_glyph_pass_draw_list
@@ -571,46 +571,46 @@ Zoom    : Used with a draw procedure that uses scaling via zoom, will scale the 
 */
 
 @(deferred_in = auto_pop_font)
-scope_font         :: #force_inline proc( ctx : ^Context, font      : Font_ID ) { assert(ctx != nil); append(& ctx.stack.font, font ) }
-push_font          :: #force_inline proc( ctx : ^Context, font      : Font_ID ) { assert(ctx != nil); append(& ctx.stack.font, font ) }
-pop_font           :: #force_inline proc( ctx : ^Context                      ) { assert(ctx != nil); pop(& ctx.stack.font)     }
-auto_pop_font      :: #force_inline proc( ctx : ^Context, font      : Font_ID ) { assert(ctx != nil); pop(& ctx.stack.font)     }
+scope_font         :: #force_inline proc( ctx : ^Context, font     : Font_ID ) { assert(ctx != nil); append(& ctx.stack.font, font ) }
+push_font          :: #force_inline proc( ctx : ^Context, font     : Font_ID ) { assert(ctx != nil); append(& ctx.stack.font, font ) }
+pop_font           :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.font) }
+auto_pop_font      :: #force_inline proc( ctx : ^Context, font     : Font_ID ) { assert(ctx != nil); pop(& ctx.stack.font) }
 
 @(deferred_in = auto_pop_font_size)
-scope_font_size    :: #force_inline proc( ctx : ^Context, px_size   : f32     ) { assert(ctx != nil); append(& ctx.stack.font_size, px_size) }
-push_font_size     :: #force_inline proc( ctx : ^Context, px_size   : f32     ) { assert(ctx != nil); append(& ctx.stack.font_size, px_size) }
-pop_font_size      :: #force_inline proc( ctx : ^Context                      ) { assert(ctx != nil); pop(& ctx.stack.font_size)       }
-auto_pop_font_size :: #force_inline proc( ctx : ^Context, px_size   : f32     ) { assert(ctx != nil); pop(& ctx.stack.font_size)       }
+scope_font_size    :: #force_inline proc( ctx : ^Context, px_size  : f32     ) { assert(ctx != nil); append(& ctx.stack.font_size, px_size) }
+push_font_size     :: #force_inline proc( ctx : ^Context, px_size  : f32     ) { assert(ctx != nil); append(& ctx.stack.font_size, px_size) }
+pop_font_size      :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.font_size) }
+auto_pop_font_size :: #force_inline proc( ctx : ^Context, px_size  : f32     ) { assert(ctx != nil); pop(& ctx.stack.font_size) }
 
 @(deferred_in = auto_pop_colour )
-scope_colour       :: #force_inline proc( ctx : ^Context, colour    : RGBAN   ) { assert(ctx != nil); append(& ctx.stack.colour, colour) }
-push_colour        :: #force_inline proc( ctx : ^Context, colour    : RGBAN   ) { assert(ctx != nil); append(& ctx.stack.colour, colour) }
-pop_colour         :: #force_inline proc( ctx : ^Context                      ) { assert(ctx != nil); pop(& ctx.stack.colour)      }
-auto_pop_colour    :: #force_inline proc( ctx : ^Context, colour    : RGBAN   ) { assert(ctx != nil); pop(& ctx.stack.colour)      }
+scope_colour       :: #force_inline proc( ctx : ^Context, colour   : RGBAN   ) { assert(ctx != nil); append(& ctx.stack.colour, colour) }
+push_colour        :: #force_inline proc( ctx : ^Context, colour   : RGBAN   ) { assert(ctx != nil); append(& ctx.stack.colour, colour) }
+pop_colour         :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.colour) }
+auto_pop_colour    :: #force_inline proc( ctx : ^Context, colour   : RGBAN   ) { assert(ctx != nil); pop(& ctx.stack.colour) }
 
 @(deferred_in = auto_pop_view)
-scope_view         :: #force_inline proc( ctx : ^Context, view      : Vec2    ) { assert(ctx != nil); append(& ctx.stack.view, view) }
-push_view          :: #force_inline proc( ctx : ^Context, view      : Vec2    ) { assert(ctx != nil); append(& ctx.stack.view, view) }
-pop_view           :: #force_inline proc( ctx : ^Context                      ) { assert(ctx != nil); pop(& ctx.stack.view)    }
-auto_pop_view      :: #force_inline proc( ctx : ^Context, view      : Vec2    ) { assert(ctx != nil); pop(& ctx.stack.view)    }
+scope_view         :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); append(& ctx.stack.view, view) }
+push_view          :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); append(& ctx.stack.view, view) }
+pop_view           :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.view) }
+auto_pop_view      :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); pop(& ctx.stack.view) }
 
 @(deferred_in = auto_pop_position)
-scope_position     :: #force_inline proc( ctx : ^Context, position  : Vec2    ) { assert(ctx != nil); append(& ctx.stack.position, position ) }
-push_position      :: #force_inline proc( ctx : ^Context, position  : Vec2    ) { assert(ctx != nil); append(& ctx.stack.position, position ) }
-pop_position       :: #force_inline proc( ctx : ^Context                      ) { assert(ctx != nil); pop( & ctx.stack.position)        }
-auto_pop_position  :: #force_inline proc( ctx : ^Context, view      : Vec2    ) { assert(ctx != nil); pop( & ctx.stack.position)        }
+scope_position     :: #force_inline proc( ctx : ^Context, position : Vec2    ) { assert(ctx != nil); append(& ctx.stack.position, position ) }
+push_position      :: #force_inline proc( ctx : ^Context, position : Vec2    ) { assert(ctx != nil); append(& ctx.stack.position, position ) }
+pop_position       :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop( & ctx.stack.position) }
+auto_pop_position  :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); pop( & ctx.stack.position) }
 
 @(deferred_in = auto_pop_scale)
-scope_scale        :: #force_inline proc( ctx : ^Context, scale     : Vec2    ) { assert(ctx != nil); append(& ctx.stack.scale, scale ) }
-push_scale         :: #force_inline proc( ctx : ^Context, scale     : Vec2    ) { assert(ctx != nil); append(& ctx.stack.scale, scale ) }
-pop_scale          :: #force_inline proc( ctx : ^Context,                     ) { assert(ctx != nil); pop(& ctx.stack.scale)      }
-auto_pop_scale     :: #force_inline proc( ctx : ^Context, scale     : Vec2    ) { assert(ctx != nil); pop(& ctx.stack.scale)      }
+scope_scale        :: #force_inline proc( ctx : ^Context, scale    : Vec2    ) { assert(ctx != nil); append(& ctx.stack.scale, scale ) }
+push_scale         :: #force_inline proc( ctx : ^Context, scale    : Vec2    ) { assert(ctx != nil); append(& ctx.stack.scale, scale ) }
+pop_scale          :: #force_inline proc( ctx : ^Context,                    ) { assert(ctx != nil); pop(& ctx.stack.scale) }
+auto_pop_scale     :: #force_inline proc( ctx : ^Context, scale    : Vec2    ) { assert(ctx != nil); pop(& ctx.stack.scale) }
 
 @(deferred_in = auto_pop_zoom )
-scope_zoom         :: #force_inline proc( ctx : ^Context, zoom      : f32     ) { append(& ctx.stack.zoom, zoom ) }
-push_zoom          :: #force_inline proc( ctx : ^Context, zoom      : f32     ) { append(& ctx.stack.zoom, zoom)  }
-pop_zoom           :: #force_inline proc( ctx : ^Context                      ) { pop(& ctx.stack.zoom)     }
-auto_pop_zoom      :: #force_inline proc( ctx : ^Context, zoom      : f32     ) { pop(& ctx.stack.zoom)     }
+scope_zoom         :: #force_inline proc( ctx : ^Context, zoom     : f32     ) { append(& ctx.stack.zoom, zoom ) }
+push_zoom          :: #force_inline proc( ctx : ^Context, zoom     : f32     ) { append(& ctx.stack.zoom, zoom)  }
+pop_zoom           :: #force_inline proc( ctx : ^Context                     ) { pop(& ctx.stack.zoom) }
+auto_pop_zoom      :: #force_inline proc( ctx : ^Context, zoom     : f32     ) { pop(& ctx.stack.zoom) }
 
 @(deferred_in = auto_pop_vpz)
 scope_vpz    :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform  ) { 

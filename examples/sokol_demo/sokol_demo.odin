@@ -155,13 +155,15 @@ draw_text_string_pos_norm :: proc( content : string, font : Font_ID, size : f32,
 	color_norm := normalize_rgba8(color)
 	def        := demo_ctx.font_ids[ font.label ]
 
+	size := size > 2.0 ? size : f32(def.default_size)
+
 	ve.draw_text_normalized_space( & demo_ctx.ve_ctx, 
 		def.ve_id, 
 		size,
 		color_norm,
 		demo_ctx.screen_size,
 		pos, 
-		scale,
+		scale * 1 / demo_ctx.screen_size,
 		1.0,
 		content
 	)
@@ -224,6 +226,7 @@ sokol_gfx_free :: proc "c" ( data : rawptr, user_data : rawptr ) {
 	free(data, allocator = context.allocator )
 }
 
+
 init :: proc "c" ()
 {
 	context = runtime.default_context()
@@ -278,7 +281,7 @@ init :: proc "c" ()
 	path_firacode          := strings.concatenate({ PATH_FONTS, "FiraCode-Regular.ttf"       })
 
 	demo_ctx.font_logo          = font_load(path_sawarabi_mincho,  330.0, "SawarabiMincho", 6 )
-	demo_ctx.font_title         = font_load(path_open_sans,         92.0, "OpenSans", 12 )
+	demo_ctx.font_title         = font_load(path_open_sans,         92.0, "OpenSans",       6 )
 	demo_ctx.font_print         = font_load(path_noto_sans_jp,      19.0, "NotoSansJP")
 	demo_ctx.font_mono          = font_load(path_ubuntu_mono,       21.0, "UbuntuMono")
 	demo_ctx.font_small         = font_load(path_roboto,            10.0, "Roboto")
@@ -295,7 +298,7 @@ init :: proc "c" ()
 	demo_ctx.font_demo_raincode = font_load(path_noto_sans_jp_reg,  20.0, "NotoSansJPRegular")
 	demo_ctx.font_demo_grid2    = font_load(path_noto_serif_sc,     54.0, "NotoSerifSC")
 	demo_ctx.font_demo_grid3    = font_load(path_bitter,            44.0, "Bitter")
-	demo_ctx.font_firacode      = font_load(path_firacode,          16.0, "FiraCode", 12 )
+	demo_ctx.font_firacode      = font_load(path_firacode,          16.0, "FiraCode", 3 )
 }
 
 event :: proc "c" (sokol_event : ^app.Event)
