@@ -13,15 +13,14 @@ Shape_Key :: u32
 	Traditionally a shape only refers to resolving which glyph and 
 	its position should be used for rendering.
 
-	For this library's case it also involes keeping any content 
-	that does not have to be resolved once again in the later stage of processing:
+	For this library's case it also resolves any content that does not have to be done 
+	on a per-frame basis for draw list generation.
 		* Resolve atlas lru codes
 		* Resolve glyph bounds and scale
 		* Resolve atlas region the glyph is associated with.
 
 	Ideally the user should resolve this shape once and cache/store it on their side.
-	They have the best ability to avoid costly lookups to streamline 
-	a hot path to only focusing on draw list generation that must be computed every frame.
+	They have the best ability to avoid costly lookups.
 */
 Shaped_Text :: struct #packed {
 	glyph              : [dynamic]Glyph,
@@ -190,8 +189,8 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 				f32(hb_gposition.x_advance) * font_scale, 
 				f32(hb_gposition.y_advance) * font_scale
 			}
-			(position^)          += advance
-			(max_line_width^)     = max(max_line_width^, position.x)
+			(position^)      += advance
+			(max_line_width^) = max(max_line_width^, position.x)
 
 			is_empty := parser_is_glyph_empty(entry.parser_info, glyph)
 			if ! is_empty {

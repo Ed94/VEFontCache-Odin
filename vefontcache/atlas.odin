@@ -12,7 +12,6 @@ Atlas_Region_Kind :: enum u8 {
 	Ignore = 0xFF, // ve_fontcache_cache_glyph_to_atlas uses a -1 value in clear draw call
 }
 
-// Note(Ed): Using 16 bit hash had collision failures and no observable performance improvement (tried several 16-bit hashers)
 Atlas_Key :: u32
 
 // TODO(Ed) It might perform better with a tailored made hashtable implementation for the LRU_Cache or dedicated array struct/procs for the Atlas.

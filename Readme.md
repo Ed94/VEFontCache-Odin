@@ -35,8 +35,8 @@ Upcoming:
   * Support for which triangulation method used on a by font basis?
 * Multi-threading supported job queue.
   * Lift heavy-lifting portion of the library's context into a thread context.
-  * Synchronize threads by merging their generated layered drawlist into a file draw-list for processing on the user's render thread.
-  * User defines how context's are distributed for drawing (a basic quandrant basic selector procedure will be provided.)
+  * Synchronize threads by merging their generated layered draw list into a finished draw-list for processing on the user's render thread.
+  * User defines how thread context's are distributed for drawing (a basic quandrant based selector procedure will be provided.)
 
 See: [docs/Readme.md](docs/Readme.md) for the library's interface.
 

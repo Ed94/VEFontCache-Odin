@@ -3,7 +3,7 @@ package vefontcache
 when false {
 // TODO(Ed): Freetype support
 
-// TODO(Ed): glyph caching cannot be handled in a 'font parser' abstraction. Just going to have explicit procedures to grab info neatly...
+// TODO(Ed): glyph triangulation cannot be handled in a 'font parser' abstraction. Just going to have explicit procedures to grab info neatly...
 cache_glyph_freetype :: proc(ctx: ^Context, font: Font_ID, glyph_index: Glyph, entry: ^Entry, bounds_0, bounds_1: Vec2, scale, translate: Vec2) -> b32
 {
 	draw_filled_path_freetype :: proc( draw_list : ^Draw_List, outside_point : Vec2, path : []Vertex,

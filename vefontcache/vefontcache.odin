@@ -94,7 +94,8 @@ Context :: struct {
 
 	stack : Scope_Stack,
 
-	cursor_pos    : Vec2,  // TODO(Ed): Review this (most likely not being used properly right now)
+	colour        : RGBAN, // Color used in draw interface TODO(Ed): use the stack
+	cursor_pos    : Vec2,  // TODO(Ed): Review this, no longer used much at all... (still useful I guess)
 	// Will apply a boost scalar (1.0 + alpha sharpen) to the colour's alpha which provides some sharpening of the edges.
 	// Has a boldening side-effect. If overblown will look smeared.
 	alpha_sharpen : f32,
@@ -647,11 +648,9 @@ get_cursor_pos :: #force_inline proc "contextless" ( ctx : Context ) -> Vec2 { r
 get_snapped_position :: #force_inline proc "contextless" ( position : Vec2, view : Vec2 ) -> (snapped_position : Vec2) {
 	snap_quotient := 1 / Vec2 { max(view.x, 1), max(view.y, 1) }
 	should_snap   := view * snap_quotient
-
 	snapped_position   = position 
 	snapped_position.x = ceil(position.x * view.x) * snap_quotient.x 
 	snapped_position.y = ceil(position.y * view.y) * snap_quotient.y
-
 	snapped_position  *= should_snap
 	snapped_position.x = max(snapped_position.x, position.x)
 	snapped_position.y = max(snapped_position.y, position.y)
@@ -763,7 +762,7 @@ draw_text_normalized_space :: proc( ctx : ^Context,
 }
 
 // Equivalent to draw_text_shape_normalized_space, however position's units is scaled to view and must be normalized.
-@(optimization_mode="favor_size")
+// @(optimization_mode="favor_size")
 draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 	font     : Font_ID,
 	px_size  : f32, 
@@ -805,16 +804,16 @@ draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 }
 
 // Equivalent to draw_text_normalized_space, however position's units is scaled to view and must be normalized.
-@(optimization_mode = "favor_size")
+// @(optimization_mode = "favor_size")
 draw_text_view_space :: proc(ctx : ^Context,
-	font          : Font_ID,
-	px_size       : f32,
-	colour        : RGBAN,
-	view          : Vec2,
-	view_position : Vec2,
-	scale         : Vec2, 
-	zoom          : f32, // TODO(Ed): Implement Zoom support
-	text_utf8     : string
+	font      : Font_ID,
+	px_size   : f32,
+	colour    : RGBAN,
+	view      : Vec2,
+	position  : Vec2,
+	scale     : Vec2, 
+	zoom      : f32, // TODO(Ed): Implement Zoom support
+	text_utf8 : string
 )
 {
 	profile(#procedure)
@@ -855,7 +854,7 @@ draw_text_view_space :: proc(ctx : ^Context,
 	)
 }
 
-@(optimization_mode = "favor_size")
+// @(optimization_mode = "favor_size")
 draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text )
 {
 	profile(#procedure)
@@ -908,7 +907,7 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 	)
 }
 
-@(optimization_mode = "favor_size")
+// @(optimization_mode = "favor_size")
 draw_text :: proc( ctx : ^Context, position, scale : Vec2, text_utf8 : string )
 {
 	profile(#procedure)
@@ -1020,7 +1019,7 @@ measure_text_size :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size
 
 	entry := ctx.entries[font]
 
-	downscale         := 1 / ctx.px_scalar
+	target_scale      := 1 / ctx.px_scalar
 	target_px_size    := px_size * ctx.px_scalar
 	target_font_scale := parser_scale( entry.parser_info, target_px_size )
 
@@ -1035,7 +1034,7 @@ measure_text_size :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size
 		target_font_scale, 
 		shaper_shape_text_uncached_advanced 
 	)
-	return shaped.size * downscale
+	return shaped.size * target_scale
 }
 
 get_font_vertical_metrics :: #force_inline proc ( ctx : ^Context, font : Font_ID, px_size : f32 ) -> ( ascent, descent, line_gap : f32 )
@@ -1102,7 +1101,6 @@ shape_text_advanced :: #force_inline proc( ctx : ^Context, font : Font_ID, px_si
 }
 
 // User handled shaped text. Will not be cached
-// @(disabled = true)
 shape_text_latin_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size: f32, text_utf8 : string, shape : ^Shaped_Text )
 {
 	profile(#procedure)
@@ -1125,7 +1123,6 @@ shape_text_latin_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID,
 }
 
 // User handled shaped text. Will not be cached
-// @(disabled = true)
 shape_text_advanced_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size: f32, text_utf8 : string, shape : ^Shaped_Text )
 {
 	profile(#procedure)
