@@ -686,7 +686,7 @@ draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context,
 	font     : Font_ID,
 	px_size  : f32, 
 	colour   : RGBAN, 
-	view     : Vec2,
+	view     : Vec2, // Screen
 	position : Vec2,
 	scale    : Vec2, 
 	zoom     : f32, // TODO(Ed): Implement zoom support
@@ -702,10 +702,13 @@ draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context,
 	entry := ctx.entries[ font ]
 
 	adjusted_colour   := colour
-	adjusted_colour.a  = 1.0 + ctx.alpha_sharpen
+	adjusted_colour.a += ctx.alpha_sharpen
+
+	view_norm  := 1 / view
+	scale_norm := scale * view_norm
 
 	target_px_size     := px_size * ctx.px_scalar
-	target_scale       := scale   * (1 / ctx.px_scalar)
+	target_scale       := scale_norm * (1 / ctx.px_scalar)
 	target_font_scale  := parser_scale( entry.parser_info, target_px_size )
 
 	ctx.cursor_pos = generate_shape_draw_list( & ctx.draw_list, shape, & ctx.atlas, & ctx.glyph_buffer,
@@ -743,12 +746,15 @@ draw_text_normalized_space :: proc( ctx : ^Context,
 
 	adjusted_position := get_snapped_position( position, view )
 
-	adjusted_colour := colour
-	adjusted_colour.a  = 1.0 + ctx.alpha_sharpen
+	adjusted_colour    := colour
+	adjusted_colour.a  += ctx.alpha_sharpen
+
+	view_norm  := 1 / view
+	scale_norm := scale * view_norm
 
 	// Does nothing when px_scalar is 1.0
 	target_px_size     := px_size * ctx.px_scalar
-	target_scale       := scale   * (1 / ctx.px_scalar)
+	target_scale       := scale_norm * (1 / ctx.px_scalar)
 	target_font_scale  := parser_scale( entry.parser_info, target_px_size )
 
 	shape := shaper_shape_text_cached( text_utf8, & ctx.shaper_ctx, & ctx.shape_cache, ctx.atlas, vec2(ctx.glyph_buffer.size),

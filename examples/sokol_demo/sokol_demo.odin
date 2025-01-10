@@ -154,8 +154,7 @@ draw_text_string_pos_norm :: proc( content : string, font : Font_ID, size : f32,
 {
 	color_norm := normalize_rgba8(color)
 	def        := demo_ctx.font_ids[ font.label ]
-
-	size := size > 2.0 ? size : f32(def.default_size)
+	size       := size > 2.0 ? size : f32(def.default_size)
 
 	ve.draw_text_normalized_space( & demo_ctx.ve_ctx, 
 		def.ve_id, 
@@ -163,7 +162,7 @@ draw_text_string_pos_norm :: proc( content : string, font : Font_ID, size : f32,
 		color_norm,
 		demo_ctx.screen_size,
 		pos, 
-		scale * 1 / demo_ctx.screen_size,
+		scale,
 		1.0,
 		content
 	)
@@ -257,7 +256,18 @@ init :: proc "c" ()
 		case .DUMMY: fmt.println(">> using dummy backend")
 	}
 
-	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator )
+	glyph_draw_opts := ve.Init_Glyph_Draw_Params_Default
+	glyph_draw_opts.snap_glyph_height = false
+
+	shaper_opts := ve.Init_Shaper_Params_Default
+	shaper_opts.snap_glyph_position = false
+
+	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, 
+		glyph_draw_params = glyph_draw_opts,
+		shaper_params = shaper_opts,
+		px_scalar = 1.5,
+		alpha_sharpen = 0.1,
+	)
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 1024 * 1024, index_cap = 1024 * 1024 )
 
 	error : mem.Allocator_Error
