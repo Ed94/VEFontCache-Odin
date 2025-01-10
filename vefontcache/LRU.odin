@@ -1,22 +1,36 @@
 package vefontcache
 
-/*
-The choice was made to keep the LRU cache implementation as close to the original as possible.
+/* Note(Ed):
+	Original implementation has been changed moderately.
+	Notably the LRU is now type generic for its key value.
+	This was done to profile between using u64, u32, and u16.
+
+	What ended up happening was using u32 for both the atlas and the shape cache 
+	yielded a several ms save for processing thousands of draw text calls.
+
+	There was an attempt at an optimization pass but the directives done here (other than force_inline)
+	are marginal changes at best.
 */
 
 import "base:runtime"
 
-Pool_ListIter  :: i32
-Pool_ListValue :: u64
+// 16-bit hashing was attempted, however it seems to get collisions with djb8_hash_16
 
-Pool_List_Item :: struct {
+LRU_Fail_Mask_16 :: 0xFFFF
+LRU_Fail_Mask_32 :: 0xFFFFFFFF
+LRU_Fail_Mask_64 :: 0xFFFFFFFFFFFFFFFF
+
+Pool_ListIter  :: i32
+
+Pool_List_Item :: struct( $V_Type : typeid ) #packed {
+// Pool_List_Item :: struct( $V_Type : typeid ) {
 	prev  : Pool_ListIter,
 	next  : Pool_ListIter,
-	value : Pool_ListValue,
+	value : V_Type,
 }
 
-Pool_List :: struct {
-	items     : [dynamic]Pool_List_Item,
+Pool_List :: struct( $V_Type : typeid) {
+	items     : [dynamic]Pool_List_Item(V_Type),
 	free_list : [dynamic]Pool_ListIter,
 	front     : Pool_ListIter,
 	back      : Pool_ListIter,
@@ -25,10 +39,10 @@ Pool_List :: struct {
 	dbg_name  : string,
 }
 
-pool_list_init :: proc( pool : ^Pool_List, capacity : i32, dbg_name : string = "" )
+pool_list_init :: proc( pool : ^Pool_List($V_Type), capacity : i32, dbg_name : string = "" )
 {
 	error : Allocator_Error
-	pool.items, error = make( [dynamic]Pool_List_Item, int(capacity) )
+	pool.items, error = make( [dynamic]Pool_List_Item(V_Type), int(capacity) )
 	assert( error == .None, "VEFontCache.pool_list_init : Failed to allocate items array")
 	resize( & pool.items, capacity )
 
@@ -39,130 +53,130 @@ pool_list_init :: proc( pool : ^Pool_List, capacity : i32, dbg_name : string = "
 	pool.capacity = capacity
 
 	pool.dbg_name = dbg_name
-	using pool
 
-	for id in 0 ..< capacity {
-		free_list[id] = i32(id)
-		items[id] = {
+	for id in 0 ..< pool.capacity {
+		pool.free_list[id] = Pool_ListIter(id)
+		pool.items[id] = {
 			prev = -1,
 			next = -1,
 		}
 	}
 
-	front = -1
-	back  = -1
+	pool.front = -1
+	pool.back  = -1
 }
 
-pool_list_free :: proc( pool : ^Pool_List ) {
+pool_list_free :: proc( pool : ^Pool_List($V_Type) ) {
 	delete( pool.items)
 	delete( pool.free_list)
 }
 
-pool_list_reload :: proc( pool : ^Pool_List, allocator : Allocator ) {
+pool_list_reload :: proc( pool : ^Pool_List($V_Type), allocator : Allocator ) {
 	reload_array( & pool.items, allocator )
 	reload_array( & pool.free_list, allocator )
 }
 
-pool_list_clear :: proc( pool: ^Pool_List ) {
-	using pool
-	clear(& items)
-	clear(& free_list)
+pool_list_clear :: proc( pool: ^Pool_List($V_Type) )
+{
+	clear(& pool.items)
+	clear(& pool.free_list)
 	resize( & pool.items, cap(pool.items) )
 	resize( & pool.free_list, cap(pool.free_list) )
 
-	for id in 0 ..< capacity {
-		free_list[id] = i32(id)
-		items[id] = {
+	for id in 0 ..< pool.capacity {
+		pool.free_list[id] = Pool_ListIter(id)
+		pool.items[id] = {
 			prev = -1,
 			next = -1,
 		}
 	}
 
-	front = -1
-	back  = -1
-	size  = 0
+	pool.front = -1
+	pool.back  = -1
+	pool.size  = 0
 }
 
-pool_list_push_front :: proc( pool : ^Pool_List, value : Pool_ListValue )
+@(optimization_mode="favor_size")
+pool_list_push_front :: proc( pool : ^Pool_List($V_Type), value : V_Type ) #no_bounds_check
 {
-	using pool
-	if size >= capacity do return
+	if pool.size >= pool.capacity do return
 
-	length := len(free_list)
+	length := len(pool.free_list)
 	assert( length > 0 )
-	assert( length == int(capacity - size) )
+	assert( length == int(pool.capacity - pool.size) )
 
-	id := free_list[ len(free_list) - 1 ]
+	id := pool.free_list[ len(pool.free_list) - 1 ]
 	if pool.dbg_name != "" {
 		logf("pool_list: back %v", id)
 	}
-	pop( & free_list )
-	items[ id ].prev  = -1
-	items[ id ].next  = front
-	items[ id ].value = value
+	pop( & pool.free_list )
+	pool.items[ id ].prev  = -1
+	pool.items[ id ].next  = pool.front
+	pool.items[ id ].value = value
 	if pool.dbg_name != "" {
 		logf("pool_list: pushed %v into id %v", value, id)
 	}
 
-	if front != -1 do items[ front ].prev = id
-	if back  == -1 do back = id
-	front  = id
-	size  += 1
+	if pool.front != -1 do pool.items[ pool.front ].prev = id
+	if pool.back  == -1 do pool.back = id
+	pool.front  = id
+	pool.size  += 1
 }
 
-pool_list_erase :: proc( pool : ^Pool_List, iter : Pool_ListIter )
+@(optimization_mode="favor_size")
+pool_list_erase :: proc( pool : ^Pool_List($V_Type), iter : Pool_ListIter ) #no_bounds_check
 {
-	using pool
-	if size <= 0 do return
-	assert( iter >= 0 && iter < i32(capacity) )
-	assert( len(free_list) == int(capacity - size) )
+	if pool.size <= 0 do return
+	assert( iter >= 0 && iter < Pool_ListIter(pool.capacity) )
+	assert( len(pool.free_list) == int(pool.capacity - pool.size) )
 
-	iter_node := & items[ iter ]
+	iter_node := & pool.items[ iter ]
 	prev := iter_node.prev
 	next := iter_node.next
 
-	if iter_node.prev != -1 do items[ prev ].next = iter_node.next
-	if iter_node.next != -1 do items[ next ].prev = iter_node.prev
+	if iter_node.prev != -1 do pool.items[ prev ].next = iter_node.next
+	if iter_node.next != -1 do pool.items[ next ].prev = iter_node.prev
 
-	if front == iter do front = iter_node.next
-	if back  == iter do back  = iter_node.prev
+	if pool.front == iter do pool.front = iter_node.next
+	if pool.back  == iter do pool.back  = iter_node.prev
 
 	iter_node.prev  = -1
 	iter_node.next  = -1
 	iter_node.value = 0
-	append( & free_list, iter )
+	append( & pool.free_list, iter )
 
-	size -= 1
-	if size == 0 {
-		back  = -1
-		front = -1
+	pool.size -= 1
+	if pool.size == 0 {
+		pool.back  = -1
+		pool.front = -1
 	}
 }
 
-pool_list_move_to_front :: #force_inline proc( pool : ^Pool_List, iter : Pool_ListIter )
+@(optimization_mode="favor_size")
+pool_list_move_to_front :: proc "contextless" ( pool : ^Pool_List($V_Type), iter : Pool_ListIter ) #no_bounds_check
 {
-	using pool
+	if pool.front == iter do return
 
-	if front == iter do return
+	item := & pool.items[iter]
+	if item.prev != -1   do pool.items[ item.prev ].next = item.next
+	if item.next != -1   do pool.items[ item.next ].prev = item.prev
+	if pool.back == iter do pool.back = item.prev
 
-	item := & items[iter]
-	if item.prev != -1   do items[ item.prev ].next = item.next
-	if item.next != -1   do items[ item.next ].prev = item.prev
-	if back      == iter do back = item.prev
-
-	item.prev           = -1
-	item.next           = front
-	items[ front ].prev = iter
-	front               = iter
+	item.prev                     = -1
+	item.next                     = pool.front
+	pool.items[ pool.front ].prev = iter
+	pool.front                    = iter
 }
 
-pool_list_peek_back :: #force_inline proc ( pool : ^Pool_List ) -> Pool_ListValue {
+@(optimization_mode="favor_size")
+pool_list_peek_back :: #force_inline proc ( pool : Pool_List($V_Type) ) -> V_Type #no_bounds_check {
 	assert( pool.back != - 1 )
 	value := pool.items[ pool.back ].value
 	return value
 }
 
-pool_list_pop_back :: #force_inline proc( pool : ^Pool_List ) -> Pool_ListValue {
+@(optimization_mode="favor_size")
+pool_list_pop_back :: #force_inline proc( pool : ^Pool_List($V_Type) ) -> V_Type #no_bounds_check { 
 	if pool.size <= 0 do return 0
 	assert( pool.back != -1 )
 
@@ -171,69 +185,69 @@ pool_list_pop_back :: #force_inline proc( pool : ^Pool_List ) -> Pool_ListValue 
 	return value
 }
 
-LRU_Link :: struct {
-	pad_top : u64,
-
+LRU_Link :: struct #packed {
 	value : i32,
 	ptr   : Pool_ListIter,
-
-	pad_bottom : u64,
 }
 
-LRU_Cache :: struct {
+LRU_Cache :: struct( $Key_Type : typeid ) {
 	capacity  : i32,
 	num       : i32,
-	table     :  map[u64]LRU_Link,
-	key_queue : Pool_List,
+	table     :  map[Key_Type]LRU_Link,
+	key_queue : Pool_List(Key_Type),
 }
 
-lru_init :: proc( cache : ^LRU_Cache, capacity : i32, dbg_name : string = "" ) {
+lru_init :: proc( cache : ^LRU_Cache($Key_Type), capacity : i32, dbg_name : string = "" ) {
 	error : Allocator_Error
 	cache.capacity     = capacity
-	cache.table, error = make( map[u64]LRU_Link, uint(capacity) )
+	cache.table, error = make( map[Key_Type]LRU_Link, uint(capacity) )
 	assert( error == .None, "VEFontCache.lru_init : Failed to allocate cache's table")
 
 	pool_list_init( & cache.key_queue, capacity, dbg_name = dbg_name )
-}
+}	
 
-lru_free :: proc( cache : ^LRU_Cache ) {
+lru_free :: proc( cache : ^LRU_Cache($Key_Type) ) {
 	pool_list_free( & cache.key_queue )
 	delete( cache.table )
 }
 
-lru_reload :: #force_inline proc( cache : ^LRU_Cache, allocator : Allocator ) {
+lru_reload :: #force_inline proc( cache : ^LRU_Cache($Key_Type), allocator : Allocator ) {
 	reload_map( & cache.table, allocator )
 	pool_list_reload( & cache.key_queue, allocator )
 }
 
-lru_clear :: proc ( cache : ^LRU_Cache ) {
+lru_clear :: proc ( cache : ^LRU_Cache($Key_Type) ) {
 	pool_list_clear( & cache.key_queue )
 	clear(& cache.table)
 	cache.num = 0
 }
 
-lru_find :: #force_inline proc "contextless" ( cache : ^LRU_Cache, key : u64, must_find := false ) -> (LRU_Link, bool) {
+@(optimization_mode="favor_size")
+lru_find :: #force_inline proc "contextless" ( cache : LRU_Cache($Key_Type), key : Key_Type, must_find := false ) -> (LRU_Link, bool) #no_bounds_check { 
 	link, success := cache.table[key]
 	return link, success
 }
 
-lru_get :: #force_inline proc( cache: ^LRU_Cache, key : u64 ) -> i32 {
+@(optimization_mode="favor_size")
+lru_get :: #force_inline proc ( cache: ^LRU_Cache($Key_Type), key : Key_Type ) -> i32 #no_bounds_check {
 	if link, ok := &cache.table[ key ]; ok {
-			pool_list_move_to_front(&cache.key_queue, link.ptr)
-			return link.value
+		pool_list_move_to_front(&cache.key_queue, link.ptr)
+		return link.value
 	}
 	return -1
 }
 
-lru_get_next_evicted :: #force_inline proc ( cache : ^LRU_Cache ) -> u64 {
+@(optimization_mode="favor_size")
+lru_get_next_evicted :: #force_inline proc ( cache : LRU_Cache($Key_Type) ) -> Key_Type #no_bounds_check {
 	if cache.key_queue.size >= cache.capacity {
-		evict := pool_list_peek_back( & cache.key_queue )
+		evict := pool_list_peek_back( cache.key_queue )
 		return evict
 	}
-	return 0xFFFFFFFFFFFFFFFF
+	return ~Key_Type(0)
 }
 
-lru_peek :: #force_inline proc ( cache : ^LRU_Cache, key : u64, must_find := false ) -> i32 {
+@(optimization_mode="favor_size")
+lru_peek :: #force_inline proc "contextless" ( cache : LRU_Cache($Key_Type), key : Key_Type, must_find := false ) -> i32 #no_bounds_check {
 	iter, success := lru_find( cache, key, must_find )
 	if success == false {
 		return -1
@@ -241,8 +255,10 @@ lru_peek :: #force_inline proc ( cache : ^LRU_Cache, key : u64, must_find := fal
 	return iter.value
 }
 
-lru_put :: #force_inline proc( cache : ^LRU_Cache, key : u64, value : i32 ) -> u64
+@(optimization_mode="favor_size")
+lru_put :: proc( cache : ^LRU_Cache($Key_Type), key : Key_Type, value : i32 ) -> Key_Type #no_bounds_check
 {
+	// profile(#procedure)
 	if link, ok := & cache.table[ key ]; ok {
 		pool_list_move_to_front( & cache.key_queue, link.ptr )
 		link.value = value
@@ -265,8 +281,8 @@ lru_put :: #force_inline proc( cache : ^LRU_Cache, key : u64, value : i32 ) -> u
 	return evict
 }
 
-lru_refresh :: proc( cache : ^LRU_Cache, key : u64 ) {
-	link, success := lru_find( cache, key )
+lru_refresh :: proc( cache : ^LRU_Cache($Key_Type), key : Key_Type ) {
+	link, success := lru_find( cache ^, key )
 	pool_list_erase( & cache.key_queue, link.ptr )
 	pool_list_push_front( & cache.key_queue, key )
 	link.ptr = cache.key_queue.front

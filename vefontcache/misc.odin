@@ -1,15 +1,57 @@
 package vefontcache
 
+/*
+	Didn't want to splinter this into more files..
+	Just a bunch of utilities.
+*/
+
 import "base:runtime"
 import "core:simd"
 import "core:math"
 
 import core_log "core:log"
 
-Colour  :: [4]f32
+peek_array :: #force_inline proc "contextless" ( self : [dynamic]$Type ) -> Type {
+	return self[ len(self) - 1 ]
+}
+
+reload_array :: #force_inline proc( self : ^[dynamic]$Type, allocator : Allocator ) {
+	raw          := transmute( ^runtime.Raw_Dynamic_Array) self
+	raw.allocator = allocator
+}
+
+reload_array_soa :: #force_inline proc( self : ^#soa[dynamic]$Type, allocator : Allocator ) {
+	raw          := runtime.raw_soa_footer(self)
+	raw.allocator = allocator
+}
+
+reload_map :: #force_inline proc( self : ^map [$KeyType] $EntryType, allocator : Allocator ) {
+	raw          := transmute( ^runtime.Raw_Map) self
+	raw.allocator = allocator
+}
+
+to_bytes :: #force_inline proc "contextless" ( typed_data : ^$Type ) -> []byte { return slice_ptr( transmute(^byte) typed_data, size_of(Type) ) }
+
+@(optimization_mode="favor_size")
+djb8_hash :: #force_inline proc "contextless" ( hash : ^$Type, bytes : []byte ) { for value in bytes do (hash^) = (( (hash^) << 8) + (hash^) ) + Type(value) }
+
+RGBA8   :: [4]u8
+RGBAN   :: [4]f32
 Vec2    :: [2]f32
 Vec2i   :: [2]i32
 Vec2_64 :: [2]f64
+
+Transform :: struct {
+	pos   : Vec2,
+	scale : Vec2,
+}
+
+Range2 :: struct {
+	p0, p1 : Vec2,
+}
+
+mul_range2_vec2 :: #force_inline proc "contextless" ( range : Range2, v : Vec2 ) -> Range2 { return { range.p0 * v, range.p1 * v } }
+size_range2     :: #force_inline proc "contextless" ( range : Range2           ) -> Vec2   { return range.p1 - range.p0 }
 
 vec2_from_scalar  :: #force_inline proc "contextless" ( scalar : f32   ) -> Vec2    { return { scalar, scalar }}
 vec2_64_from_vec2 :: #force_inline proc "contextless" ( v2     : Vec2  ) -> Vec2_64 { return { f64(v2.x), f64(v2.y) }}
@@ -39,91 +81,29 @@ logf :: proc( fmt : string, args : ..any,  level := core_log.Level.Info, loc := 
 	core_log.logf( level, fmt, ..args, location = loc )
 }
 
-reload_array :: proc( self : ^[dynamic]$Type, allocator : Allocator ) {
-	raw          := transmute( ^runtime.Raw_Dynamic_Array) self
-	raw.allocator = allocator
-}
-
-reload_map :: proc( self : ^map [$KeyType] $EntryType, allocator : Allocator ) {
-	raw          := transmute( ^runtime.Raw_Map) self
-	raw.allocator = allocator
-}
-
-font_glyph_lru_code :: #force_inline proc "contextless" ( font : Font_ID, glyph_index : Glyph ) -> (lru_code : u64) {
-	lru_code = u64(glyph_index) + ( ( 0x100000000 * u64(font) ) & 0xFFFFFFFF00000000 )
-	return
-}
-
-is_empty :: #force_inline proc ( ctx : ^Context, entry : ^Entry, glyph_index : Glyph ) -> b32
+@(optimization_mode="favor_size")
+to_glyph_buffer_space :: #force_inline proc "contextless" ( #no_alias position, scale : ^Vec2, size : Vec2 )
 {
-	if glyph_index == 0 do return true
-	if parser_is_glyph_empty( & entry.parser_info, glyph_index ) do return true
-	return false
+	pos      := position^
+	scale_32 := scale^
+
+	quotient : Vec2 = 1.0 / size
+	pos       = pos      * quotient * 2.0 - 1.0
+	scale_32  = scale_32 * quotient * 2.0
+
+	(position^) = pos
+	(scale^)    = scale_32
 }
 
-mark_batch_codepoint_seen :: #force_inline proc ( ctx : ^Context, lru_code : u64 ) {
-	ctx.temp_codepoint_seen[lru_code] = true
-	ctx.temp_codepoint_seen_num += 1
-}
-
-reset_batch_codepoint_state :: #force_inline proc( ctx : ^Context ) {
-	clear_map( & ctx.temp_codepoint_seen )
-	ctx.temp_codepoint_seen_num = 0
-}
-
-USE_F64_PRECISION_ON_X_FORM_OPS :: false
-
-screenspace_x_form :: #force_inline proc "contextless" ( position, scale : ^Vec2, size : Vec2 )
+@(optimization_mode="favor_size")
+to_target_space :: #force_inline proc "contextless" ( #no_alias position, scale : ^Vec2, size : Vec2 )
 {
-	when USE_F64_PRECISION_ON_X_FORM_OPS
-	{
-		pos_64   := vec2_64_from_vec2(position^)
-		scale_64 := vec2_64_from_vec2(scale^)
-
-		quotient : Vec2_64 = 1.0 / vec2_64(size)
-		pos_64      = pos_64   * quotient * 2.0 - 1.0
-		scale_64    = scale_64 * quotient * 2.0
-
-		(position^) = { f32(pos_64.x), f32(pos_64.y) }
-		(scale^)    = { f32(scale_64.x), f32(scale_64.y) }
-	}
-	else
-	{
-		pos      := position^
-		scale_32 := scale^
-
-		quotient : Vec2 = 1.0 / size
-		pos       = pos   * quotient * 2.0 - 1.0
-		scale_32  = scale_32 * quotient * 2.0
-
-		(position^) = pos
-		(scale^)    = scale_32
-	}
+	quotient : Vec2 = 1.0 / size
+	(position^) *= quotient
+	(scale^)    *= quotient
 }
 
-textspace_x_form :: #force_inline proc "contextless" ( position, scale : ^Vec2, size : Vec2 )
-{
-	when USE_F64_PRECISION_ON_X_FORM_OPS
-	{
-		pos_64   := vec2_64_from_vec2(position^)
-		scale_64 := vec2_64_from_vec2(scale^)
-
-		quotient : Vec2_64 = 1.0 / vec2_64(size)
-		pos_64   *= quotient
-		scale_64 *= quotient
-
-		(position^) = { f32(pos_64.x), f32(pos_64.y) }
-		(scale^)    = { f32(scale_64.x), f32(scale_64.y) }
-	}
-	else
-	{
-		quotient : Vec2 = 1.0 / size
-		(position^) *= quotient
-		(scale^)    *= quotient
-	}
-}
-
-USE_MANUAL_SIMD_FOR_BEZIER_OPS :: false
+USE_MANUAL_SIMD_FOR_BEZIER_OPS :: true
 
 when ! USE_MANUAL_SIMD_FOR_BEZIER_OPS
 {
@@ -132,11 +112,6 @@ when ! USE_MANUAL_SIMD_FOR_BEZIER_OPS
 	// ve_fontcache_eval_bezier (quadratic)
 	eval_point_on_bezier3 :: #force_inline proc "contextless" ( p0, p1, p2 : Vec2, alpha : f32 ) -> Vec2
 	{
-		// p0    := vec2_64(p0)
-		// p1    := vec2_64(p1)
-		// p2    := vec2_64(p2)
-		// alpha := f64(alpha)
-
 		weight_start   := (1 - alpha) * (1 - alpha)
 		weight_control := 2.0 * (1 - alpha) * alpha
 		weight_end     := alpha * alpha
@@ -154,12 +129,6 @@ when ! USE_MANUAL_SIMD_FOR_BEZIER_OPS
 	// ve_fontcache_eval_bezier (cubic)
 	eval_point_on_bezier4 :: #force_inline proc "contextless" ( p0, p1, p2, p3 : Vec2, alpha : f32 ) -> Vec2
 	{
-		// p0    := vec2_64(p0)
-		// p1    := vec2_64(p1)
-		// p2    := vec2_64(p2)
-		// p3    := vec2_64(p3)
-		// alpha := f64(alpha)
-
 		weight_start := (1 - alpha) * (1 - alpha) * (1 - alpha)
 		weight_c_a   := 3 * (1 - alpha) * (1 - alpha) * alpha
 		weight_c_b   := 3 * (1 - alpha) * alpha * alpha
@@ -178,14 +147,17 @@ else
 {
 	Vec2_SIMD :: simd.f32x4
 
+	@(optimization_mode="favor_size")
 	vec2_to_simd :: #force_inline proc "contextless" (v: Vec2) -> Vec2_SIMD {
 		return Vec2_SIMD{v.x, v.y, 0, 0}
 	}
 
+	@(optimization_mode="favor_size")
 	simd_to_vec2 :: #force_inline proc "contextless" (v: Vec2_SIMD) -> Vec2 {
 		return Vec2{ simd.extract(v, 0), simd.extract(v, 1) }
 	}
 
+	@(optimization_mode="favor_size")
 	eval_point_on_bezier3 :: #force_inline proc "contextless" (p0, p1, p2: Vec2, alpha: f32) -> Vec2
 	{
 		simd_p0 := vec2_to_simd(p0)
@@ -209,6 +181,7 @@ else
 		return simd_to_vec2(result)
 	}
 
+	@(optimization_mode="favor_size")
 	eval_point_on_bezier4 :: #force_inline proc "contextless" (p0, p1, p2, p3: Vec2, alpha: f32) -> Vec2
 	{
 		simd_p0 := vec2_to_simd(p0)
