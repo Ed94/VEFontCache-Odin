@@ -119,6 +119,10 @@ resize :: proc {
 	builtin.resize_dynamic_array,
 }
 
+round :: proc {
+	math.round_f32,
+}
+
 size :: proc {
 	size_range2,
 }

@@ -186,8 +186,7 @@ draw_text_zoomed_norm :: proc(content : string, font : Font_ID, size : f32, pos 
 
 	text_scale := screen_scale
 	{
-		f32_resolved_size := f32(resolved_size)
-		diff_scalar       := 1 + (zoom_adjust_size - f32_resolved_size) / f32_resolved_size
+		diff_scalar       := 1 + (zoom_adjust_size - resolved_size) / resolved_size
 		text_scale         = diff_scalar * screen_scale
 		text_scale.x       = clamp(text_scale.x, 0, 1)
 		text_scale.y       = clamp(text_scale.y, 0, 1)
@@ -198,9 +197,12 @@ draw_text_zoomed_norm :: proc(content : string, font : Font_ID, size : f32, pos 
 
 	ve.draw_text_normalized_space(& demo_ctx.ve_ctx, 
 		def.ve_id, 
+		resolved_size,
+		color_norm,
 		screen_size,
 		pos, 
 		text_scale,
+		1.0,
 		content
 	)
 }
@@ -263,7 +265,7 @@ init :: proc "c" ()
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 1024 * 1024, index_cap = 1024 * 1024 )
 
 	error : mem.Allocator_Error
-	demo_ctx.font_ids, error = make( map[string]FontDef, 256 )
+	demo_ctx.font_ids, error = make( map[string]Font_Entry, 256 )
 	assert( error == .None, "Failed to allocate demo_ctx.font_ids" )
 
 	path_sawarabi_mincho   := strings.concatenate({ PATH_FONTS, "SawarabiMincho-Regular.ttf" })
@@ -323,8 +325,8 @@ frame :: proc "c" ()
 	gfx.begin_pass({ action = pass_action, swapchain = glue.swapchain() })
 	gfx.end_pass()
 	{
-		ve.configure_snap( & demo_ctx.ve_ctx, u32(demo_ctx.screen_size.x), u32(demo_ctx.screen_size.y) )
-		ve.set_colour( & demo_ctx.ve_ctx, ve.Colour { 1.0, 1.0, 1.0, 1.0 })
+		// ve.configure_snap( & demo_ctx.ve_ctx, u32(demo_ctx.screen_size.x), u32(demo_ctx.screen_size.y) )
+		// ve.set_colour( & demo_ctx.ve_ctx, ve.Colour { 1.0, 1.0, 1.0, 1.0 })
 
 		using demo_ctx
 
@@ -513,11 +515,12 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 
 			zoomed_text_base_size : f32 = 12.0
 			zoom_adjust_size      := zoomed_text_base_size * current_zoom
-			ve_id, resolved_size  := font_resolve_draw_id( font_firacode, zoom_adjust_size * OVER_SAMPLE_ZOOM )
+			// ve_id, resolved_size  := font_resolve_draw_id( font_firacode, zoom_adjust_size * OVER_SAMPLE_ZOOM )
+			resolved_size         := zoom_adjust_size
 			current_zoom_text     := fmt.tprintf("Current Zoom         : %.2f x\nCurrent Resolved Size: %v px", current_zoom, resolved_size )
 			draw_text_string_pos_norm(current_zoom_text, font_firacode, 19, {0.2, zoom_info_y}, COLOR_WHITE)
 
-			ve.configure_snap( & demo_ctx.ve_ctx, u32(0), u32(0) )
+			// ve.configure_snap( & demo_ctx.ve_ctx, u32(0), u32(0) )
 
 			size            := measure_text_size( zoom_text, font_firacode, zoomed_text_base_size, 0 ) * current_zoom
 			x_offset        := (size.x / demo_ctx.screen_size.x) * 0.5
@@ -594,7 +597,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 				draw_text_string_pos_norm(codes[grid[y * GRID_W + x]], font_demo_raincode, 20, {pos_x, pos_y}, code_colour)
 			}
 
-			ve.set_colour(&ve_ctx, {1.0, 1.0, 1.0, 1.0})
+			// ve.set_colour(&ve_ctx, {1.0, 1.0, 1.0, 1.0})
 		}
 
 		// Cache pressure test

@@ -94,7 +94,6 @@ Context :: struct {
 
 	stack : Scope_Stack,
 
-	colour        : RGBAN, // Color used in draw interface TODO(Ed): use the stack
 	cursor_pos    : Vec2,  // TODO(Ed): Review this, no longer used much at all... (still useful I guess)
 	// Will apply a boost scalar (1.0 + alpha sharpen) to the colour's alpha which provides some sharpening of the edges.
 	// Has a boldening side-effect. If overblown will look smeared.
@@ -193,7 +192,6 @@ startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // N
 	ctx.backing       = allocator
 	context.allocator = ctx.backing
 
-	ctx.colour        = { 1, 1, 1, 1 }
 	ctx.alpha_sharpen = alpha_sharpen
 	ctx.px_scalar     = px_scalar
 
@@ -663,13 +661,12 @@ resolve_draw_px_size :: #force_inline proc "contextless" ( px_size, default_size
 {
 	interval_quotient := 1.0 / f32(interval)
 	size              := px_size == 0.0 ? default_size : px_size
-	even_size         := math.round(size * interval_quotient) * interval
+	even_size         := round(size * interval_quotient) * interval
 	resolved_size      = clamp( even_size, min, max )
 	return
 }
 
 set_alpha_scalar :: #force_inline proc( ctx : ^Context, scalar : f32    )      { assert(ctx != nil); ctx.alpha_sharpen = scalar }
-set_colour       :: #force_inline proc( ctx : ^Context, colour : RGBAN  )      { assert(ctx != nil); ctx.colour        = colour }
 set_px_scalar    :: #force_inline proc( ctx : ^Context, scalar : f32    )      { assert(ctx != nil); ctx.px_scalar     = scalar } 
 
 set_snap_glyph_shape_position :: #force_inline proc( ctx : ^Context, should_snap : b32 ) {
@@ -835,7 +832,7 @@ draw_text_view_space :: proc(ctx : ^Context,
 	ctx.cursor_pos = {}
 	entry := ctx.entries[ font ]
 
-	norm_position := view_position * (1 / view)
+	norm_position := position * (1 / view)
 
 	adjusted_position := get_snapped_position( norm_position, view )
 
