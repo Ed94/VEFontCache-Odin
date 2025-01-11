@@ -235,8 +235,8 @@ init :: proc "c" ()
 	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, 
 		glyph_draw_params = glyph_draw_opts,
 		shaper_params     = shaper_opts,
-		px_scalar         = 1.4,
-		alpha_sharpen     = 0.0,
+		px_scalar         = 1.8,
+		alpha_sharpen     = 0.05,
 	)
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 256 * 1024, index_cap = 512 * 1024 )
 
@@ -331,6 +331,8 @@ frame :: proc "c" ()
 		// Frametime display
 		frametime_text := fmt.tprintf("Frametime %v", frame_duration)
 		draw_text(frametime_text, demo_ctx.font_title, {0.0, 0.0}, size = 30)
+
+		// Below is content based on the original demo from the C++ library.
 
 		if current_scroll < 1.5 {
 			intro := `Ça va! Everything here is rendered using VE Font Cache, a single header-only library designed for game engines.
