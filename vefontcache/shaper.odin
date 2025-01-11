@@ -16,10 +16,10 @@ Shape_Key :: u32
 	its position should be used for rendering.
 
 	For this library's case it also resolves any content that does not have to be done 
-	on a per-frame basis for draw list generation.
-		* Resolve atlas lru codes
-		* Resolve glyph bounds and scale
-		* Resolve atlas region the glyph is associated with.
+	on a per-frame basis for draw list generation:
+		* atlas lru codes
+		* glyph bounds and scale
+		* atlas region the glyph is associated with.
 
 	Ideally the user should resolve this shape once and cache/store it on their side.
 	They have the best ability to avoid costly lookups.
@@ -82,7 +82,7 @@ shaper_init :: proc( ctx : ^Shaper_Context )
 	assert( ctx.hb_buffer != nil, "VEFontCache.shaper_init: Failed to create harfbuzz buffer")
 }
 
-shaper_shutdown :: proc( ctx : ^Shaper_Context )
+shaper_shutdown :: proc( ctx : ^Shaper_Context ) 
 {
 	if ctx.hb_buffer != nil {
 		harfbuzz.buffer_destroy( ctx.hb_buffer )
@@ -144,9 +144,9 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 		profile(#procedure)
 		// Set script and direction. We use the system's default langauge.
 		// script = HB_SCRIPT_LATIN
-		harfbuzz.buffer_set_script( buffer, script )
+		harfbuzz.buffer_set_script   ( buffer, script )
 		harfbuzz.buffer_set_direction( buffer, harfbuzz.script_get_horizontal_direction( script ))
-		harfbuzz.buffer_set_language( buffer, harfbuzz.language_get_default() )
+		harfbuzz.buffer_set_language ( buffer, harfbuzz.language_get_default() )
 
 		// Perform the actual shaping of this run using HarfBuzz.
 		harfbuzz.buffer_set_content_type( buffer, harfbuzz.Buffer_Content_Type.UNICODE )
@@ -171,12 +171,11 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 				position.x        = 0.0
 				position.y       -= line_height
 				position.y        = floor(position.y)
-				(line_count^)     += 1
+				(line_count^)    += 1
 				continue
 			}
-			if abs( font_px_size ) <= adv_snap_small_font_threshold
-			{
-				(position^) =  ceil( position^ )
+			if abs( font_px_size ) <= adv_snap_small_font_threshold {
+				(position^) = ceil( position^ )
 			}
 
 			glyph_pos := position^
@@ -219,7 +218,10 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 		ScriptKind :: harfbuzz.Script
 
 		special_script : b32 = script == ScriptKind.UNKNOWN || script == ScriptKind.INHERITED || script == ScriptKind.COMMON
-		if special_script || script == current_script || byte_offset == 0 {
+		if special_script                \
+		|| script      == current_script \
+		|| byte_offset == 0 
+		{
 			harfbuzz.buffer_add( ctx.hb_buffer, hb_codepoint, codepoint == '\n' ? 1 : 0 )
 			current_script = special_script ? current_script : script
 			continue
@@ -287,15 +289,13 @@ shaper_shape_text_uncached_advanced :: #force_inline proc( ctx : ^Shaper_Context
 	resize( & output.bounds,         len(output.glyph) )
 
 	profile_begin("atlas_lru_code")
-	for id, index in output.glyph
-	{
+	for id, index in output.glyph {
 		output.atlas_lru_code[index] = atlas_glyph_lru_code(entry.id, font_px_size, id)
 	}
 	profile_end()
 
 	profile_begin("bounds & region")
-	for id, index in output.glyph
-	{
+	for id, index in output.glyph {
 		bounds                   := & output.bounds[index]
 		(bounds ^)                = parser_get_bounds( entry.parser_info, id )
 		bounds_size_scaled       := (bounds.p1 - bounds.p0) * font_scale
@@ -377,15 +377,13 @@ shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 	resize( & output.bounds,         len(output.glyph) )
 
 	profile_begin("atlas_lru_code")
-	for id, index in output.glyph
-	{
+	for id, index in output.glyph {
 		output.atlas_lru_code[index] = atlas_glyph_lru_code(entry.id, font_px_size, id)
 	}
 	profile_end()
 
 	profile_begin("bounds & region")
-	for id, index in output.glyph
-	{
+	for id, index in output.glyph {
 		bounds                   := & output.bounds[index]
 		(bounds ^)                = parser_get_bounds( entry.parser_info, id )
 		bounds_size_scaled       := (bounds.p1 - bounds.p0) * font_scale
@@ -429,12 +427,12 @@ shaper_shape_text_cached :: proc( text_utf8 : string,
 	shape_cache_idx := lru_get( state, lru_code )
 	if shape_cache_idx == -1
 	{
-		if shape_cache.next_cache_id < i32(state.capacity) {
+		if shape_cache.next_cache_id < i32(state.capacity){
 			shape_cache_idx            = shape_cache.next_cache_id
 			shape_cache.next_cache_id += 1
 			evicted := lru_put( state, lru_code, shape_cache_idx )
 		}
-		else
+		else 
 		{
 			next_evict_idx := lru_get_next_evicted( state ^ )
 			assert( next_evict_idx != LRU_Fail_Mask_32 )

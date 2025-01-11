@@ -150,66 +150,23 @@ get_font_vertical_metrics :: #force_inline proc ( font : Font_ID, font_size := F
 }
 
 // Draw text using a string and normalized render coordinates
-draw_text_string_pos_norm :: proc( content : string, font : Font_ID, size : f32, pos : Vec2, color := COLOR_WHITE, scale : f32 = 1.0 )
+draw_text :: proc( content : string, font : Font_ID, pos : Vec2, size : f32 = 0.0, color := COLOR_WHITE, scale : f32 = 1.0, zoom : f32 = 1.0 )
 {
 	color_norm := normalize_rgba8(color)
 	def        := demo_ctx.font_ids[ font.label ]
-	size       := size > 2.0 ? size : f32(def.default_size)
+	size       := size >= 2.0 ? size : f32(def.default_size)
 
-	norm_pos, norm_scale := ve.get_normalized_position_scale( pos, scale, demo_ctx.screen_size )
-
-	ve.draw_text_normalized_space( & demo_ctx.ve_ctx, 
+	ve.draw_text_view_space( & demo_ctx.ve_ctx, 
 		def.ve_id, 
 		size,
 		color_norm,
-		norm_pos, 
-		norm_scale,
-		1.0,
-		content
-	)
-
-	// ve.draw_text_view_space( & demo_ctx.ve_ctx, 
-	// 	def.ve_id, 
-	// 	size,
-	// 	color_norm,
-	// 	demo_ctx.screen_size,
-	// 	pos, 
-	// 	scale,
-	// 	1.0,
-	// 	content
-	// )
-	return
-}
-
-// Adapt the draw_text_string_pos_extent_zoomed procedure
-draw_text_zoomed_norm :: proc(content : string, font : Font_ID, size : f32, pos : Vec2, zoom : f32, color := COLOR_WHITE)
-{
-	screen_size      := demo_ctx.screen_size
-	screen_scale     := 1 / screen_size
-	zoom_adjust_size := size * zoom
-
-	resolved_size := size
-
-	text_scale := screen_scale
-	{
-		diff_scalar       := 1 + (zoom_adjust_size - resolved_size) / resolved_size
-		text_scale         = diff_scalar * screen_scale
-		text_scale.x       = clamp(text_scale.x, 0, 1)
-		text_scale.y       = clamp(text_scale.y, 0, 1)
-	}
-
-	color_norm := normalize_rgba8(color)
-	def        := demo_ctx.font_ids[ font.label ]
-
-	ve.draw_text_normalized_space(& demo_ctx.ve_ctx, 
-		def.ve_id, 
-		resolved_size,
-		color_norm,
+		demo_ctx.screen_size,
 		pos, 
-		text_scale,
-		1.0,
+		scale,
+		zoom,
 		content
 	)
+	return
 }
 
 sokol_app_alloc :: proc "c" ( size : uint, user_data : rawptr ) -> rawptr {
@@ -235,7 +192,6 @@ sokol_gfx_free :: proc "c" ( data : rawptr, user_data : rawptr ) {
 	context = runtime.default_context()
 	free(data, allocator = context.allocator )
 }
-
 
 init :: proc "c" ()
 {
@@ -268,18 +224,18 @@ init :: proc "c" ()
 	}
 
 	glyph_draw_opts := ve.Init_Glyph_Draw_Params_Default
-	glyph_draw_opts.snap_glyph_height = false
+	glyph_draw_opts.snap_glyph_height = true
 
 	shaper_opts := ve.Init_Shaper_Params_Default
-	shaper_opts.snap_glyph_position = false
+	shaper_opts.snap_glyph_position = true
 
 	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, 
 		glyph_draw_params = glyph_draw_opts,
-		shaper_params = shaper_opts,
-		px_scalar = 1.5,
-		alpha_sharpen = 0.1,
+		shaper_params     = shaper_opts,
+		px_scalar         = 1,
+		alpha_sharpen     = 0.1,
 	)
-	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 1024 * 1024, index_cap = 1024 * 1024 )
+	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 256 * 1024, index_cap = 512 * 1024 )
 
 	error : mem.Allocator_Error
 	demo_ctx.font_ids, error = make( map[string]Font_Entry, 256 )
@@ -301,12 +257,12 @@ init :: proc "c" ()
 	path_noto_sans_jp_reg  := strings.concatenate({ PATH_FONTS, "NotoSansJP-Regular.otf"     })
 	path_firacode          := strings.concatenate({ PATH_FONTS, "FiraCode-Regular.ttf"       })
 
-	demo_ctx.font_logo          = font_load(path_sawarabi_mincho,  330.0, "SawarabiMincho", 6 )
-	demo_ctx.font_title         = font_load(path_open_sans,         92.0, "OpenSans",       6 )
+	demo_ctx.font_logo          = font_load(path_sawarabi_mincho,  300.0, "SawarabiMincho", 12 )
+	// demo_ctx.font_title         = font_load(path_open_sans,         92.0, "OpenSans",       6 )
 	demo_ctx.font_print         = font_load(path_noto_sans_jp,      19.0, "NotoSansJP")
 	demo_ctx.font_mono          = font_load(path_ubuntu_mono,       21.0, "UbuntuMono")
 	demo_ctx.font_small         = font_load(path_roboto,            10.0, "Roboto")
-	demo_ctx.font_demo_sans     = font_load(path_open_sans,         18.0, "OpenSans")
+	demo_ctx.font_demo_sans     = font_load(path_open_sans,         18.0, "OpenSans", 6)
 	demo_ctx.font_demo_serif    = font_load(path_bitter,            18.0, "Bitter")
 	demo_ctx.font_demo_script   = font_load(path_dancing_script,    22.0, "DancingScript")
 	demo_ctx.font_demo_mono     = font_load(path_nova_mono,         18.0, "NovaMono")
@@ -317,9 +273,10 @@ init :: proc "c" ()
 	demo_ctx.font_demo_arabic   = font_load(path_tajawal,           24.0, "Tajawal")
 	demo_ctx.font_demo_hebrew   = font_load(path_david_libre,       22.0, "DavidLibre")
 	demo_ctx.font_demo_raincode = font_load(path_noto_sans_jp_reg,  20.0, "NotoSansJPRegular")
-	demo_ctx.font_demo_grid2    = font_load(path_noto_serif_sc,     54.0, "NotoSerifSC")
-	demo_ctx.font_demo_grid3    = font_load(path_bitter,            44.0, "Bitter")
-	demo_ctx.font_firacode      = font_load(path_firacode,          16.0, "FiraCode", 3 )
+	demo_ctx.font_title         = demo_ctx.font_demo_sans
+	demo_ctx.font_demo_grid2    = demo_ctx.font_demo_chinese
+	demo_ctx.font_demo_grid3    = demo_ctx.font_demo_serif
+	demo_ctx.font_firacode      = font_load(path_firacode,          16.0, "FiraCode", 12 )
 }
 
 event :: proc "c" (sokol_event : ^app.Event)
@@ -371,7 +328,7 @@ frame :: proc "c" ()
 
 		// Frametime display
 		frametime_text := fmt.tprintf("Frametime %v", frame_duration)
-		draw_text_string_pos_norm(frametime_text, demo_ctx.font_title, 0, {0.0, 0.0}, COLOR_WHITE)
+		draw_text(frametime_text, demo_ctx.font_title, {0.0, 0.0}, size = 30)
 
 		if current_scroll < 1.5 {
 			intro := `Ça va! Everything here is rendered using VE Font Cache, a single header-only library designed for game engines.
@@ -386,9 +343,9 @@ It aims to:
 			•    Support cached text shaping with HarfBuzz with simple Latin-style fallback.
 			•    Load and unload fonts at any time.`
 
-			draw_text_string_pos_norm("ゑ",                demo_ctx.font_logo, 330, { 0.4, current_scroll       }, COLOR_WHITE)
-			draw_text_string_pos_norm("VEFontCache Demo", demo_ctx.font_title, 92, { 0.2, current_scroll - 0.1  }, COLOR_WHITE)
-			draw_text_string_pos_norm(intro,              demo_ctx.font_print, 19, { 0.2, current_scroll - 0.14 }, COLOR_WHITE)
+			draw_text("ゑ",                demo_ctx.font_logo, { 0.4, current_scroll }, size = 200, scale = 2.0)
+			draw_text("VEFontCache Demo", demo_ctx.font_title, { 0.2, current_scroll - 0.1  }, size = 92)
+			draw_text(intro,              demo_ctx.font_print, { 0.2, current_scroll - 0.14 }, size = 19)
 		}
 
 		section_start : f32 = 0.42
@@ -431,10 +388,10 @@ Glyphs are first rendered to an intermediate 2k x 512px R8 texture. This allows 
 4 x 4 = 16x supersampling, and 8 Region C glyphs similarly. A simple 16-tap box downsample shader is then used to blit from this
 intermediate texture to the final atlas location.`
 
-			draw_text_string_pos_norm("How it works",   demo_ctx.font_title, 92, { 0.2,  current_scroll - (section_start + 0.06) }, COLOR_WHITE)
-			draw_text_string_pos_norm(how_it_works,     demo_ctx.font_print, 19, { 0.2,  current_scroll - (section_start + 0.1)  }, COLOR_WHITE)
-			draw_text_string_pos_norm(caching_strategy, demo_ctx.font_mono,  21, { 0.28, current_scroll - (section_start + 0.32) }, COLOR_WHITE)
-			draw_text_string_pos_norm(how_it_works2,    demo_ctx.font_print, 19, { 0.2,  current_scroll - (section_start + 0.82) }, COLOR_WHITE)
+			draw_text("How it works",   demo_ctx.font_title, { 0.2,  current_scroll - (section_start + 0.06) })
+			draw_text(how_it_works,     demo_ctx.font_print, { 0.2,  current_scroll - (section_start + 0.1)  })
+			draw_text(caching_strategy, demo_ctx.font_mono,  { 0.28, current_scroll - (section_start + 0.32) })
+			draw_text(how_it_works2,    demo_ctx.font_print, { 0.2,  current_scroll - (section_start + 0.82) })
 		}
 
 		// Showcase section
@@ -445,49 +402,49 @@ intermediate texture to the final atlas location.`
 incididunt ut labore et dolore magna aliqua. Est ullamcorper eget nulla facilisi
 etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 
-			draw_text_string_pos_norm("Showcase", demo_ctx.font_title, 92, { 0.2, current_scroll - (section_start + 0.2) }, COLOR_WHITE)
-			draw_text_string_pos_norm("This is a showcase demonstrating different hb_font categories and languages.", demo_ctx.font_print, 19, { 0.2, current_scroll - (section_start + 0.24) }, COLOR_WHITE)
+			draw_text("Showcase", demo_ctx.font_title, { 0.2, current_scroll - (section_start + 0.2) }, size = 92)
+			draw_text("This is a showcase demonstrating different hb_font categories and languages.", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.24) }, size = 19)
 
-			draw_text_string_pos_norm("Sans serif",     demo_ctx.font_print,     19, { 0.2, current_scroll - (section_start + 0.28) }, COLOR_WHITE)
-			draw_text_string_pos_norm(font_family_test, demo_ctx.font_demo_sans, 18, { 0.3, current_scroll - (section_start + 0.28) }, COLOR_WHITE)
+			draw_text("Sans serif",     demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.28) }, size = 19)
+			draw_text(font_family_test, demo_ctx.font_demo_sans, { 0.3, current_scroll - (section_start + 0.28) }, size = 18)
 
-			draw_text_string_pos_norm("Serif",          demo_ctx.font_print,      19, { 0.2, current_scroll - (section_start + 0.36) }, COLOR_WHITE)
-			draw_text_string_pos_norm(font_family_test, demo_ctx.font_demo_serif, 18, { 0.3, current_scroll - (section_start + 0.36) }, COLOR_WHITE)
+			draw_text("Serif",          demo_ctx.font_print,      { 0.2, current_scroll - (section_start + 0.36) })
+			draw_text(font_family_test, demo_ctx.font_demo_serif, { 0.3, current_scroll - (section_start + 0.36) })
 
-			draw_text_string_pos_norm("Script",         demo_ctx.font_print,       19, { 0.2, current_scroll - (section_start + 0.44) }, COLOR_WHITE)
-			draw_text_string_pos_norm(font_family_test, demo_ctx.font_demo_script, 22, { 0.3, current_scroll - (section_start + 0.44) }, COLOR_WHITE)
+			draw_text("Script",         demo_ctx.font_print,       { 0.2, current_scroll - (section_start + 0.44) })
+			draw_text(font_family_test, demo_ctx.font_demo_script, { 0.3, current_scroll - (section_start + 0.44) })
 
-			draw_text_string_pos_norm("Monospace",      demo_ctx.font_print,     19, { 0.2, current_scroll - (section_start + 0.52) }, COLOR_WHITE)
-			draw_text_string_pos_norm(font_family_test, demo_ctx.font_demo_mono, 18, { 0.3, current_scroll - (section_start + 0.52) }, COLOR_WHITE)
+			draw_text("Monospace",      demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.52) })
+			draw_text(font_family_test, demo_ctx.font_demo_mono, { 0.3, current_scroll - (section_start + 0.52) })
 
-			draw_text_string_pos_norm("Small",          demo_ctx.font_print, 19, { 0.2, current_scroll - (section_start + 0.60) }, COLOR_WHITE)
-			draw_text_string_pos_norm(font_family_test, demo_ctx.font_small, 10, { 0.3, current_scroll - (section_start + 0.60) }, COLOR_WHITE)
+			draw_text("Small",          demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.60) })
+			draw_text(font_family_test, demo_ctx.font_small, { 0.3, current_scroll - (section_start + 0.60) })
 
-			draw_text_string_pos_norm("Greek",                   demo_ctx.font_print,     19, { 0.2, current_scroll - (section_start + 0.72) }, COLOR_WHITE)
-			draw_text_string_pos_norm("Ήταν απλώς θέμα χρόνου.", demo_ctx.font_demo_sans, 18, { 0.3, current_scroll - (section_start + 0.72) }, COLOR_WHITE)
+			draw_text("Greek",                   demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.72) })
+			draw_text("Ήταν απλώς θέμα χρόνου.", demo_ctx.font_demo_sans, { 0.3, current_scroll - (section_start + 0.72) })
 
-			draw_text_string_pos_norm("Vietnamese",                                        demo_ctx.font_print,     19, { 0.2, current_scroll - (section_start + 0.76) }, COLOR_WHITE)
-			draw_text_string_pos_norm("Bầu trời trong xanh thăm thẳm, không một gợn mây.", demo_ctx.font_demo_sans, 18, { 0.3, current_scroll - (section_start + 0.76) }, COLOR_WHITE)
+			draw_text("Vietnamese",                                        demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.76) })
+			draw_text("Bầu trời trong xanh thăm thẳm, không một gợn mây.", demo_ctx.font_demo_sans, { 0.3, current_scroll - (section_start + 0.76) })
 
-			draw_text_string_pos_norm("Thai", demo_ctx.font_print, 19, {0.2, current_scroll - (section_start + 0.80)}, COLOR_WHITE)
-			draw_text_string_pos_norm("การเดินทางขากลับคงจะเหงา", demo_ctx.font_demo_thai, 24, {0.3, current_scroll - (section_start + 0.80)}, COLOR_WHITE)
+			draw_text("Thai", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.80) })
+			draw_text("การเดินทางขากลับคงจะเหงา", demo_ctx.font_demo_thai, { 0.3, current_scroll - (section_start + 0.80) })
 
-			draw_text_string_pos_norm("Chinese", demo_ctx.font_print, 19, {0.2, current_scroll - (section_start + 0.84)}, COLOR_WHITE)
-			draw_text_string_pos_norm("床前明月光 疑是地上霜 举头望明月 低头思故乡", demo_ctx.font_demo_chinese, 24, {0.3, current_scroll - (section_start + 0.84)}, COLOR_WHITE)
+			draw_text("Chinese", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.84) })
+			draw_text("床前明月光 疑是地上霜 举头望明月 低头思故乡", demo_ctx.font_demo_chinese, {0.3, current_scroll - (section_start + 0.84) })
 
-			draw_text_string_pos_norm("Japanese", demo_ctx.font_print, 19, {0.2, current_scroll - (section_start + 0.88)}, COLOR_WHITE)
-			draw_text_string_pos_norm("ぎょしょうとナレズシの研究 モンスーン・アジアの食事文化", demo_ctx.font_demo_japanese, 24, {0.3, current_scroll - (section_start + 0.88)}, COLOR_WHITE)
+			draw_text("Japanese", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.88) })
+			draw_text("ぎょしょうとナレズシの研究 モンスーン・アジアの食事文化", demo_ctx.font_demo_japanese, { 0.3, current_scroll - (section_start + 0.88) })
 
-			draw_text_string_pos_norm("Korean", demo_ctx.font_print, 19, {0.2, current_scroll - (section_start + 0.92)}, COLOR_WHITE)
-			draw_text_string_pos_norm("그들의 장비와 기구는 모두 살아 있다.", demo_ctx.font_demo_korean, 36, {0.3, current_scroll - (section_start + 0.92)}, COLOR_WHITE)
+			draw_text("Korean", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.92) })
+			draw_text("그들의 장비와 기구는 모두 살아 있다.", demo_ctx.font_demo_korean, { 0.3, current_scroll - (section_start + 0.92) })
 
-			draw_text_string_pos_norm("Needs harfbuzz to work:", demo_ctx.font_print, 14, {0.2, current_scroll - (section_start + 0.96)}, COLOR_WHITE)
+			draw_text("Needs harfbuzz to work:", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.96)})
 
-			draw_text_string_pos_norm("Arabic", demo_ctx.font_print, 19, {0.2, current_scroll - (section_start + 1.00)}, COLOR_WHITE)
-			draw_text_string_pos_norm("حب السماء لا تمطر غير الأحلام.", demo_ctx.font_demo_arabic, 24, {0.3, current_scroll - (section_start + 1.00)}, COLOR_WHITE)
+			draw_text("Arabic", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 1.00) })
+			draw_text("حب السماء لا تمطر غير الأحلام.", demo_ctx.font_demo_arabic, { 0.3, current_scroll - (section_start + 1.00) })
 
-			draw_text_string_pos_norm("Hebrew", demo_ctx.font_print, 19, {0.2, current_scroll - (section_start + 1.04)}, COLOR_WHITE)
-			draw_text_string_pos_norm("אז הגיע הלילה של כוכב השביט הראשון.", demo_ctx.font_demo_hebrew, 22, {0.3, current_scroll - (section_start + 1.04)}, COLOR_WHITE)
+			draw_text("Hebrew", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 1.04) })
+			draw_text("אז הגיע הלילה של כוכב השביט הראשון.", demo_ctx.font_demo_hebrew, { 0.3, current_scroll - (section_start + 1.04) })
 		}
 
 		// Zoom Test
@@ -525,21 +482,21 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			zoom_info_y   := current_scroll - (section_start + 0.10)
 			zoomed_text_y := current_scroll - (section_start + 0.30) + math.sin(zoom_time) * 0.02
 
-			draw_text_string_pos_norm("Zoom Test", demo_ctx.font_title, 92, {0.2, title_y}, COLOR_WHITE)
+			draw_text("Zoom Test", demo_ctx.font_title, { 0.2, title_y }, size = 92)
 
 			zoomed_text_base_size : f32 = 12.0
 			zoom_adjust_size      := zoomed_text_base_size * current_zoom
 			// ve_id, resolved_size  := font_resolve_draw_id( font_firacode, zoom_adjust_size * OVER_SAMPLE_ZOOM )
 			resolved_size         := zoom_adjust_size
 			current_zoom_text     := fmt.tprintf("Current Zoom         : %.2f x\nCurrent Resolved Size: %v px", current_zoom, resolved_size )
-			draw_text_string_pos_norm(current_zoom_text, demo_ctx.font_firacode, 19, {0.2, zoom_info_y}, COLOR_WHITE)
+			draw_text(current_zoom_text, demo_ctx.font_firacode, { 0.2, zoom_info_y })
 
 			// ve.configure_snap( & demo_ctx.ve_ctx, u32(0), u32(0) )
 
 			size            := measure_text_size( zoom_text, demo_ctx.font_firacode, zoomed_text_base_size, 0 ) * current_zoom
 			x_offset        := (size.x / demo_ctx.screen_size.x) * 0.5
 			zoomed_text_pos := Vec2 { 0.5 - x_offset, zoomed_text_y }
-			draw_text_zoomed_norm(zoom_text, demo_ctx.font_firacode, zoomed_text_base_size, zoomed_text_pos, current_zoom, COLOR_WHITE)
+			draw_text(zoom_text, demo_ctx.font_firacode, zoomed_text_pos, size = zoomed_text_base_size, zoom = current_zoom)
 		}
 
 		// Raincode Demo
@@ -562,7 +519,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 				" ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Z", "T", "H", "E", "｜", "¦", "日",
 				"ﾊ", "ﾐ", "ﾋ", "ｰ", "ｳ", "ｼ", "ﾅ", "ﾓ", "ﾆ", "ｻ", "ﾜ", "ﾂ", "ｵ", "ﾘ", "ｱ", "ﾎ", "ﾃ", "ﾏ",
 				"ｹ", "ﾒ", "ｴ", "ｶ", "ｷ", "ﾑ", "ﾕ", "ﾗ", "ｾ", "ﾈ", "ｽ", "ﾂ", "ﾀ", "ﾇ", "ﾍ", ":", "・", ".",
-				"\"", "=", "*", "+", "-", "<", ">", "ç", "ﾘ", "ｸ", "ｺ", "ﾁ", "ﾔ", "ﾙ", "ﾝ", "C", "O", "D"
+				"\"", "=", "*", "+", "-", "<", ">", "ç", "ﾘ", "ｸ", "ｺ", "ﾁ", "ﾔ", "ﾙ", "ﾝ", "C", "O", "D",
 			}
 
 			if !init_grid {
@@ -571,7 +528,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			}
 
 			@static fixed_timestep_passed : f32 = 0.0
-			fixed_timestep        : f32 = (1.0 / 30.0)
+			fixed_timestep        : f32 = (1.0 / 20.0)
 			fixed_timestep_passed += frame_duration
 			for fixed_timestep_passed > fixed_timestep
 			{
@@ -591,7 +548,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			}
 
 			// Draw grid
-			draw_text_string_pos_norm("Raincode demo", demo_ctx.font_title, 92, { 0.2, current_scroll - (section_start + 0.2) }, COLOR_WHITE)
+			draw_text("Raincode demo", demo_ctx.font_title, { 0.2, current_scroll - (section_start + 0.2) }, size = 92)
 			for y in 0 ..< GRID_H do for x in 0 ..< GRID_W
 			{
 				pos_x := 0.2 + f32(x) * 0.007
@@ -608,7 +565,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 					if code_colour.a == 0 do continue
 				}
 
-				draw_text_string_pos_norm(codes[grid[y * GRID_W + x]], demo_ctx.font_demo_raincode, 20, {pos_x, pos_y}, code_colour)
+				draw_text(codes[grid[y * GRID_W + x]], demo_ctx.font_demo_raincode, { pos_x, pos_y }, size = 20, color = code_colour)
 			}
 
 			// ve.set_colour(&ve_ctx, {1.0, 1.0, 1.0, 1.0})
@@ -634,7 +591,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			@static fixed_timestep_passed : f32 = 0.0
 
 			fixed_timestep_passed += frame_duration
-			fixed_timestep        := f32(1.0 / 30.0)
+			fixed_timestep        := f32(1.0 / 20.0)
 			for fixed_timestep_passed > fixed_timestep
 			{
 				rotate_current = (rotate_current + 1) % 4
@@ -678,28 +635,28 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			}
 
 			// Draw grid
-			draw_text_string_pos_norm("Cache pressure test", demo_ctx.font_title, 92, {0.2, current_scroll - (section_start + 0.2)}, COLOR_WHITE)
+			draw_text("Cache pressure test (throttled to 120 hz)", demo_ctx.font_title, { 0.2, current_scroll - (section_start + 0.2) }, size = 92)
 			for y in 0..< GRID_H do for x in 0 ..< GRID_W
 			{
 				posx := 0.2 + f32(x) * 0.02
 				posy := current_scroll - (section_start + 0.24 + f32(y) * 0.025)
 				c    := [5]u8{}
 				codepoint_to_utf8(c[:], grid[ y * GRID_W + x ])
-				draw_text_string_pos_norm(string( c[:] ), demo_ctx.font_demo_chinese, 24, {posx, posy}, COLOR_WHITE)
+				draw_text(string( c[:] ), demo_ctx.font_demo_chinese, { posx, posy }, size = 24)
 			}
 			for y in 0 ..< GRID2_H do for x in 0 ..< GRID2_W {
 				posx := 0.2 + f32(x) * 0.03
 				posy := current_scroll - (section_start + 0.66 + f32(y) * 0.052)
 				c    := [5]u8{}
 				codepoint_to_utf8(c[:], grid2[ y * GRID2_W + x ])
-				draw_text_string_pos_norm(string( c[:] ), demo_ctx.font_demo_grid2, 54, {posx, posy}, COLOR_WHITE)
+				draw_text(string( c[:] ), demo_ctx.font_demo_chinese, { posx, posy }, size = 54)
 			}
 			for y in 0 ..< GRID3_H do for x in 0 ..< GRID3_W {
 				posx := 0.45 + f32(x) * 0.02
 				posy := current_scroll - (section_start + 0.64 + f32(y) * 0.034)
 				c    := [5]u8{}
 				codepoint_to_utf8( c[:], grid3[ y * GRID3_W + x ])
-				draw_text_string_pos_norm(string( c[:] ), demo_ctx.font_demo_grid3, 44, {posx, posy}, COLOR_WHITE)
+				draw_text(string( c[:] ), demo_ctx.font_demo_serif, { posx, posy }, size = 44)
 			}
 		}
 
