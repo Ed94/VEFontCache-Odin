@@ -12,8 +12,6 @@ package vefontcache
 	are marginal changes at best.
 */
 
-import "base:runtime"
-
 // 16-bit hashing was attempted, however it seems to get collisions with djb8_hash_16
 
 LRU_Fail_Mask_16 :: 0xFFFF

@@ -3,8 +3,6 @@ See: https://github.com/Ed94/VEFontCache-Odin
 */
 package vefontcache
 
-import "base:runtime"
-
 // See: mappings.odin for profiling hookup
 DISABLE_PROFILING              :: true
 ENABLE_OVERSIZED_GLYPHS        :: true
@@ -661,6 +659,7 @@ shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_si
 	shaper_proc(& ctx.shaper_ctx, 
 		ctx.atlas, 
 		vec2(ctx.glyph_buffer.size), 
+		font,
 		entry, 
 		target_px_size, 
 		target_font_scale, 
@@ -674,7 +673,7 @@ shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_si
 
 //#region("draw_list generation")
 
-/* The most fundamental interface-level draw shape procedure.
+/* The most basic interface-level draw shape procedure.
 	Context's stack is not used. Only modifications for alpha sharpen and px_scalar are applied.
 	view, position, and scale are expected to be in unsigned normalized space:
                                                           
@@ -698,29 +697,20 @@ shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_si
     <-> scale   : Scale the glyph beyond its default scaling from its px_size.
 */
 @(optimization_mode="favor_size")
-draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context,
-	font     : Font_ID,
-	px_size  : f32, 
-	colour   : RGBAN, 
-	position : Vec2,
-	scale    : Vec2, 
-	shape    : Shaped_Text
-)
+draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context, colour : RGBAN,  position : Vec2, scale : Vec2,  shape  : Shaped_Text )
 {
 	profile(#procedure)
 	assert( ctx != nil )
-	// TODO(Ed): This should be taken from the shape instead (you cannot use a different font with a shape)
-	assert( font >= 0 && int(font) < len(ctx.entries) )
 
-	entry := ctx.entries[ font ]
+	entry := ctx.entries[ shape.font ]
 
 	should_alpha_sharpen := cast(f32) cast(i32) (colour.a >= 1.0)
 	adjusted_colour      := colour
 	adjusted_colour.a    += ctx.alpha_sharpen * should_alpha_sharpen
 
-	target_px_size    := px_size * ctx.px_scalar
-	target_scale      := scale * (1 / ctx.px_scalar)
-	target_font_scale := parser_scale( entry.parser_info, target_px_size )
+	target_px_size    := shape.px_size
+	target_scale      := scale         * (1 / ctx.px_scalar)
+	target_font_scale := parser_scale( entry.parser_info, shape.px_size )
 
 	ctx.cursor_pos = generate_shape_draw_list( & ctx.draw_list, shape, & ctx.atlas, & ctx.glyph_buffer,
 		ctx.px_scalar,
@@ -733,7 +723,7 @@ draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context,
 	)
 }
 
-/* Non-scoping context. The most fundamental interface-level draw shape procedure (everything else is quality of life warppers).
+/* Non-scoping context. The most basic interface-level draw shape procedure (everything else is quality of life warppers).
 
 	Context's stack is not used. Only modifications for alpha sharpen and px_scalar are applied.
 	view, position, and scale are expected to be in unsigned normalized space:
@@ -829,8 +819,6 @@ draw_text_normalized_space :: proc( ctx : ^Context,
 */
 // @(optimization_mode="favor_size")
 draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
-	font     : Font_ID,
-	px_size  : f32, 
 	colour   : RGBAN, 
 	view     : Vec2,
 	position : Vec2,
@@ -842,21 +830,23 @@ draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 	profile(#procedure)
 	assert( ctx != nil )
 	// TODO(Ed): This should be taken from the shape instead (you cannot use a different font with a shape)
-	assert( font >= 0 && int(font) < len(ctx.entries) )
 	assert( ctx.px_scalar > 0.0 )
 
-	entry := ctx.entries[ font ]
+	entry := ctx.entries[ shape.font ]
 
 	should_alpha_sharpen := cast(f32) cast(i32) (colour.a >= 1.0)
 	adjusted_colour      := colour
 	adjusted_colour.a    += ctx.alpha_sharpen * should_alpha_sharpen
+
+	px_scalar_quotient := (1 / ctx.px_scalar)
+	px_size             := shape.px_size * px_scalar_quotient
 
 	resolved_size,   zoom_scale := resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
 	target_position, norm_scale := get_normalized_position_scale( position, zoom_scale, view )
 
 	// Does nothing if px_scalar is 1.0
 	target_px_size    := resolved_size * ctx.px_scalar
-	target_scale      := norm_scale    * (1 / ctx.px_scalar)
+	target_scale      := norm_scale    * px_scalar_quotient
 	target_font_scale := parser_scale( entry.parser_info, target_px_size )
 
 	ctx.cursor_pos = generate_shape_draw_list( & ctx.draw_list, shape, & ctx.atlas, & ctx.glyph_buffer,
@@ -976,12 +966,10 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 	assert( ctx.px_scalar > 0.0 )
 
 	stack := & ctx.stack
-	assert(len(stack.font)      > 0)
 	assert(len(stack.view)      > 0)
 	assert(len(stack.colour)    > 0)
 	assert(len(stack.position)  > 0)
 	assert(len(stack.scale)     > 0)
-	assert(len(stack.font_size) > 0)
 	assert(len(stack.zoom)      > 0)
 
 	// TODO(Ed): This should be taken from the shape instead (you cannot use a different font with a shape)
@@ -998,7 +986,9 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 	adjusted_colour      := colour
 	adjusted_colour.a    += ctx.alpha_sharpen * should_alpha_sharpen
 
-	px_size := peek(stack.font_size)
+	px_scalar_quotient := 1 / ctx.px_scalar
+
+	px_size := shape.px_size * px_scalar_quotient
 	zoom    := peek(stack.zoom)
 
 	resolved_size, zoom_scale := resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
@@ -1010,7 +1000,7 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 
 	// Does nothing when px_scalar is 1.0
 	target_px_size    := resolved_size * ctx.px_scalar
-	target_scale      := norm_scale    * (1 / ctx.px_scalar)
+	target_scale      := norm_scale    * px_scalar_quotient
 	target_font_scale := parser_scale( entry.parser_info, target_px_size )
 
 	ctx.cursor_pos = generate_shape_draw_list( & ctx.draw_list, shape, & ctx.atlas, & ctx.glyph_buffer,

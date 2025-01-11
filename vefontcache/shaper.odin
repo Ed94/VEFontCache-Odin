@@ -25,15 +25,15 @@ Shape_Key :: u32
 	They have the best ability to avoid costly lookups.
 */
 Shaped_Text :: struct #packed {
-	glyph              : [dynamic]Glyph,
-	position           : [dynamic]Vec2,
-	atlas_lru_code     : [dynamic]Atlas_Key,
-	region_kind        : [dynamic]Atlas_Region_Kind,
-	bounds             : [dynamic]Range2,
-	end_cursor_pos     : Vec2,
-	size               : Vec2,
-	font_id            : Font_ID, 
-	// TODO(Ed): We need to track the font here for usage in user interface when directly drawing the shape.
+	glyph          : [dynamic]Glyph,
+	position       : [dynamic]Vec2,
+	atlas_lru_code : [dynamic]Atlas_Key,
+	region_kind    : [dynamic]Atlas_Region_Kind,
+	bounds         : [dynamic]Range2,
+	end_cursor_pos : Vec2,
+	size           : Vec2,
+	font           : Font_ID, 
+	px_size        : f32,
 }
 
 // Ease of use cache, can handle thousands of lookups per frame with ease.
@@ -48,6 +48,7 @@ Shaped_Text_Cache :: struct {
 Shaper_Shape_Text_Uncached_Proc :: #type proc( ctx : ^Shaper_Context,
 	atlas             : Atlas, 
 	glyph_buffer_size : Vec2,
+	font              : Font_ID,
 	entry             : Entry, 
 	font_px_Size      : f32, 
 	font_scale        : f32, 
@@ -111,6 +112,7 @@ shaper_unload_font :: #force_inline proc( info : ^Shaper_Info )
 shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, 
 	atlas             : Atlas, 
 	glyph_buffer_size : Vec2,
+	font              : Font_ID,
 	entry             : Entry, 
 	font_px_size      : f32, 
 	font_scale        : f32, 
@@ -297,6 +299,9 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context,
 		output.region_kind[index] = atlas_decide_region( atlas, glyph_buffer_size, bounds_size_scaled )
 	}
 	profile_end()
+
+	output.font    = font
+	output.px_size = font_px_size
 	return
 }
 
@@ -305,6 +310,7 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context,
 shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 	atlas             : Atlas, 
 	glyph_buffer_size : Vec2,
+	font              : Font_ID,
 	entry             : Entry, 
 	font_px_size      : f32, 
 	font_scale        : f32, 
@@ -388,6 +394,9 @@ shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 		output.region_kind[index] = atlas_decide_region( atlas, glyph_buffer_size, bounds_size_scaled )
 	}
 	profile_end()
+
+	output.font    = font
+	output.px_size = font_px_size
 }
 
 // Shapes are tracked by the library's context using the shape cache 
@@ -442,7 +451,7 @@ shaper_shape_text_cached :: proc( text_utf8 : string,
 		}
 
 		storage_entry := & shape_cache.storage[ shape_cache_idx ]
-		shape_text_uncached( ctx, atlas, glyph_buffer_size, entry, font_px_size, font_scale, text_utf8, storage_entry )
+		shape_text_uncached( ctx, atlas, glyph_buffer_size, font, entry, font_px_size, font_scale, text_utf8, storage_entry )
 
 		shaped_text = storage_entry ^
 		return

@@ -15,11 +15,7 @@ TODO(Ed): Just keep a local version of stb_truetype and modify it to support a s
 Already wanted to do so anyway to evaluate the shape generation implementation.
 */
 
-import "base:runtime"
 import "core:c"
-import "core:math"
-import "core:mem"
-import "core:slice"
 import stbtt    "thirdparty:stb/truetype"
 // import freetype "thirdparty:freetype"
 
@@ -32,7 +28,7 @@ Parser_Font_Info :: struct {
 	label : string,
 	kind  : Parser_Kind,
 	using _ : struct #raw_union {
-		stbtt_info    : stbtt.fontinfo,
+		stbtt_info : stbtt.fontinfo,
 		// freetype_info : freetype.Face
 	},
 	data : []byte,
@@ -74,7 +70,7 @@ parser_stbtt_allocator_proc :: proc(
 ) -> rawptr
 {
 	allocator := transmute(^Allocator) allocator_data
-	result, error := allocator.procedure( allocator.data, cast(mem.Allocator_Mode) type, cast(int) size, cast(int) alignment, old_memory, cast(int) old_size )
+	result, error := allocator.procedure( allocator.data, cast(Allocator_Mode) type, cast(int) size, cast(int) alignment, old_memory, cast(int) old_size )
 	assert(error == .None)
 
 	if type == .Alloc || type == .Resize {

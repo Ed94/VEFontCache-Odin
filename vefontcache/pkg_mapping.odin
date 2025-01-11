@@ -3,6 +3,10 @@ package vefontcache
 import "base:builtin"
 	resize_soa_non_zero :: non_zero_resize_soa
 import "base:runtime"
+	Raw_Dynamic_Array :: runtime.Raw_Dynamic_Array
+	Raw_Map           :: runtime.Raw_Map
+	raw_soa_footer    :: runtime.raw_soa_footer
+	nil_allocator     :: runtime.nil_allocator
 import "core:hash"
 	ginger16 :: hash.ginger16
 import "core:math"
@@ -32,6 +36,7 @@ import "core:mem"
 
 	Allocator       :: mem.Allocator
 	Allocator_Error :: mem.Allocator_Error
+	Allocator_Mode  :: mem.Allocator_Mode
 
 	Arena           :: mem.Arena
 	arena_allocator :: mem.arena_allocator

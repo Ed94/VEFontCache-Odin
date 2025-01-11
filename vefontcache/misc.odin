@@ -5,9 +5,7 @@ package vefontcache
 	Just a bunch of utilities.
 */
 
-import "base:runtime"
 import "core:simd"
-import "core:math"
 
 import core_log "core:log"
 
@@ -16,17 +14,17 @@ peek_array :: #force_inline proc "contextless" ( self : [dynamic]$Type ) -> Type
 }
 
 reload_array :: #force_inline proc( self : ^[dynamic]$Type, allocator : Allocator ) {
-	raw          := transmute( ^runtime.Raw_Dynamic_Array) self
+	raw          := transmute( ^Raw_Dynamic_Array) self
 	raw.allocator = allocator
 }
 
 reload_array_soa :: #force_inline proc( self : ^#soa[dynamic]$Type, allocator : Allocator ) {
-	raw          := runtime.raw_soa_footer(self)
+	raw          := raw_soa_footer(self)
 	raw.allocator = allocator
 }
 
 reload_map :: #force_inline proc( self : ^map [$KeyType] $EntryType, allocator : Allocator ) {
-	raw          := transmute( ^runtime.Raw_Map) self
+	raw          := transmute( ^Raw_Map) self
 	raw.allocator = allocator
 }
 

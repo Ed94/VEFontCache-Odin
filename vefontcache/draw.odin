@@ -4,10 +4,7 @@ package vefontcache
 	Note(Ed): This may be seperated in the future into another file dedending on how much is involved with supportin ear-clipping triangulation.
 */
 
-import "base:runtime"
-import "base:intrinsics"
-import "core:slice"
-import "thirdparty:freetype"
+// import "thirdparty:freetype"
 
 Glyph_Trianglation_Method :: enum(i32) {
 	Ear_Clipping,
@@ -41,8 +38,8 @@ Glyph_Pack_Entry :: struct #packed {
 
 	over_sample        : Vec2, // Only used for oversized glyphs
 
-	shape             : Parser_Glyph_Shape,
-	draw_transform    : Transform,
+	shape              : Parser_Glyph_Shape,
+	draw_transform     : Transform,
 
 	draw_quad          : Glyph_Draw_Quad,
 	draw_atlas_quad    : Glyph_Draw_Quad,
@@ -294,10 +291,10 @@ generate_shape_draw_list :: proc( draw_list : ^Draw_List, shape : Shaped_Text,
 	glyph_buffer : ^Glyph_Draw_Buffer,
 	px_scalar    : f32,
 
-	colour           : RGBAN,
-	entry            : Entry,
-	px_size          : f32,
-	font_scale       : f32,
+	colour     : RGBAN,
+	entry      : Entry,
+	px_size    : f32,
+	font_scale : f32,
 
 	target_position : Vec2,
 	target_scale    : Vec2,
@@ -327,7 +324,7 @@ generate_shape_draw_list :: proc( draw_list : ^Draw_List, shape : Shaped_Text,
 
 	append_sub_pack :: #force_inline proc ( pack : ^[dynamic]i32, entry : i32 )
 	{
-		raw := cast(^runtime.Raw_Dynamic_Array) pack
+		raw := cast(^Raw_Dynamic_Array) pack
 		raw.len            += 1
 		pack[len(pack) - 1] = entry
 	}
@@ -478,10 +475,10 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 	atlas_size        : Vec2,
 	glyph_buffer_size : Vec2,
 
-	entry                 : Entry,
-	colour                : RGBAN,
-	font_scale            : Vec2,
-	target_scale          : Vec2,
+	entry        : Entry,
+	colour       : RGBAN,
+	font_scale   : Vec2,
+	target_scale : Vec2,
 ) #no_bounds_check
 {
 	profile(#procedure)
