@@ -224,15 +224,15 @@ init :: proc "c" ()
 	}
 
 	glyph_draw_opts := ve.Init_Glyph_Draw_Params_Default
-	glyph_draw_opts.snap_glyph_height = true
+	glyph_draw_opts.snap_glyph_height = false
 
 	shaper_opts := ve.Init_Shaper_Params_Default
-	shaper_opts.snap_glyph_position = true
+	shaper_opts.snap_glyph_position = false
 
 	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, 
 		glyph_draw_params = glyph_draw_opts,
 		shaper_params     = shaper_opts,
-		px_scalar         = 1,
+		px_scalar         = 1.89,
 		alpha_sharpen     = 0.1,
 	)
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 256 * 1024, index_cap = 512 * 1024 )
@@ -257,7 +257,7 @@ init :: proc "c" ()
 	path_noto_sans_jp_reg  := strings.concatenate({ PATH_FONTS, "NotoSansJP-Regular.otf"     })
 	path_firacode          := strings.concatenate({ PATH_FONTS, "FiraCode-Regular.ttf"       })
 
-	demo_ctx.font_logo          = font_load(path_sawarabi_mincho,  300.0, "SawarabiMincho", 12 )
+	demo_ctx.font_logo          = font_load(path_sawarabi_mincho,  150.0, "SawarabiMincho", 18 )
 	// demo_ctx.font_title         = font_load(path_open_sans,         92.0, "OpenSans",       6 )
 	demo_ctx.font_print         = font_load(path_noto_sans_jp,      19.0, "NotoSansJP")
 	demo_ctx.font_mono          = font_load(path_ubuntu_mono,       21.0, "UbuntuMono")
@@ -635,7 +635,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			}
 
 			// Draw grid
-			draw_text("Cache pressure test (throttled to 120 hz)", demo_ctx.font_title, { 0.2, current_scroll - (section_start + 0.2) }, size = 92)
+			draw_text("Cache pressure test (throttled to 120 hz)", demo_ctx.font_title, { 0.2, current_scroll - (section_start + 0.2) }, size = 72)
 			for y in 0..< GRID_H do for x in 0 ..< GRID_W
 			{
 				posx := 0.2 + f32(x) * 0.02

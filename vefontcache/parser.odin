@@ -151,7 +151,7 @@ parser_is_glyph_empty :: #force_inline proc "contextless" ( font : Parser_Font_I
 parser_scale :: #force_inline proc "contextless" ( font : Parser_Font_Info, size : f32 ) -> f32
 {
 	// profile(#procedure)
-	size_scale := size > 0.0 ? parser_scale_for_pixel_height( font, size ) : parser_scale_for_mapping_em_to_pixels( font, -size )
+	size_scale := size > 0.0 ? parser_scale_for_mapping_em_to_pixels( font, size ) :  parser_scale_for_pixel_height( font, -size )
 	return size_scale
 }
 
