@@ -126,7 +126,9 @@ parser_find_glyph_index :: #force_inline proc "contextless" ( font : Parser_Font
 
 parser_free_shape :: #force_inline proc( font : Parser_Font_Info, shape : Parser_Glyph_Shape )
 {
-	stbtt.FreeShape( font.stbtt_info, transmute( [^]stbtt.vertex) raw_data(shape) )
+	shape     := shape
+	shape_raw := transmute( ^Raw_Dynamic_Array) & shape
+	stbtt.FreeShape( font.stbtt_info, transmute( [^]stbtt.vertex) shape_raw.data )
 }
 
 parser_get_codepoint_horizontal_metrics :: #force_inline proc "contextless" ( font : Parser_Font_Info, codepoint : rune ) -> ( advance, to_left_side_glyph : i32 )
@@ -166,11 +168,11 @@ parser_get_glyph_shape :: #force_inline proc ( font : Parser_Font_Info, glyph_in
 	stb_shape : [^]stbtt.vertex
 	nverts    := stbtt.GetGlyphShape( font.stbtt_info, cast(i32) glyph_index, & stb_shape )
 
-	shape_raw          := transmute( ^runtime.Raw_Dynamic_Array) & shape
+	shape_raw          := transmute( ^Raw_Dynamic_Array) & shape
 	shape_raw.data      = stb_shape
 	shape_raw.len       = int(nverts)
 	shape_raw.cap       = int(nverts)
-	shape_raw.allocator = runtime.nil_allocator()
+	shape_raw.allocator = nil_allocator()
 	error = Allocator_Error.None
 	return
 }

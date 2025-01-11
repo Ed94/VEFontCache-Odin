@@ -611,7 +611,7 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 			error : Allocator_Error
 			glyph.shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[id])
 			assert(error == .None)
-			assert(glyph.shape != nil)
+			assert(len(glyph.shape) > 0)
 			
 			generate_glyph_pass_draw_list( draw_list, & glyph_buffer.shape_gen_scratch,
 				glyph_pack[id].shape, 
@@ -621,7 +621,7 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 				glyph_pack[id].draw_transform.scale
 			)
 
-			assert(glyph.shape != nil)
+			assert(len(glyph.shape) > 0)
 			parser_free_shape(entry.parser_info, glyph.shape)
 
 			target_quad := & glyph_pack[id].draw_quad
@@ -736,7 +736,7 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 			error : Allocator_Error
 			glyph.shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[id])
 			assert(error == .None)
-			assert(glyph.shape != nil)
+			assert(len(glyph.shape) > 0)
 	
 			// Render glyph to glyph render target (FBO)
 			generate_glyph_pass_draw_list( draw_list, & glyph_buffer.shape_gen_scratch, 
@@ -747,7 +747,7 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 				glyph.draw_transform.scale 
 			)
 			
-			assert(glyph.shape != nil)
+			assert(len(glyph.shape) > 0)
 			parser_free_shape(entry.parser_info, glyph.shape)
 		}
 
