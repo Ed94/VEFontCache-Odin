@@ -235,7 +235,7 @@ init :: proc "c" ()
 	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, 
 		glyph_draw_params = glyph_draw_opts,
 		shaper_params     = shaper_opts,
-		px_scalar         = 1.25,
+		px_scalar         = 1.4,
 		alpha_sharpen     = 0.0,
 	)
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 256 * 1024, index_cap = 512 * 1024 )
@@ -313,7 +313,7 @@ frame :: proc "c" ()
 
 		frame_duration := cast(f32) app.frame_duration()
 
-		scroll_velocity += demo_ctx.mouse_scroll.y * 0.05
+		scroll_velocity += demo_ctx.mouse_scroll.y * 0.035
 		mouse_down_pos   = -1.0
 		substep_dt      := frame_duration / 4.0
 		for _ in 0 ..< 4 {
@@ -504,7 +504,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 		if current_scroll > section_start && current_scroll < section_end
 		{
 			GRID_W        :: 80
-			GRID_H        :: 50
+			GRID_H        :: 45
 			NUM_RAINDROPS :: GRID_W / 3
 
 			@static init_grid   := false
@@ -527,7 +527,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			}
 
 			@static fixed_timestep_passed : f32 = 0.0
-			fixed_timestep        : f32 = (1.0 / 20.0)
+			fixed_timestep        : f32 = (1.0 / 30.0)
 			fixed_timestep_passed += frame_duration
 			for fixed_timestep_passed > fixed_timestep
 			{
@@ -571,7 +571,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 		// Cache pressure test
 		section_start = 5.3
 		section_end   = 6.2
-		if current_scroll > section_start && current_scroll < section_end && true
+		if current_scroll > section_start && current_scroll < section_end
 		{
 			GRID_W  :: 30
 			GRID_H  :: 15
@@ -588,7 +588,7 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			@static fixed_timestep_passed : f32 = 0.0
 
 			fixed_timestep_passed += frame_duration
-			fixed_timestep        := f32(1.0 / 20.0)
+			fixed_timestep        := f32(1.0 / 120.0)
 			for fixed_timestep_passed > fixed_timestep
 			{
 				rotate_current = (rotate_current + 1) % 4
