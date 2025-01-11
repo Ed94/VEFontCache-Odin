@@ -1,6 +1,6 @@
 # VE Font Cache
 
-https://github.com/user-attachments/assets/b74f1ec1-f980-45df-b604-d6b7d87d40ff
+
 
 This started off as a port of the [VEFontCache](https://github.com/hypernewbie/VEFontCache) library to the Odin programming language.
 Its original purpose was for use in game engines, however its rendeirng quality and performance is more than adequate for many other applications.
@@ -50,4 +50,12 @@ Currently the scripts provided & the library itself were developed & tested on W
 The library depends on harfbuzz, & stb_truetype to build.  
 Note: harfbuzz could technically be gutted if the user removes their definitions, however they have not been made into a conditional compilation option (yet).
 
-![image](https://github.com/user-attachments/assets/2f6c0b36-179c-42fe-8903-7640ae3c209e)
+# Gallery
+
+![sokol_demo_2025-01-11_01-32-24](https://github.com/user-attachments/assets/4aea2b23-4362-47e6-b6d1-286e84891702)
+
+https://github.com/user-attachments/assets/db8c7725-84dd-48df-9a3f-65605d3ab444
+
+https://github.com/user-attachments/assets/40030308-37db-492d-a196-f830e8a39f3c
+
+https://github.com/user-attachments/assets/0985246b-74f8-4d1c-82d8-053414c44aec
