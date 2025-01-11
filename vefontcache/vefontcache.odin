@@ -1062,8 +1062,9 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 	adjusted_colour.a += ctx.alpha_sharpen
 
 	px_size := peek(stack.font_size)
+	zoom    := peek(stack.zoom)
 
-	resolved_size, zoom_scale = resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
+	resolved_size, zoom_scale := resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
 
 	absolute_position := peek(stack.position) + position
 	absolute_scale    := peek(stack.scale)    * zoom_scale
@@ -1139,8 +1140,9 @@ draw_text :: proc( ctx : ^Context, position, scale : Vec2, text_utf8 : string,
 	adjusted_colour.a += ctx.alpha_sharpen
 
 	px_size := peek(stack.font_size)
+	zoom    := peek(stack.zoom)
 
-	resolved_size, zoom_scale = resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
+	resolved_size, zoom_scale := resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
 
 	absolute_position := peek(stack.position) + position
 	absolute_scale    := peek(stack.scale)    * scale
