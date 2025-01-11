@@ -338,14 +338,44 @@ startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // N
 	parser_init( & ctx.parser_ctx, parser_kind )
 	shaper_init( & ctx.shaper_ctx )
 
+	// Scoping Stack
+	{
+		stack := &  ctx.stack
+
+		error : Allocator_Error
+		stack.font, error = make([dynamic]Font_ID, len = 0, cap = scope_stack_reserve)
+		assert(error == .None, "VEFontCache.init : Failed to allocate stack.font")
+
+		stack.font_size, error = make([dynamic]f32, len = 0, cap = scope_stack_reserve)
+		assert(error == .None, "VEFontCache.init : Failed to allocate stack.font_size")
+
+		stack.font_size, error = make([dynamic]f32, len = 0, cap = scope_stack_reserve)
+		assert(error == .None, "VEFontCache.init : Failed to allocate stack.font_size")
+
+		stack.colour, error = make([dynamic]RGBAN, len = 0, cap = scope_stack_reserve)
+		assert(error == .None, "VEFontCache.init : Failed to allocate stack.colour")
+
+		stack.view, error = make([dynamic]Vec2, len = 0, cap = scope_stack_reserve)
+		assert(error == .None, "VEFontCache.init : Failed to allocate stack.view")
+
+		stack.position, error = make([dynamic]Vec2, len = 0, cap = scope_stack_reserve)
+		assert(error == .None, "VEFontCache.init : Failed to allocate stack.position")
+
+		stack.scale, error = make([dynamic]Vec2, len = 0, cap = scope_stack_reserve)
+		assert(error == .None, "VEFontCache.init : Failed to allocate stack.scale")
+
+		stack.zoom, error = make([dynamic]f32, len = 0, cap = scope_stack_reserve)
+		assert(error == .None, "VEFontCache.init : Failed to allocate stack.zoom")
+	}
+
 	// Set the default stack values
 	// Will be popped on shutdown
-	// push_colour(ctx, {1, 1, 1, 1})
-	// push_font_size(ctx, 36)
-	// push_view(ctx, { 0, 0 })
-	// push_position(ctx, {0, 0})
-	// push_scale(ctx, 1.0)
-	// push_zoom(ctx, 1.0)
+	push_colour(ctx, {1, 1, 1, 1})
+	push_font_size(ctx, 36)
+	push_view(ctx, { 0, 0 })
+	push_position(ctx, {0, 0})
+	push_scale(ctx, 1.0)
+	push_zoom(ctx, 1.0)
 }
 
 hot_reload :: proc( ctx : ^Context, allocator : Allocator )
@@ -395,8 +425,13 @@ hot_reload :: proc( ctx : ^Context, allocator : Allocator )
 	reload_array( & shape_cache.storage, allocator )
 	
 	reload_array( & draw_list.vertices, allocator)
-	reload_array( & draw_list.indices,  allocator )
-	reload_array( & draw_list.calls,    allocator )
+	reload_array( & draw_list.indices,  allocator)
+	reload_array( & draw_list.calls,    allocator)
+
+	// Scope Stack
+	{
+	
+	}
 }
 
 shutdown :: proc( ctx : ^Context )
@@ -409,12 +444,12 @@ shutdown :: proc( ctx : ^Context )
 	shape_cache  := & ctx.shape_cache
 	draw_list    := & ctx.draw_list
 
-	// pop_colour(ctx)
-	// pop_font_size(ctx)
-	// pop_view(ctx)
-	// pop_position(ctx)
-	// pop_scale(ctx)
-	// pop_zoom(ctx)
+	pop_colour(ctx)
+	pop_font_size(ctx)
+	pop_view(ctx)
+	pop_position(ctx)
+	pop_scale(ctx)
+	pop_zoom(ctx)
 
 	for & entry in ctx.entries {
 		unload_font( ctx, entry.id )
@@ -459,6 +494,11 @@ shutdown :: proc( ctx : ^Context )
 
 	shaper_shutdown( & ctx.shaper_ctx )
 	parser_shutdown( & ctx.parser_ctx )
+
+	// Scope Stack
+	{
+
+	}
 }
 
 // Can be used with hot-reload
@@ -674,8 +714,22 @@ resolve_draw_px_size :: #force_inline proc "contextless" ( px_size, interval, mi
 	return
 }
 
-set_alpha_scalar :: #force_inline proc( ctx : ^Context, scalar : f32    ) { assert(ctx != nil); ctx.alpha_sharpen = scalar }
-set_px_scalar    :: #force_inline proc( ctx : ^Context, scalar : f32    ) { assert(ctx != nil); ctx.px_scalar     = scalar }
+// Provides a way to get a "zoom" on the font size and scale, similar conceptually to a canvas UX zoom
+// Does nothing when zoom is 1.0
+resolve_zoom_size_scale :: #force_inline proc "contextless" ( zoom, px_size : f32, scale : Vec2, interval, min, max : f32, clamp_scale : Vec2 ) -> (resolved_size : f32, zoom_scale : Vec2)
+{
+	zoom_px_size     := px_size * zoom
+	resolved_size     = resolve_draw_px_size( zoom_px_size, interval, min, max )
+	zoom_diff_scalar := 1 + (zoom_px_size - resolved_size) * (1 / resolved_size)
+	zoom_scale        = zoom_diff_scalar * scale
+	zoom_scale.x      = clamp(zoom_scale.x, 0, clamp_scale.x)
+	zoom_scale.y      = clamp(zoom_scale.y, 0, clamp_scale.y)
+	return
+}
+
+set_alpha_scalar     :: #force_inline proc( ctx : ^Context, scalar   : f32 ) { assert(ctx != nil); ctx.alpha_sharpen    = scalar }
+set_px_scalar        :: #force_inline proc( ctx : ^Context, scalar   : f32 ) { assert(ctx != nil); ctx.px_scalar        = scalar }
+set_zoom_px_interval :: #force_inline proc( ctx : ^Context, interval : i32 ) { assert(ctx != nil); ctx.zoom_px_interval = f32(interval) }
 
 // During a shaping pass on text, will snap each glyph's position via ceil.
 set_snap_glyph_shape_position :: #force_inline proc( ctx : ^Context, should_snap : b32 ) {
@@ -863,15 +917,8 @@ draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 	adjusted_colour   := colour
 	adjusted_colour.a  = 1.0 + ctx.alpha_sharpen
 
-	// Does nothing when zoom is 1.0
-	zoom_px_size     := px_size * zoom
-	resolved_size    := resolve_draw_px_size( zoom_px_size, ctx.zoom_px_interval, 2, 999.0 )
-	zoom_diff_scalar := 1 + (zoom_px_size - resolved_size) * (1 / resolved_size)
-	zoom_scale       := zoom_diff_scalar * scale
-	zoom_scale.x      = clamp(zoom_scale.x, 0, view.x)
-	zoom_scale.y      = clamp(zoom_scale.y, 0, view.y)
-
-	norm_position, norm_scale := get_normalized_position_scale( position, zoom_scale, view )
+	resolved_size,   zoom_scale := resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
+	target_position, norm_scale := get_normalized_position_scale( position, zoom_scale, view )
 
 	// Does nothing if px_scalar is 1.0
 	target_px_size    := resolved_size * ctx.px_scalar
@@ -884,7 +931,7 @@ draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 		entry, 
 		target_px_size,
 		target_font_scale, 
-		norm_position, 
+		target_position, 
 		target_scale, 
 	)
 }
@@ -938,14 +985,7 @@ draw_text_view_space :: proc(ctx : ^Context,
 	adjusted_colour    := colour
 	adjusted_colour.a  += ctx.alpha_sharpen
 
-	// Does nothing when zoom is 1.0
-	zoom_px_size     := px_size * zoom
-	resolved_size    := resolve_draw_px_size( zoom_px_size, ctx.zoom_px_interval, 2, 999.0 )
-	zoom_diff_scalar := 1 + (zoom_px_size - resolved_size) * (1 / resolved_size)
-	zoom_scale       := zoom_diff_scalar * scale
-	zoom_scale.x      = clamp(zoom_scale.x, 0, view.x)
-	zoom_scale.y      = clamp(zoom_scale.y, 0, view.y)
-
+	resolved_size,   zoom_scale := resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
 	target_position, norm_scale := get_normalized_position_scale( position, zoom_scale, view )
 
 	// Does nothing if px_scalar is 1.0
@@ -1023,14 +1063,7 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 
 	px_size := peek(stack.font_size)
 
-	// Does nothing when zoom is 1.0
-	zoom             := peek(stack.zoom)
-	zoom_px_size     := zoom * px_size
-	resolved_size    := resolve_draw_px_size( zoom_px_size, ctx.zoom_px_interval, 2, 999.0 )
-	zoom_diff_scalar := 1 + (zoom_px_size - resolved_size) * (1 / resolved_size)
-	zoom_scale       := zoom_diff_scalar * scale
-	zoom_scale.x      = clamp(zoom_scale.x, 0, view.x)
-	zoom_scale.y      = clamp(zoom_scale.y, 0, view.y)
+	resolved_size, zoom_scale = resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
 
 	absolute_position := peek(stack.position) + position
 	absolute_scale    := peek(stack.scale)    * zoom_scale
@@ -1107,14 +1140,7 @@ draw_text :: proc( ctx : ^Context, position, scale : Vec2, text_utf8 : string,
 
 	px_size := peek(stack.font_size)
 
-	// Does nothing when zoom is 1.0
-	zoom             := peek(stack.zoom)
-	zoom_px_size     := zoom * px_size
-	resolved_size    := resolve_draw_px_size( zoom_px_size, ctx.zoom_px_interval , 2, 999.0 )
-	zoom_diff_scalar := 1 + (zoom_px_size - resolved_size) * (1 / resolved_size)
-	zoom_scale       := zoom_diff_scalar * scale
-	zoom_scale.x      = clamp(zoom_scale.x, 0, view.x)
-	zoom_scale.y      = clamp(zoom_scale.y, 0, view.y)
+	resolved_size, zoom_scale = resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
 
 	absolute_position := peek(stack.position) + position
 	absolute_scale    := peek(stack.scale)    * scale
