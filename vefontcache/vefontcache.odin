@@ -697,7 +697,7 @@ auto_pop_vpz :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform ) {
 
 //#endregion("scoping")
 
-//#region("draw_list generation")
+//#region("misc")
 
 get_cursor_pos :: #force_inline proc "contextless" ( ctx : Context ) -> Vec2 { return ctx.cursor_pos }
 
@@ -759,6 +759,10 @@ set_snap_glyph_render_height :: #force_inline proc( ctx : ^Context, should_snap 
 	ctx.glyph_buffer.snap_glyph_height = cast(f32) i32(should_snap)
 }
 
+//#endreigon("misc")
+
+//#region("draw_list generation")
+
 /* The most fundamental interface-level draw shape procedure.
 	Context's stack is not used. Only modifications for alpha sharpen and px_scalar are applied.
 	view, position, and scale are expected to be in unsigned normalized space:
@@ -799,8 +803,9 @@ draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context,
 
 	entry := ctx.entries[ font ]
 
-	adjusted_colour   := colour
-	adjusted_colour.a += ctx.alpha_sharpen
+	should_alpha_sharpen := cast(f32) cast(i32) (colour.a >= 1.0)
+	adjusted_colour      := colour
+	adjusted_colour.a    += ctx.alpha_sharpen * should_alpha_sharpen
 
 	target_px_size    := px_size * ctx.px_scalar
 	target_scale      := scale * (1 / ctx.px_scalar)
@@ -860,8 +865,9 @@ draw_text_normalized_space :: proc( ctx : ^Context,
 	ctx.cursor_pos = {}
 	entry := ctx.entries[ font ]
 
-	adjusted_colour    := colour
-	adjusted_colour.a  += ctx.alpha_sharpen
+	should_alpha_sharpen := cast(f32) cast(i32) (colour.a >= 1.0)
+	adjusted_colour      := colour
+	adjusted_colour.a    += ctx.alpha_sharpen * should_alpha_sharpen
 
 	// Does nothing when px_scalar is 1.0
 	target_px_size    := px_size * ctx.px_scalar
@@ -930,8 +936,9 @@ draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
 
 	entry := ctx.entries[ font ]
 
-	adjusted_colour   := colour
-	adjusted_colour.a  = 1.0 + ctx.alpha_sharpen
+	should_alpha_sharpen := cast(f32) cast(i32) (colour.a >= 1.0)
+	adjusted_colour      := colour
+	adjusted_colour.a    += ctx.alpha_sharpen * should_alpha_sharpen
 
 	resolved_size,   zoom_scale := resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
 	target_position, norm_scale := get_normalized_position_scale( position, zoom_scale, view )
@@ -998,8 +1005,9 @@ draw_text_view_space :: proc(ctx : ^Context,
 	ctx.cursor_pos = {}
 	entry := ctx.entries[ font ]
 
-	adjusted_colour    := colour
-	adjusted_colour.a  += ctx.alpha_sharpen
+	should_alpha_sharpen := cast(f32) cast(i32) (colour.a >= 1.0)
+	adjusted_colour      := colour
+	adjusted_colour.a    += ctx.alpha_sharpen * should_alpha_sharpen
 
 	resolved_size,   zoom_scale := resolve_zoom_size_scale( zoom, px_size, scale, ctx.zoom_px_interval, 2, 999.0, view )
 	target_position, norm_scale := get_normalized_position_scale( position, zoom_scale, view )
@@ -1074,8 +1082,10 @@ draw_shape :: proc( ctx : ^Context, position, scale : Vec2, shape : Shaped_Text 
 	ctx.cursor_pos = {}
 	entry := ctx.entries[ font ]
 
-	adjusted_colour   := peek(stack.colour)
-	adjusted_colour.a += ctx.alpha_sharpen
+	colour               := peek(stack.colour)
+	should_alpha_sharpen := cast(f32) cast(i32) (colour.a >= 1.0)
+	adjusted_colour      := colour
+	adjusted_colour.a    += ctx.alpha_sharpen * should_alpha_sharpen
 
 	px_size := peek(stack.font_size)
 	zoom    := peek(stack.zoom)
@@ -1152,8 +1162,10 @@ draw_text :: proc( ctx : ^Context, position, scale : Vec2, text_utf8 : string,
 	ctx.cursor_pos = {}
 	entry := ctx.entries[ font ]
 
-	adjusted_colour   := peek(stack.colour)
-	adjusted_colour.a += ctx.alpha_sharpen
+	colour               := peek(stack.colour)
+	should_alpha_sharpen := cast(f32) cast(i32) (colour.a >= 1.0)
+	adjusted_colour      := colour
+	adjusted_colour.a    += ctx.alpha_sharpen * should_alpha_sharpen
 
 	px_size := peek(stack.font_size)
 	zoom    := peek(stack.zoom)

@@ -18,7 +18,7 @@ Features:
   * Tracks text layers!
   * Push and pop stack for font, font_size, colour, view, position, scale and zoom!
   * Enforce even only font-sizing (useful for linear-zoom)
-  * Snap-positining to view for better hinting
+  * Snap-positioning to view for better hinting
 * Basic or advanced text shaping via Harfbuzz
 * All rendering is real-time, triangulation done on the CPU, vertex rendering and texture blitting on the gpu.
   * Can hand thousands of draw text calls with very large or small shapes.

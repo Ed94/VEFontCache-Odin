@@ -231,12 +231,12 @@ init :: proc "c" ()
 
 	shaper_opts := ve.Init_Shaper_Params_Default
 	shaper_opts.snap_glyph_position = true
-
+ 
 	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, 
 		glyph_draw_params = glyph_draw_opts,
 		shaper_params     = shaper_opts,
-		px_scalar         = 1.8,
-		alpha_sharpen     = 0.05,
+		px_scalar         = 1.6,
+		alpha_sharpen     = 0.4,
 	)
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 256 * 1024, index_cap = 512 * 1024 )
 

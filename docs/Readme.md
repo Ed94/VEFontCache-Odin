@@ -1,25 +1,6 @@
 # Interface
 
-TODO: OUTDATED
-
-Notes
----
-
-The freetype setup is not finished. Specifically due to cache_glyph_freetype not parsing the glyph outline data structure properly. 
-
-Freetype supports specifying a FT_Memory handle which is a pointer to a FT_MemoryRect. This can be used to define an allocator for the parser. Currently this library does not wrap this interface (yet). If using freetype its recommend to update `parser_init` with the necessary changes to wrap the context's backing allocator for freetype to utilize.
-
-```c
-  struct  FT_MemoryRec_
-  {
-    void*            user;
-    FT_Alloc_Func    alloc;
-    FT_Free_Func     free;
-    FT_Realloc_Func  realloc;
-  };
-  ```
-
-This library (seems) to perform best if the text commands are fed in 'whitespace aware chunks', where instead of feeding it entire blobs of text, the user identfies "words" in the text and feeding the visible and whitespce chunks derived from this to draw_text as separate calls. It improves the caching of the text shapes. The downside is there has to be a time where the text is parsed into tokens beforehand so that the this iteration does not have to occur continously.
+## Lifetime
 
 ### startup
 
@@ -33,11 +14,65 @@ Much of the data structures within the context struct are not fixed-capacity all
 
 The library supports being used in a dynamically loaded module. If its hot-reloaded simply make sure to call this procedure with a reference to the backing allocator provided during startup as all dynamic containers tend to lose a proper reference to the allocator's procedure.
 
-Call clear_atlas_region_caches & clear_shape_cache to reset the library's shape and glyph cache state if doing tuning of the library.
+Call clear_atlas_region_caches & clear_shape_cache to reset the library's shape and glyph cache state to force a re-render.
 
 ### shutdown
 
 Release resources from the context.
+
+### load_font
+
+Will load an instance of a font. The user needs to load the file's bytes themselves, the font entry (Entry :: struct) will by tracked by the library. The user will be given a font_id which is a direct index for the entry in the tracked array.
+
+### unload_font
+
+Will free an entry, (parser and shaper resources also freed)
+
+## Scoping Context interface
+
+These are a set of push & pop pairs of functions that operator ont he context's stack containers. They are used with the draw_shape and draw_text procedures. This mainly for quick scratch usage where the user wants to directly compose a large amount of text without having a UI framework directly handle the text backend.
+
+* font
+* font_size
+* colour: Linear colour.
+* view: Width and height of the 2D area the text will be drawn within.
+* position: Uses relative positioning will offset the incoming position by the given amount.
+* scale: Uses relative scaling, will scale the procedures incoming scale by the given amount.
+* zoom: Affects scaling, will scale the procedure's incoming font size & scale based on an *UX canvas camera's* notion of it.
+
+Procedure types:
+
+* `scope_<stack_option>`: push with a defer pop
+* `push_<stack_option>`
+* `pop_<stack_option>`
+
+## Miscellaneous
+
+Stuff used by the draw list generation interface or just getters and setters.
+
+### get_cursor_pos
+
+Will provide the current cursor_pos for the resulting text drawn.
+
+### get_normalized_position_scale
+
+Will normalize the value of the position and scale based on the provided view.  
+Position will also be snapped to the nearest pixel via ceil.  
+Does nothing if view is 1 or 0
+
+This is used by draw via view relative space procedures to normalize it to the intended space for the render pass.
+
+## resolve_draw_px_size
+
+Used to constrain the px_size used in draw calls.
+
+The view relative space and scoping stack-based procedures support zoom. When utilizing zoom their is a nasty jitter that will occur if the user smoothly goes across different font sizes because the spacing can drastically change between even and odd font-sizes. This is applied to enforce the font sticks to a specific interval.
+
+For the provided procedures that utilize it, they reference the context's zoom_px_interval. It can be set with `set_zoom_px_interval` and the default value is 2.
+
+## resolve_zoom_size_scale
+
+
 
 ### configure_snap
 
@@ -45,9 +80,6 @@ You'll find this used immediately in draw_text it acts as a way to snap the posi
 
 If snapping is not desired, set the snap_width and height before calling draw_text to 0.
 
-### get_cursor_pos
-
-Will provide the current cursor_pos for the resulting text drawn.
 
 ### set_color
 
