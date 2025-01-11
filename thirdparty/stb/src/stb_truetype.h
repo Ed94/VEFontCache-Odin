@@ -412,6 +412,43 @@ int main(int arg, char **argv)
 }
 #endif
 
+#pragma region ODIN: CUSTOM ALLOCATOR
+
+#ifdef STB_TRUETYPE_IMPLEMENTATION
+#define GB_IMPLEMENTATION
+#endif
+#include "gb/gb.h"
+
+#ifdef STBTT_STATIC
+#define STBTT_DEF static
+#else
+#define STBTT_DEF extern
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+STBTT_DEF void stbtt_SetAllocator( gbAllocator allocator );
+
+#ifdef __cplusplus
+}
+#endif
+
+#ifndef STBTT_malloc 
+#define STBTT_malloc(x,u) ((void)(u), gb_alloc(stbtt__allocator, x))
+#define STBTT_free(x,u)   ((void)(u), gb_free(stbtt__allocator, x))
+#endif
+
+#ifdef STB_TRUETYPE_IMPLEMENTATION
+gb_global gbAllocator stbtt__allocator = { gb_heap_allocator_proc, NULL };
+
+STBTT_DEF void stbtt_SetAllocator( gbAllocator allocator ) {
+	stbtt__allocator = allocator;
+}
+#endif
+
+#pragma endregion ODIN: CUSTOM ALLOCATOR
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////

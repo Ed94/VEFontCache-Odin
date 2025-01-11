@@ -36,6 +36,37 @@ when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
 #assert(size_of(c.int) == size_of(rune))
 #assert(size_of(c.int) == size_of(b32))
 
+//-----------------------------------------------------------------------------
+// CUSTOM: ODIN COMPATIBLE ALLOCATOR
+//-----------------------------------------------------------------------------
+
+gbAllocationType :: enum(i32) {
+	Alloc,
+	Free,
+	FreeAll,
+	Resize,
+}
+
+gbAllocatorProc :: #type proc(allocator_data: rawptr, type: gbAllocationType, 
+	size: c.ssize_t, alignment: c.ssize_t, 
+	old_memory: rawptr, old_size: c.ssize_t,
+	flags : c.ulonglong
+) -> rawptr
+
+gbAllocator :: struct {
+	procedure: gbAllocatorProc,
+	data: rawptr,
+}
+
+@(default_calling_convention="c", link_prefix="stbtt_")
+foreign stbtt {
+	SetAllocator :: proc(allocator : gbAllocator) ---
+}
+
+//-----------------------------------------------------------------------------
+// END CUSTOM: ODIN COMPATIBLE ALLOCATOR
+//-----------------------------------------------------------------------------
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // TEXTURE BAKING API

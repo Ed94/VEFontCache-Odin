@@ -17,7 +17,7 @@ Features:
 * Robust quality of life features:
   * Tracks text layers!
   * Push and pop stack for font, font_size, colour, view, position, scale and zoom!
-  * Enforce even only font-sizing (useful for linear-zoom) [TODO]
+  * Enforce even only font-sizing (useful for linear-zoom)
   * Snap-positining to view for better hinting
 * Basic or advanced text shaping via Harfbuzz
 * All rendering is real-time, triangulation done on the CPU, vertex rendering and texture blitting on the gpu.
@@ -31,8 +31,9 @@ Features:
 
 Upcoming:
 
-* Support for ear-clipping triangulation
+* Support for ear-clipping triangulation, or just better triangulation..
   * Support for which triangulation method used on a by font basis?
+  * https://www.microsoft.com/en-us/research/wp-content/uploads/2005/01/p1000-loop.pdf
 * Multi-threading supported job queue.
   * Lift heavy-lifting portion of the library's context into a thread context.
   * Synchronize threads by merging their generated layered draw list into a finished draw-list for processing on the user's render thread.

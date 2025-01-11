@@ -596,6 +596,7 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 			error : Allocator_Error
 			glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[pack_id])
 			assert(error == .None)
+			assert(glyph_pack[pack_id].shape != nil)
 		}
 		for id, index in oversized
 		{
@@ -633,7 +634,10 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 		}
 
 		flush_glyph_buffer_draw_list(draw_list, & glyph_buffer.draw_list, & glyph_buffer.clear_draw_list, & glyph_buffer.allocated_x)
-		for id, index in oversized do parser_free_shape(entry.parser_info, glyph_pack[id].shape)
+		for pack_id, index in oversized {
+			assert(glyph_pack[pack_id].shape != nil)
+			parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
+		}
 	}
 	profile_end()
 
@@ -666,6 +670,7 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 			error : Allocator_Error
 			glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[pack_id])
 			assert(error == .None)
+			assert(glyph_pack[pack_id].shape != nil)
 		}
 
 		for id, index in to_cache
@@ -731,7 +736,10 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 		}
 
 		flush_glyph_buffer_draw_list(draw_list, & glyph_buffer.draw_list, & glyph_buffer.clear_draw_list, & glyph_buffer.allocated_x)
-		for id, index in to_cache do parser_free_shape(entry.parser_info, glyph_pack[id].shape)
+		for pack_id, index in to_cache {
+			assert(glyph_pack[pack_id].shape != nil)
+			parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
+		} 
 
 		profile_begin("gen_cached_draw_list: to_cache")
 		when ENABLE_DRAW_TYPE_VISUALIZATION {

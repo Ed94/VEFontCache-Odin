@@ -67,6 +67,15 @@ push-location $path_thirdparty
 	}
 pop-location
 
+$path_stb_truetype = join-path $path_thirdparty 'stb\src'
+
+push-location $path_stb_truetype
+	$devshell = Join-Path $PSScriptRoot 'helpers/devshell.ps1'
+	. $devshell -arch amd64
+
+	& .\build.bat
+pop-location
+
 $odin_compiler_defs = join-path $PSScriptRoot 'helpers/odin_compiler_defs.ps1'
 . $odin_compiler_defs
 

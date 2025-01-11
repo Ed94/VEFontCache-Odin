@@ -18,6 +18,7 @@ Already wanted to do so anyway to evaluate the shape generation implementation.
 import "base:runtime"
 import "core:c"
 import "core:math"
+import "core:mem"
 import "core:slice"
 import stbtt    "thirdparty:stb/truetype"
 // import freetype "thirdparty:freetype"
@@ -57,13 +58,44 @@ Parser_Glyph_Vertex :: struct {
 Parser_Glyph_Shape :: [dynamic]Parser_Glyph_Vertex
 
 Parser_Context :: struct {
-	kind       : Parser_Kind,
+	lib_backing : Allocator,
+	kind        : Parser_Kind,
 	// ft_library : freetype.Library,
 }
 
-parser_init :: proc( ctx : ^Parser_Context, kind : Parser_Kind )
+parser_stbtt_allocator_proc :: proc(
+	allocator_data : rawptr, 
+	type           : stbtt.gbAllocationType, 
+	size           : c.ssize_t, 
+	alignment      : c.ssize_t, 
+	old_memory     : rawptr, 
+	old_size       : c.ssize_t, 
+	flags          : c.ulonglong
+) -> rawptr
 {
-	ctx.kind = kind
+	allocator := transmute(^Allocator) allocator_data
+	result, error := allocator.procedure( allocator.data, cast(mem.Allocator_Mode) type, cast(int) size, cast(int) alignment, old_memory, cast(int) old_size )
+	assert(error == .None)
+
+	if type == .Alloc || type == .Resize {
+		return transmute(rawptr) & result[0]
+	}
+	else do return nil
+}
+
+parser_init :: proc( ctx : ^Parser_Context, kind : Parser_Kind, allocator := context.allocator )
+{
+	ctx.kind        = kind
+	ctx.lib_backing = allocator
+
+	stbtt_allocator := stbtt.gbAllocator { parser_stbtt_allocator_proc, & ctx.lib_backing }
+	stbtt.SetAllocator( stbtt_allocator )
+}
+
+parser_reload :: proc( ctx : ^Parser_Context, allocator := context.allocator) {
+	ctx.lib_backing = allocator
+	stbtt_allocator := stbtt.gbAllocator { parser_stbtt_allocator_proc, & ctx.lib_backing }
+	stbtt.SetAllocator( stbtt_allocator )
 }
 
 parser_shutdown :: proc( ctx : ^Parser_Context ) {

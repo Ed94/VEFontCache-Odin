@@ -224,16 +224,16 @@ init :: proc "c" ()
 	}
 
 	glyph_draw_opts := ve.Init_Glyph_Draw_Params_Default
-	glyph_draw_opts.snap_glyph_height = false
+	glyph_draw_opts.snap_glyph_height = true
 
 	shaper_opts := ve.Init_Shaper_Params_Default
-	shaper_opts.snap_glyph_position = false
+	shaper_opts.snap_glyph_position = true
 
 	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, 
 		glyph_draw_params = glyph_draw_opts,
 		shaper_params     = shaper_opts,
-		px_scalar         = 1.89,
-		alpha_sharpen     = 0.1,
+		px_scalar         = 1.25,
+		alpha_sharpen     = 0.0,
 	)
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 256 * 1024, index_cap = 512 * 1024 )
 
@@ -388,10 +388,10 @@ Glyphs are first rendered to an intermediate 2k x 512px R8 texture. This allows 
 4 x 4 = 16x supersampling, and 8 Region C glyphs similarly. A simple 16-tap box downsample shader is then used to blit from this
 intermediate texture to the final atlas location.`
 
-			draw_text("How it works",   demo_ctx.font_title, { 0.2,  current_scroll - (section_start + 0.06) })
-			draw_text(how_it_works,     demo_ctx.font_print, { 0.2,  current_scroll - (section_start + 0.1)  })
-			draw_text(caching_strategy, demo_ctx.font_mono,  { 0.28, current_scroll - (section_start + 0.32) })
-			draw_text(how_it_works2,    demo_ctx.font_print, { 0.2,  current_scroll - (section_start + 0.82) })
+			draw_text("How it works",   demo_ctx.font_title, { 0.2,  current_scroll - (section_start + 0.06) }, size = 92)
+			draw_text(how_it_works,     demo_ctx.font_print, { 0.2,  current_scroll - (section_start + 0.1)  }, size = 19)
+			draw_text(caching_strategy, demo_ctx.font_mono,  { 0.28, current_scroll - (section_start + 0.32) }, size = 21)
+			draw_text(how_it_works2,    demo_ctx.font_print, { 0.2,  current_scroll - (section_start + 0.82) }, size = 19)
 		}
 
 		// Showcase section
@@ -408,43 +408,43 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 			draw_text("Sans serif",     demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.28) }, size = 19)
 			draw_text(font_family_test, demo_ctx.font_demo_sans, { 0.3, current_scroll - (section_start + 0.28) }, size = 18)
 
-			draw_text("Serif",          demo_ctx.font_print,      { 0.2, current_scroll - (section_start + 0.36) })
-			draw_text(font_family_test, demo_ctx.font_demo_serif, { 0.3, current_scroll - (section_start + 0.36) })
+			draw_text("Serif",          demo_ctx.font_print,      { 0.2, current_scroll - (section_start + 0.36) }, size = 19)
+			draw_text(font_family_test, demo_ctx.font_demo_serif, { 0.3, current_scroll - (section_start + 0.36) }, size = 18)
 
-			draw_text("Script",         demo_ctx.font_print,       { 0.2, current_scroll - (section_start + 0.44) })
-			draw_text(font_family_test, demo_ctx.font_demo_script, { 0.3, current_scroll - (section_start + 0.44) })
+			draw_text("Script",         demo_ctx.font_print,       { 0.2, current_scroll - (section_start + 0.44) }, size = 19)
+			draw_text(font_family_test, demo_ctx.font_demo_script, { 0.3, current_scroll - (section_start + 0.44) }, size = 22)
 
-			draw_text("Monospace",      demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.52) })
-			draw_text(font_family_test, demo_ctx.font_demo_mono, { 0.3, current_scroll - (section_start + 0.52) })
+			draw_text("Monospace",      demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.52) }, size = 19)
+			draw_text(font_family_test, demo_ctx.font_demo_mono, { 0.3, current_scroll - (section_start + 0.52) }, size = 22)
 
-			draw_text("Small",          demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.60) })
-			draw_text(font_family_test, demo_ctx.font_small, { 0.3, current_scroll - (section_start + 0.60) })
+			draw_text("Small",          demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.60) }, size = 19)
+			draw_text(font_family_test, demo_ctx.font_small, { 0.3, current_scroll - (section_start + 0.60) }, size = 10)
 
-			draw_text("Greek",                   demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.72) })
-			draw_text("Ήταν απλώς θέμα χρόνου.", demo_ctx.font_demo_sans, { 0.3, current_scroll - (section_start + 0.72) })
+			draw_text("Greek",                   demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.72) }, size = 19)
+			draw_text("Ήταν απλώς θέμα χρόνου.", demo_ctx.font_demo_sans, { 0.3, current_scroll - (section_start + 0.72) }, size = 18)
 
-			draw_text("Vietnamese",                                        demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.76) })
-			draw_text("Bầu trời trong xanh thăm thẳm, không một gợn mây.", demo_ctx.font_demo_sans, { 0.3, current_scroll - (section_start + 0.76) })
+			draw_text("Vietnamese",                                        demo_ctx.font_print,     { 0.2, current_scroll - (section_start + 0.76) }, size = 19)
+			draw_text("Bầu trời trong xanh thăm thẳm, không một gợn mây.", demo_ctx.font_demo_sans, { 0.3, current_scroll - (section_start + 0.76) }, size = 18)
 
-			draw_text("Thai", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.80) })
-			draw_text("การเดินทางขากลับคงจะเหงา", demo_ctx.font_demo_thai, { 0.3, current_scroll - (section_start + 0.80) })
+			draw_text("Thai", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.80) }, size = 19)
+			draw_text("การเดินทางขากลับคงจะเหงา", demo_ctx.font_demo_thai, { 0.3, current_scroll - (section_start + 0.80) }, size = 24)
 
-			draw_text("Chinese", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.84) })
-			draw_text("床前明月光 疑是地上霜 举头望明月 低头思故乡", demo_ctx.font_demo_chinese, {0.3, current_scroll - (section_start + 0.84) })
+			draw_text("Chinese", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.84) }, size = 19)
+			draw_text("床前明月光 疑是地上霜 举头望明月 低头思故乡", demo_ctx.font_demo_chinese, {0.3, current_scroll - (section_start + 0.84) }, size = 24)
 
-			draw_text("Japanese", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.88) })
-			draw_text("ぎょしょうとナレズシの研究 モンスーン・アジアの食事文化", demo_ctx.font_demo_japanese, { 0.3, current_scroll - (section_start + 0.88) })
+			draw_text("Japanese", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.88) }, size = 19)
+			draw_text("ぎょしょうとナレズシの研究 モンスーン・アジアの食事文化", demo_ctx.font_demo_japanese, { 0.3, current_scroll - (section_start + 0.88) }, size = 24)
 
-			draw_text("Korean", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.92) })
-			draw_text("그들의 장비와 기구는 모두 살아 있다.", demo_ctx.font_demo_korean, { 0.3, current_scroll - (section_start + 0.92) })
+			draw_text("Korean", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.92) }, size = 19)
+			draw_text("그들의 장비와 기구는 모두 살아 있다.", demo_ctx.font_demo_korean, { 0.3, current_scroll - (section_start + 0.92) }, size = 36)
 
-			draw_text("Needs harfbuzz to work:", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.96)})
+			draw_text("Needs harfbuzz to work:", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 0.96)}, size = 14)
 
-			draw_text("Arabic", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 1.00) })
-			draw_text("حب السماء لا تمطر غير الأحلام.", demo_ctx.font_demo_arabic, { 0.3, current_scroll - (section_start + 1.00) })
+			draw_text("Arabic", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 1.00) }, size = 19)
+			draw_text("حب السماء لا تمطر غير الأحلام.", demo_ctx.font_demo_arabic, { 0.3, current_scroll - (section_start + 1.00) }, size = 24)
 
-			draw_text("Hebrew", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 1.04) })
-			draw_text("אז הגיע הלילה של כוכב השביט הראשון.", demo_ctx.font_demo_hebrew, { 0.3, current_scroll - (section_start + 1.04) })
+			draw_text("Hebrew", demo_ctx.font_print, { 0.2, current_scroll - (section_start + 1.04) }, size = 19)
+			draw_text("אז הגיע הלילה של כוכב השביט הראשון.", demo_ctx.font_demo_hebrew, { 0.3, current_scroll - (section_start + 1.04) }, size = 22)
 		}
 
 		// Zoom Test
@@ -486,12 +486,9 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 
 			zoomed_text_base_size : f32 = 12.0
 			zoom_adjust_size      := zoomed_text_base_size * current_zoom
-			// ve_id, resolved_size  := font_resolve_draw_id( font_firacode, zoom_adjust_size * OVER_SAMPLE_ZOOM )
-			resolved_size         := zoom_adjust_size
+			resolved_size, _      := ve.resolve_zoom_size_scale(current_zoom, zoomed_text_base_size, 1.0, 2, 2, 999.0, demo_ctx.screen_size)
 			current_zoom_text     := fmt.tprintf("Current Zoom         : %.2f x\nCurrent Resolved Size: %v px", current_zoom, resolved_size )
 			draw_text(current_zoom_text, demo_ctx.font_firacode, { 0.2, zoom_info_y })
-
-			// ve.configure_snap( & demo_ctx.ve_ctx, u32(0), u32(0) )
 
 			size            := measure_text_size( zoom_text, demo_ctx.font_firacode, zoomed_text_base_size, 0 ) * current_zoom
 			x_offset        := (size.x / demo_ctx.screen_size.x) * 0.5
@@ -567,8 +564,6 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 
 				draw_text(codes[grid[y * GRID_W + x]], demo_ctx.font_demo_raincode, { pos_x, pos_y }, size = 20, color = code_colour)
 			}
-
-			// ve.set_colour(&ve_ctx, {1.0, 1.0, 1.0, 1.0})
 		}
 
 		// Cache pressure test
