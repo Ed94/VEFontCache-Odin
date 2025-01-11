@@ -107,9 +107,22 @@ shaper_unload_font :: #force_inline proc( info : ^Shaper_Info )
 // Recommended shaper. Very performant.
 // TODO(Ed): Would be nice to properly support vertical shaping, right now its strictly just horizontal...
 @(optimization_mode="favor_size")
-shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry : Entry, font_px_Size, font_scale : f32, output :^Shaped_Text )
+shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, 
+	atlas             : Atlas, 
+	glyph_buffer_size : Vec2,
+	entry             : Entry, 
+	font_px_size      : f32, 
+	font_scale        : f32, 
+	text_utf8         : string, 
+	output            : ^Shaped_Text
+)
 {
 	profile(#procedure)
+	assert( ctx != nil )
+
+	clear( & output.glyph )
+	clear( & output.position )
+
 	current_script := harfbuzz.Script.UNKNOWN
 	hb_ucfunc      := harfbuzz.unicode_funcs_get_default()
 	harfbuzz.buffer_clear_contents( ctx.hb_buffer )
@@ -142,8 +155,6 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 	)
 	{
 		profile(#procedure)
-		// Set script and direction. We use the system's default langauge.
-		// script = HB_SCRIPT_LATIN
 		harfbuzz.buffer_set_script   ( buffer, script )
 		harfbuzz.buffer_set_direction( buffer, harfbuzz.script_get_horizontal_direction( script ))
 		harfbuzz.buffer_set_language ( buffer, harfbuzz.language_get_default() )
@@ -159,11 +170,12 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 
 		line_height := (entry.ascent - entry.descent + entry.line_gap) * font_scale
 
+		last_cluster := u32(0)
 		for index : i32; index < i32(glyph_count); index += 1
 		{
-			hb_glyph     := glyph_infos[ index ]
+			hb_glyph     := glyph_infos    [ index ]
 			hb_gposition := glyph_positions[ index ]
-			glyph     := cast(Glyph) hb_glyph.codepoint
+			glyph        := cast(Glyph) hb_glyph.codepoint
 
 			if hb_glyph.cluster > 0
 			{
@@ -172,6 +184,8 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 				position.y       -= line_height
 				position.y        = floor(position.y)
 				(line_count^)    += 1
+
+				last_cluster = hb_glyph.cluster
 				continue
 			}
 			if abs( font_px_size ) <= adv_snap_small_font_threshold {
@@ -194,7 +208,7 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 			(max_line_width^) = max(max_line_width^, position.x)
 
 			is_empty := parser_is_glyph_empty(entry.parser_info, glyph)
-			if ! is_empty {
+			if ! is_empty && glyph != 0 {
 				append( & output.glyph, glyph )
 				append( & output.position, glyph_pos)
 			}
@@ -235,7 +249,7 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 			& position, 
 			& max_line_width, 
 			& line_count, 
-			font_px_Size, 
+			font_px_size, 
 			font_scale, 
 			ctx.snap_glyph_position, 
 			ctx.adv_snap_small_font_threshold
@@ -252,7 +266,7 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 		& position, 
 		& max_line_width, 
 		& line_count, 
-		font_px_Size, 
+		font_px_size, 
 		font_scale, 
 		ctx.snap_glyph_position, 
 		ctx.adv_snap_small_font_threshold
@@ -261,27 +275,7 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, text_utf8 : string, entry 
 	// Set the final size
 	output.size.x = max_line_width
 	output.size.y = f32(line_count) * line_height
-	return
-}
 
-shaper_shape_text_uncached_advanced :: #force_inline proc( ctx : ^Shaper_Context, 
-	atlas             : Atlas, 
-	glyph_buffer_size : Vec2,
-	entry             : Entry, 
-	font_px_size      : f32, 
-	font_scale        : f32, 
-	text_utf8         : string, 
-	output            : ^Shaped_Text
-)
-{
-	profile(#procedure)
-	assert( ctx != nil )
-
-	clear( & output.glyph )
-	clear( & output.position )
-
-	shaper_shape_harfbuzz( ctx, text_utf8, entry, font_px_size, font_scale, output )
-	
 	// Resolve each glyphs: bounds, atlas lru, and the atlas region as we have everything we need now.
 
 	resize( & output.atlas_lru_code, len(output.glyph) )
@@ -302,6 +296,7 @@ shaper_shape_text_uncached_advanced :: #force_inline proc( ctx : ^Shaper_Context
 		output.region_kind[index] = atlas_decide_region( atlas, glyph_buffer_size, bounds_size_scaled )
 	}
 	profile_end()
+	return
 }
 
 // Basic western alphabet based shaping. Not that much faster than harfbuzz if at all.

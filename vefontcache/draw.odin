@@ -592,12 +592,12 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 			colour.g = 1.0
 			colour.b = 0.0
 		}
-		for pack_id, index in oversized {
-			error : Allocator_Error
-			glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[pack_id])
-			assert(error == .None)
-			assert(glyph_pack[pack_id].shape != nil)
-		}
+		// for pack_id, index in oversized {
+		// 	error : Allocator_Error
+		// 	glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[pack_id])
+		// 	assert(error == .None)
+		// 	assert(glyph_pack[pack_id].shape != nil)
+		// }
 		for id, index in oversized
 		{
 			glyph  := & glyph_pack[id]
@@ -607,6 +607,11 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 				& glyph_buffer.clear_draw_list, 
 				& glyph_buffer.allocated_x
 			)
+
+			error : Allocator_Error
+			glyph.shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[id])
+			assert(error == .None)
+			assert(glyph.shape != nil)
 			
 			generate_glyph_pass_draw_list( draw_list, & glyph_buffer.shape_gen_scratch,
 				glyph_pack[id].shape, 
@@ -615,6 +620,9 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 				glyph_pack[id].draw_transform.pos,
 				glyph_pack[id].draw_transform.scale
 			)
+
+			assert(glyph.shape != nil)
+			parser_free_shape(entry.parser_info, glyph.shape)
 
 			target_quad := & glyph_pack[id].draw_quad
 
@@ -634,10 +642,10 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 		}
 
 		flush_glyph_buffer_draw_list(draw_list, & glyph_buffer.draw_list, & glyph_buffer.clear_draw_list, & glyph_buffer.allocated_x)
-		for pack_id, index in oversized {
-			assert(glyph_pack[pack_id].shape != nil)
-			parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
-		}
+		// for pack_id, index in oversized {
+		// 	assert(glyph_pack[pack_id].shape != nil)
+		// 	parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
+		// }
 	}
 	profile_end()
 
@@ -666,12 +674,12 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 	profile_begin("to_cache: caching to atlas")
 	if len(to_cache) > 0
 	{
-		for pack_id, index in to_cache {
-			error : Allocator_Error
-			glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[pack_id])
-			assert(error == .None)
-			assert(glyph_pack[pack_id].shape != nil)
-		}
+		// for pack_id, index in to_cache {
+		// 	error : Allocator_Error
+		// 	glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[pack_id])
+		// 	assert(error == .None)
+		// 	assert(glyph_pack[pack_id].shape != nil)
+		// }
 
 		for id, index in to_cache
 		{
@@ -724,6 +732,11 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 	
 			append( & glyph_buffer.clear_draw_list.calls, clear_target_region )
 			append( & glyph_buffer.draw_list.calls,       blit_to_atlas )
+
+			error : Allocator_Error
+			glyph.shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[id])
+			assert(error == .None)
+			assert(glyph.shape != nil)
 	
 			// Render glyph to glyph render target (FBO)
 			generate_glyph_pass_draw_list( draw_list, & glyph_buffer.shape_gen_scratch, 
@@ -733,13 +746,16 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 				glyph.draw_transform.pos, 
 				glyph.draw_transform.scale 
 			)
+			
+			assert(glyph.shape != nil)
+			parser_free_shape(entry.parser_info, glyph.shape)
 		}
 
 		flush_glyph_buffer_draw_list(draw_list, & glyph_buffer.draw_list, & glyph_buffer.clear_draw_list, & glyph_buffer.allocated_x)
-		for pack_id, index in to_cache {
-			assert(glyph_pack[pack_id].shape != nil)
-			parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
-		} 
+		// for pack_id, index in to_cache {
+		// 	assert(glyph_pack[pack_id].shape != nil)
+		// 	parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
+		// } 
 
 		profile_begin("gen_cached_draw_list: to_cache")
 		when ENABLE_DRAW_TYPE_VISUALIZATION {

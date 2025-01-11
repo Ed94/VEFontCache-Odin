@@ -428,9 +428,18 @@ hot_reload :: proc( ctx : ^Context, allocator : Allocator )
 	reload_array( & draw_list.indices,  allocator)
 	reload_array( & draw_list.calls,    allocator)
 
+	parser_reload(& ctx.parser_ctx, allocator)
+
 	// Scope Stack
 	{
-	
+		stack := & ctx.stack
+		reload_array(& stack.font,      allocator)
+		reload_array(& stack.font_size, allocator)
+		reload_array(& stack.colour,    allocator)
+		reload_array(& stack.view,      allocator)
+		reload_array(& stack.position,  allocator)
+		reload_array(& stack.scale,     allocator)
+		reload_array(& stack.zoom,      allocator)
 	}
 }
 
@@ -497,7 +506,14 @@ shutdown :: proc( ctx : ^Context )
 
 	// Scope Stack
 	{
-
+		stack := & ctx.stack
+		delete(stack.font)
+		delete(stack.font_size)
+		delete(stack.colour)
+		delete(stack.view)
+		delete(stack.position)
+		delete(stack.scale)
+		delete(stack.zoom)
 	}
 }
 
@@ -833,7 +849,7 @@ draw_text_normalized_space :: proc( ctx : ^Context,
 	position    : Vec2,
 	scale       : Vec2, 
 	text_utf8   : string,
-	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_text_uncached_advanced
+	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz
 )
 {
 	profile(#procedure)
@@ -970,7 +986,7 @@ draw_text_view_space :: proc(ctx : ^Context,
 	scale       : Vec2, 
 	zoom        : f32,
 	text_utf8   : string,
-	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_text_uncached_advanced
+	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz
 )
 {
 	profile(#procedure)
@@ -1111,7 +1127,7 @@ absolute_scale    := peek(stack.scale   ) * scale
 */
 // @(optimization_mode = "favor_size")
 draw_text :: proc( ctx : ^Context, position, scale : Vec2, text_utf8 : string, 
-	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_text_uncached_advanced 
+	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz 
 )
 {
 	profile(#procedure)
@@ -1216,7 +1232,9 @@ measure_shape_size :: #force_inline proc( ctx : ^Context, shape : Shaped_Text ) 
 }
 
 // Don't use this if you already have the shape instead use measure_shape_size
-measure_text_size :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size : f32, text_utf8 : string ) -> (measured : Vec2)
+measure_text_size :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size : f32, text_utf8 : string, 
+	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz
+) -> (measured : Vec2)
 {
 	// profile(#procedure)
 	assert( ctx != nil )
@@ -1237,7 +1255,7 @@ measure_text_size :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size
 		entry, 
 		target_px_size, 
 		target_font_scale, 
-		shaper_shape_text_uncached_advanced 
+		shaper_proc 
 	)
 	return shaped.size * target_scale
 }
@@ -1261,7 +1279,9 @@ get_font_vertical_metrics :: #force_inline proc ( ctx : ^Context, font : Font_ID
 
 //#region("shaping")
 
-shape_text_latin :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size : f32, text_utf8 : string ) -> Shaped_Text
+shape_text :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size : f32, text_utf8 : string, 
+	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz
+) -> Shaped_Text
 {
 	profile(#procedure)
 	assert( len(text_utf8) > 0 )
@@ -1279,34 +1299,15 @@ shape_text_latin :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size 
 		entry, 
 		target_px_size, 
 		target_font_scale, 
-		shaper_shape_text_latin
+		shaper_proc
 	)
 }
 
-shape_text_advanced :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size : f32, text_utf8 : string ) -> Shaped_Text
-{
-	profile(#procedure)
-	assert( len(text_utf8) > 0 )
-	entry := ctx.entries[ font ]
-
-	target_px_size    := px_size * ctx.px_scalar
-	target_font_scale := parser_scale( entry.parser_info, target_px_size )
-
-	return shaper_shape_text_cached( text_utf8, 
-		& ctx.shaper_ctx, 
-		& ctx.shape_cache,
-		ctx.atlas,
-		vec2(ctx.glyph_buffer.size),
-		font, 
-		entry, 
-		target_px_size, 
-		target_font_scale, 
-		shaper_shape_text_uncached_advanced
-	)
-}
 
 // User handled shaped text. Will not be cached
-shape_text_latin_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size: f32, text_utf8 : string, shape : ^Shaped_Text )
+shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size: f32, text_utf8 : string, shape : ^Shaped_Text, 
+	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz 
+)
 {
 	profile(#procedure)
 	assert( len(text_utf8) > 0 )
@@ -1315,29 +1316,7 @@ shape_text_latin_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID,
 	target_px_size    := px_size * ctx.px_scalar
 	target_font_scale := parser_scale( entry.parser_info, target_px_size )
 
-	shaper_shape_text_latin(& ctx.shaper_ctx, 
-		ctx.atlas, 
-		vec2(ctx.glyph_buffer.size), 
-		entry, 
-		target_px_size, 
-		target_font_scale, 
-		text_utf8, 
-		shape
-	) 
-	return
-}
-
-// User handled shaped text. Will not be cached
-shape_text_advanced_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size: f32, text_utf8 : string, shape : ^Shaped_Text )
-{
-	profile(#procedure)
-	assert( len(text_utf8) > 0 )
-	entry := ctx.entries[ font ]
-
-	target_px_size    := px_size * ctx.px_scalar
-	target_font_scale := parser_scale( entry.parser_info, target_px_size )
-
-	shaper_shape_text_uncached_advanced(& ctx.shaper_ctx, 
+	shaper_proc(& ctx.shaper_ctx, 
 		ctx.atlas, 
 		vec2(ctx.glyph_buffer.size), 
 		entry, 

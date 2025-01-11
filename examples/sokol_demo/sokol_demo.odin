@@ -58,6 +58,7 @@ Font_ID  :: struct {
 
 Font_Entry :: struct {
 	path_file    : string,
+	data         : []byte,
 	default_size : i32,
 	ve_id        : ve.Font_ID,
 }
@@ -126,6 +127,7 @@ font_load :: proc(path_file : string,
 	error : ve.Load_Font_Error
 	def.path_file    = path_file
 	def.default_size = default_size
+	def.data         = font_data
 	def.ve_id, error = ve.load_font( & demo_ctx.ve_ctx, desired_id, font_data, curve_quality )
 	assert(error == .None)
 
@@ -164,7 +166,8 @@ draw_text :: proc( content : string, font : Font_ID, pos : Vec2, size : f32 = 0.
 		pos, 
 		scale,
 		zoom,
-		content
+		content,
+		// ve.shaper_shape_text_latin,
 	)
 	return
 }
@@ -258,7 +261,6 @@ init :: proc "c" ()
 	path_firacode          := strings.concatenate({ PATH_FONTS, "FiraCode-Regular.ttf"       })
 
 	demo_ctx.font_logo          = font_load(path_sawarabi_mincho,  150.0, "SawarabiMincho", 18 )
-	// demo_ctx.font_title         = font_load(path_open_sans,         92.0, "OpenSans",       6 )
 	demo_ctx.font_print         = font_load(path_noto_sans_jp,      19.0, "NotoSansJP")
 	demo_ctx.font_mono          = font_load(path_ubuntu_mono,       21.0, "UbuntuMono")
 	demo_ctx.font_small         = font_load(path_roboto,            10.0, "Roboto")
@@ -644,14 +646,14 @@ etiam dignissim diam quis enim. Convallis convallis tellus id interdum.`
 				posy := current_scroll - (section_start + 0.66 + f32(y) * 0.052)
 				c    := [5]u8{}
 				codepoint_to_utf8(c[:], grid2[ y * GRID2_W + x ])
-				draw_text(string( c[:] ), demo_ctx.font_demo_chinese, { posx, posy }, size = 54)
+				draw_text(string( c[:] ), demo_ctx.font_demo_grid2, { posx, posy }, size = 54)
 			}
 			for y in 0 ..< GRID3_H do for x in 0 ..< GRID3_W {
 				posx := 0.45 + f32(x) * 0.02
-				posy := current_scroll - (section_start + 0.64 + f32(y) * 0.034)
+				posy := current_scroll - (section_start + 0.64 + f32(y) * 0.04)
 				c    := [5]u8{}
 				codepoint_to_utf8( c[:], grid3[ y * GRID3_W + x ])
-				draw_text(string( c[:] ), demo_ctx.font_demo_serif, { posx, posy }, size = 44)
+				draw_text(string( c[:] ), demo_ctx.font_demo_grid3, { posx, posy }, size = 44)
 			}
 		}
 
