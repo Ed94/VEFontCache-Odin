@@ -236,7 +236,7 @@ init :: proc "c" ()
 		glyph_draw_params = glyph_draw_opts,
 		shaper_params     = shaper_opts,
 		px_scalar         = 1.6,
-		alpha_sharpen     = 0.4,
+		alpha_sharpen     = 0.35,
 	)
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 256 * 1024, index_cap = 512 * 1024 )
 

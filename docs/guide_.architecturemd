@@ -1,0 +1,28 @@
+# Architecture
+
+The purpose of this library to really allieviate four issues with one encapsulation:
+
+* font parsing
+* text codepoint shaping
+* glyph shape triangulation
+* glyph draw-list generation
+
+Shaping text, getting metrics for the glyphs, triangulating glyphs, and anti-aliasing their render are expensive todo per frame. So anything related to that compute that may be cached, will be.
+
+There are two cache types used:
+
+* shape cache (shape_cache.state)
+* atlas region cache (Atlas_Region.state)
+
+The shape cache stores all data for a piece of text that will be utilized in a draw call that is not dependent on a specific position & scale (and is faster to lookup vs compute per draw call). So far these are the text shaping itself, and per-glyph infos: atlas_lru_code (atlas key), atlas region resolution, & glyph bounds.
+The atlas region cache tracks what slots have glyphs rendered to the texture atlas. This essentially is caching of triangulation and super-sampling compute.
+
+All caching uses the [LRU.odin](../vefontcache/LRU.odin)
+
+## Codepaths
+
+## Library Lifetime
+
+## Draw List Generation
+
+The base draw list generation pipepline provided by the library allows the user to batch whatever the want into a single "layer". However 

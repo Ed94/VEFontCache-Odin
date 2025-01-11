@@ -104,6 +104,7 @@ shaper_unload_font :: #force_inline proc( info : ^Shaper_Info )
 	if info.blob != nil do harfbuzz.blob_destroy( info.blob )
 }
 
+// TODO(Ed): Allow the user to override snap_glyph_position of the shaper context on a per-call basis (as a param)
 // Recommended shaper. Very performant.
 // TODO(Ed): Would be nice to properly support vertical shaping, right now its strictly just horizontal...
 @(optimization_mode="favor_size")
@@ -299,6 +300,7 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context,
 	return
 }
 
+// TODO(Ed): Allow the user to override snap_glyph_position of the shaper context on a per-call basis (as an param)
 // Basic western alphabet based shaping. Not that much faster than harfbuzz if at all.
 shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 	atlas             : Atlas, 
@@ -347,11 +349,12 @@ shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 		is_glyph_empty := parser_is_glyph_empty( entry.parser_info, glyph_index )
 		if ! is_glyph_empty
 		{
+			if ctx.snap_glyph_position {
+				position.x = ceil(position.x)
+				position.y = ceil(position.y)
+			}
 			append( & output.glyph, glyph_index)
-			append( & output.position, Vec2 {
-				ceil(position.x),
-				ceil(position.y)
-			})
+			append( & output.position, position)
 		}
 
 		advance, _ := parser_get_codepoint_horizontal_metrics( entry.parser_info, codepoint )

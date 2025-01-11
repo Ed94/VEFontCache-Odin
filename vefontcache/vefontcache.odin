@@ -64,26 +64,24 @@ Context :: struct {
 	entries : [dynamic]Entry,
 
 	// TODO(Ed): Review these when preparing to handle lifting of working context to a thread context.
-	glyph_buffer : Glyph_Draw_Buffer,
-	atlas        : Atlas,
-	shape_cache  : Shaped_Text_Cache,
-	draw_list    : Draw_List,
+	glyph_buffer : Glyph_Draw_Buffer, // -> draw.odin
+	atlas        : Atlas,             // -> atlas.odin
+	shape_cache  : Shaped_Text_Cache, // -> shaper.doin
+	draw_list    : Draw_List,         // -> draw.odin
 
 	batch_shapes_buffer : [dynamic]Shaped_Text, // Used for the procs that batch a layer of text.
 
 	// Tracks the offsets for the current layer in a draw_list
-	draw_layer : struct {
+	draw_layer : struct { 
 		vertices_offset : int,
 		indices_offset  : int,
 		calls_offset    : int,
 	},
+	// See: get_draw_list_layer & flush_draw_list_layer
 
 	// Note(Ed): Not really used anymore.
 	// debug_print         : b32,
 	// debug_print_verbose : b32,
-
-	snap_width  : f32,
-	snap_height : f32,
 
 	// Will enforce even px_size when drawing.
 	even_size_only : f32,
@@ -94,7 +92,7 @@ Context :: struct {
 
 	stack : Scope_Stack,
 
-	cursor_pos    : Vec2,  // TODO(Ed): Review this, no longer used much at all... (still useful I guess)
+	cursor_pos : Vec2,
 	// Will apply a boost scalar (1.0 + alpha sharpen) to the colour's alpha which provides some sharpening of the edges.
 	// Has a boldening side-effect. If overblown will look smeared.
 	alpha_sharpen : f32,
@@ -106,6 +104,8 @@ Context :: struct {
 
 	default_curve_quality : i32,
 }
+
+//#region("Init Params")
 
 Init_Atlas_Params :: struct {
 	size_multiplier : u32, // How much to scale the the atlas size to. (Affects everything, the base is 4096 x 2048 and everything follows from there)
@@ -133,7 +133,7 @@ Init_Glyph_Draw_Params :: struct {
 }
 
 Init_Glyph_Draw_Params_Default :: Init_Glyph_Draw_Params {
-	snap_glyph_height               = false,
+	snap_glyph_height               = true,
 	over_sample                     = 4,
 	draw_padding                    = Init_Atlas_Params_Default.glyph_padding,
 	shape_gen_scratch_reserve       = 512,
@@ -150,7 +150,7 @@ Init_Shaper_Params :: struct {
 }
 
 Init_Shaper_Params_Default :: Init_Shaper_Params {
-	snap_glyph_position           = false,
+	snap_glyph_position           = true,
 	adv_snap_small_font_threshold = 0,
 }
 
@@ -167,6 +167,8 @@ Init_Shape_Cache_Params_Default :: Init_Shape_Cache_Params {
 	reserve  = 128,
 }
 
+//#endregion("Init Params")
+
 //#region("lifetime")
 
 // ve_fontcache_init
@@ -176,15 +178,15 @@ startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // N
 	glyph_draw_params           := Init_Glyph_Draw_Params_Default,
 	shape_cache_params          := Init_Shape_Cache_Params_Default,
 	shaper_params               := Init_Shaper_Params_Default,
-	alpha_sharpen               : f32 = 0.0,
-	px_scalar                   : f32 = 1,
+	alpha_sharpen               : f32 = 0.35,
+	px_scalar                   : f32 = 1.6,
 	zoom_px_interval            : i32 = 2,
 	
 	// Curve quality to use for a font when unspecified,
 	// Affects step size for bezier curve passes in generate_glyph_pass_draw_list
 	default_curve_quality       : u32 = 3,
 	entires_reserve             : u32 = 256,
-	scope_stack_reserve         : u32 = 128,
+	scope_stack_reserve         : u32 = 32,
 )
 {
 	assert( ctx != nil, "Must provide a valid context" )
@@ -517,34 +519,6 @@ shutdown :: proc( ctx : ^Context )
 	}
 }
 
-// Can be used with hot-reload
-clear_atlas_region_caches :: proc(ctx : ^Context)
-{
-	lru_clear(& ctx.atlas.region_a.state)
-	lru_clear(& ctx.atlas.region_b.state)
-	lru_clear(& ctx.atlas.region_c.state)
-	lru_clear(& ctx.atlas.region_d.state)
-
-	ctx.atlas.region_a.next_idx = 0
-	ctx.atlas.region_b.next_idx = 0
-	ctx.atlas.region_c.next_idx = 0
-	ctx.atlas.region_d.next_idx = 0
-}
-
-// Can be used with hot-reload
-clear_shape_cache :: proc (ctx : ^Context)
-{
-	lru_clear(& ctx.shape_cache.state)
-	for idx : i32 = 0; idx < cast(i32) cap(ctx.shape_cache.storage); idx += 1 {
-		stroage_entry := & ctx.shape_cache.storage[idx]
-		stroage_entry.end_cursor_pos = {}
-		stroage_entry.size           = {}
-		clear(& stroage_entry.glyph)
-		clear(& stroage_entry.position)
-	}
-	ctx.shape_cache.next_cache_id = 0
-}
-
 load_font :: proc( ctx : ^Context, label : string, data : []byte, glyph_curve_quality : u32 = 0 ) -> (font_id : Font_ID, error : Load_Font_Error)
 {
 	profile(#procedure)
@@ -613,153 +587,90 @@ unload_font :: proc( ctx : ^Context, font : Font_ID )
 	shaper_unload_font( & entry.shaper_info )
 }
 
+// Can be used with hot-reload
+clear_atlas_region_caches :: proc(ctx : ^Context)
+{
+	lru_clear(& ctx.atlas.region_a.state)
+	lru_clear(& ctx.atlas.region_b.state)
+	lru_clear(& ctx.atlas.region_c.state)
+	lru_clear(& ctx.atlas.region_d.state)
+
+	ctx.atlas.region_a.next_idx = 0
+	ctx.atlas.region_b.next_idx = 0
+	ctx.atlas.region_c.next_idx = 0
+	ctx.atlas.region_d.next_idx = 0
+}
+
+// Can be used with hot-reload
+clear_shape_cache :: proc (ctx : ^Context)
+{
+	lru_clear(& ctx.shape_cache.state)
+	for idx : i32 = 0; idx < cast(i32) cap(ctx.shape_cache.storage); idx += 1 {
+		stroage_entry := & ctx.shape_cache.storage[idx]
+		stroage_entry.end_cursor_pos = {}
+		stroage_entry.size           = {}
+		clear(& stroage_entry.glyph)
+		clear(& stroage_entry.position)
+	}
+	ctx.shape_cache.next_cache_id = 0
+}
+
 //#endregion("lifetime")
 
-//#region("scoping")
+//#region("shaping")
 
-/* Scope stacking ease of use interface.
+// For high performance, the user should track the shapes and use the draw list interface on shapes. 
+// Doing so avoids cache lookups.
 
-View: Extents in 2D for the relative space the the text is being drawn within.
-Used with snap_to_view_extent to enforce position snapping.
-
-Position: Used with a draw procedure that uses relative positioning will offset the incoming position by the given amount.
-Scale   : Used with a draw procedure that uses relative scaling, will scale the procedures incoming scale by the given amount.
-Zoom    : Used with a draw procedure that uses scaling via zoom, will scale the procedure's incoming font size & scale based on an 'canvas' camera's notion of it.
-*/
-
-@(deferred_in = auto_pop_font)
-scope_font         :: #force_inline proc( ctx : ^Context, font     : Font_ID ) { assert(ctx != nil); append(& ctx.stack.font, font ) }
-push_font          :: #force_inline proc( ctx : ^Context, font     : Font_ID ) { assert(ctx != nil); append(& ctx.stack.font, font ) }
-pop_font           :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.font) }
-auto_pop_font      :: #force_inline proc( ctx : ^Context, font     : Font_ID ) { assert(ctx != nil); pop(& ctx.stack.font) }
-
-@(deferred_in = auto_pop_font_size)
-scope_font_size    :: #force_inline proc( ctx : ^Context, px_size  : f32     ) { assert(ctx != nil); append(& ctx.stack.font_size, px_size) }
-push_font_size     :: #force_inline proc( ctx : ^Context, px_size  : f32     ) { assert(ctx != nil); append(& ctx.stack.font_size, px_size) }
-pop_font_size      :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.font_size) }
-auto_pop_font_size :: #force_inline proc( ctx : ^Context, px_size  : f32     ) { assert(ctx != nil); pop(& ctx.stack.font_size) }
-
-@(deferred_in = auto_pop_colour )
-scope_colour       :: #force_inline proc( ctx : ^Context, colour   : RGBAN   ) { assert(ctx != nil); append(& ctx.stack.colour, colour) }
-push_colour        :: #force_inline proc( ctx : ^Context, colour   : RGBAN   ) { assert(ctx != nil); append(& ctx.stack.colour, colour) }
-pop_colour         :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.colour) }
-auto_pop_colour    :: #force_inline proc( ctx : ^Context, colour   : RGBAN   ) { assert(ctx != nil); pop(& ctx.stack.colour) }
-
-@(deferred_in = auto_pop_view)
-scope_view         :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); append(& ctx.stack.view, view) }
-push_view          :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); append(& ctx.stack.view, view) }
-pop_view           :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.view) }
-auto_pop_view      :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); pop(& ctx.stack.view) }
-
-@(deferred_in = auto_pop_position)
-scope_position     :: #force_inline proc( ctx : ^Context, position : Vec2    ) { assert(ctx != nil); append(& ctx.stack.position, position ) }
-push_position      :: #force_inline proc( ctx : ^Context, position : Vec2    ) { assert(ctx != nil); append(& ctx.stack.position, position ) }
-pop_position       :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop( & ctx.stack.position) }
-auto_pop_position  :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); pop( & ctx.stack.position) }
-
-@(deferred_in = auto_pop_scale)
-scope_scale        :: #force_inline proc( ctx : ^Context, scale    : Vec2    ) { assert(ctx != nil); append(& ctx.stack.scale, scale ) }
-push_scale         :: #force_inline proc( ctx : ^Context, scale    : Vec2    ) { assert(ctx != nil); append(& ctx.stack.scale, scale ) }
-pop_scale          :: #force_inline proc( ctx : ^Context,                    ) { assert(ctx != nil); pop(& ctx.stack.scale) }
-auto_pop_scale     :: #force_inline proc( ctx : ^Context, scale    : Vec2    ) { assert(ctx != nil); pop(& ctx.stack.scale) }
-
-@(deferred_in = auto_pop_zoom )
-scope_zoom         :: #force_inline proc( ctx : ^Context, zoom     : f32     ) { append(& ctx.stack.zoom, zoom ) }
-push_zoom          :: #force_inline proc( ctx : ^Context, zoom     : f32     ) { append(& ctx.stack.zoom, zoom)  }
-pop_zoom           :: #force_inline proc( ctx : ^Context                     ) { pop(& ctx.stack.zoom) }
-auto_pop_zoom      :: #force_inline proc( ctx : ^Context, zoom     : f32     ) { pop(& ctx.stack.zoom) }
-
-@(deferred_in = auto_pop_vpz)
-scope_vpz    :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform  ) { 
-	assert(ctx != nil)
-	append(& ctx.stack.view,     camera.view     )
-	append(& ctx.stack.position, camera.position )
-	append(& ctx.stack.zoom,     camera.zoom     )
-}
-push_vpz     :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform  ) { 
-	assert(ctx != nil)
-	append(& ctx.stack.view,     camera.view     )
-	append(& ctx.stack.position, camera.position )
-	append(& ctx.stack.zoom,     camera.zoom     )
-}
-pop_vpz      :: #force_inline proc( ctx : ^Context ) {
-	assert(ctx != nil)
-	pop(& ctx.stack.view    )
-	pop(& ctx.stack.position)
-	pop(& ctx.stack.zoom    )
-}
-auto_pop_vpz :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform ) { 
-	assert(ctx != nil)
-	pop(& ctx.stack.view    )
-	pop(& ctx.stack.position)
-	pop(& ctx.stack.zoom    )
-}
-
-//#endregion("scoping")
-
-//#region("misc")
-
-get_cursor_pos :: #force_inline proc "contextless" ( ctx : Context ) -> Vec2 { return ctx.cursor_pos }
-
-// Will normalize the value of the position and scale based on the provided view.
-// Position will also be snapped to the nearest pixel via ceil.
-// (Does nothing if view is 1 or 0)
-get_normalized_position_scale :: #force_inline proc "contextless" ( position, scale, view : Vec2 ) -> (position_norm, scale_norm : Vec2)
+shape_text :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size : f32, text_utf8 : string, 
+	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz
+) -> Shaped_Text
 {
-	snap_quotient := 1 / Vec2 { max(view.x, 1), max(view.y, 1) }
-	should_snap   := view * snap_quotient
+	profile(#procedure)
+	assert( len(text_utf8) > 0 )
+	entry := ctx.entries[ font ]
 
-	snapped_position  := position 
-	snapped_position.x = ceil(position.x * view.x) * snap_quotient.x 
-	snapped_position.y = ceil(position.y * view.y) * snap_quotient.y
+	target_px_size    := px_size * ctx.px_scalar
+	target_font_scale := parser_scale( entry.parser_info, target_px_size )
 
-	snapped_position  *= should_snap
-	snapped_position.x = max(snapped_position.x, position.x)
-	snapped_position.y = max(snapped_position.y, position.y)
-
-	position_norm = snapped_position
-	scale_norm    = scale * snap_quotient
-	return
+	return shaper_shape_text_cached( text_utf8, 
+		& ctx.shaper_ctx, 
+		& ctx.shape_cache,
+		ctx.atlas,
+		vec2(ctx.glyph_buffer.size),
+		font, 
+		entry, 
+		target_px_size, 
+		target_font_scale, 
+		shaper_proc
+	)
 }
 
-// Used to constrain the px_size used in draw calls.
-resolve_draw_px_size :: #force_inline proc "contextless" ( px_size, interval, min, max : f32 ) -> (resolved_size : f32) {
-	interval_quotient := 1.0 / f32(interval)
-	interval_size     := round(px_size * interval_quotient) * interval
-	resolved_size      = clamp( interval_size, min, max )
-	return
-}
-
-// Provides a way to get a "zoom" on the font size and scale, similar conceptually to a canvas UX zoom
-// Does nothing when zoom is 1.0
-resolve_zoom_size_scale :: #force_inline proc "contextless" ( zoom, px_size : f32, scale : Vec2, interval, min, max : f32, clamp_scale : Vec2 ) -> (resolved_size : f32, zoom_scale : Vec2)
+// User handled shaped text. Will not be cached
+shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size: f32, text_utf8 : string, shape : ^Shaped_Text, 
+	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz 
+)
 {
-	zoom_px_size     := px_size * zoom
-	resolved_size     = resolve_draw_px_size( zoom_px_size, interval, min, max )
-	zoom_diff_scalar := 1 + (zoom_px_size - resolved_size) * (1 / resolved_size)
-	zoom_scale        = zoom_diff_scalar * scale
-	zoom_scale.x      = clamp(zoom_scale.x, 0, clamp_scale.x)
-	zoom_scale.y      = clamp(zoom_scale.y, 0, clamp_scale.y)
+	profile(#procedure)
+	assert( len(text_utf8) > 0 )
+	entry := ctx.entries[ font ]
+
+	target_px_size    := px_size * ctx.px_scalar
+	target_font_scale := parser_scale( entry.parser_info, target_px_size )
+
+	shaper_proc(& ctx.shaper_ctx, 
+		ctx.atlas, 
+		vec2(ctx.glyph_buffer.size), 
+		entry, 
+		target_px_size, 
+		target_font_scale, 
+		text_utf8, 
+		shape
+	) 
 	return
 }
 
-set_alpha_scalar     :: #force_inline proc( ctx : ^Context, scalar   : f32 ) { assert(ctx != nil); ctx.alpha_sharpen    = scalar }
-set_px_scalar        :: #force_inline proc( ctx : ^Context, scalar   : f32 ) { assert(ctx != nil); ctx.px_scalar        = scalar }
-set_zoom_px_interval :: #force_inline proc( ctx : ^Context, interval : i32 ) { assert(ctx != nil); ctx.zoom_px_interval = f32(interval) }
-
-// During a shaping pass on text, will snap each glyph's position via ceil.
-set_snap_glyph_shape_position :: #force_inline proc( ctx : ^Context, should_snap : b32 ) {
-	assert(ctx != nil)
-	ctx.shaper_ctx.snap_glyph_position = should_snap
-}
-
-// During to_cache pass within batch_generate_glyphs_draw_list, will snap the quad's size using ceil.
-set_snap_glyph_render_height :: #force_inline proc( ctx : ^Context, should_snap : b32 ) { 
-	assert(ctx != nil)
-	ctx.glyph_buffer.snap_glyph_height = cast(f32) i32(should_snap)
-}
-
-//#endreigon("misc")
+//#endregion("shaping")
 
 //#region("draw_list generation")
 
@@ -1289,55 +1200,150 @@ get_font_vertical_metrics :: #force_inline proc ( ctx : ^Context, font : Font_ID
 
 //#endregion("metrics")
 
-//#region("shaping")
+//#region("miscellaneous")
 
-shape_text :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size : f32, text_utf8 : string, 
-	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz
-) -> Shaped_Text
+get_cursor_pos :: #force_inline proc "contextless" ( ctx : Context ) -> Vec2 { return ctx.cursor_pos }
+
+// Will normalize the value of the position and scale based on the provided view.
+// Position will also be snapped to the nearest pixel via ceil.
+// (Does nothing if view is 1 or 0)
+get_normalized_position_scale :: #force_inline proc "contextless" ( position, scale, view : Vec2 ) -> (position_norm, scale_norm : Vec2)
 {
-	profile(#procedure)
-	assert( len(text_utf8) > 0 )
-	entry := ctx.entries[ font ]
+	snap_quotient := 1 / Vec2 { max(view.x, 1), max(view.y, 1) }
+	should_snap   := view * snap_quotient
 
-	target_px_size    := px_size * ctx.px_scalar
-	target_font_scale := parser_scale( entry.parser_info, target_px_size )
+	snapped_position  := position 
+	snapped_position.x = ceil(position.x * view.x) * snap_quotient.x 
+	snapped_position.y = ceil(position.y * view.y) * snap_quotient.y
 
-	return shaper_shape_text_cached( text_utf8, 
-		& ctx.shaper_ctx, 
-		& ctx.shape_cache,
-		ctx.atlas,
-		vec2(ctx.glyph_buffer.size),
-		font, 
-		entry, 
-		target_px_size, 
-		target_font_scale, 
-		shaper_proc
-	)
-}
+	snapped_position  *= should_snap
+	snapped_position.x = max(snapped_position.x, position.x)
+	snapped_position.y = max(snapped_position.y, position.y)
 
-
-// User handled shaped text. Will not be cached
-shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size: f32, text_utf8 : string, shape : ^Shaped_Text, 
-	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz 
-)
-{
-	profile(#procedure)
-	assert( len(text_utf8) > 0 )
-	entry := ctx.entries[ font ]
-
-	target_px_size    := px_size * ctx.px_scalar
-	target_font_scale := parser_scale( entry.parser_info, target_px_size )
-
-	shaper_proc(& ctx.shaper_ctx, 
-		ctx.atlas, 
-		vec2(ctx.glyph_buffer.size), 
-		entry, 
-		target_px_size, 
-		target_font_scale, 
-		text_utf8, 
-		shape
-	) 
+	position_norm = snapped_position
+	scale_norm    = scale * snap_quotient
 	return
 }
 
-//#endregion("shaping")
+// Used to constrain the px_size used in draw calls.
+resolve_draw_px_size :: #force_inline proc "contextless" ( px_size, interval, min, max : f32 ) -> (resolved_size : f32) {
+	interval_quotient := 1.0 / f32(interval)
+	interval_size     := round(px_size * interval_quotient) * interval
+	resolved_size      = clamp( interval_size, min, max )
+	return
+}
+
+// Provides a way to get a "zoom" on the font size and scale, similar conceptually to a canvas UX zoom
+// Does nothing when zoom is 1.0
+resolve_zoom_size_scale :: #force_inline proc "contextless" ( 
+	zoom, px_size : f32, scale : Vec2, interval, min, max : f32, clamp_scale : Vec2 
+) -> (resolved_size : f32, zoom_scale : Vec2)
+{
+	zoom_px_size     := px_size * zoom
+	resolved_size     = resolve_draw_px_size( zoom_px_size, interval, min, max )
+	zoom_diff_scalar := 1 + (zoom_px_size - resolved_size) * (1 / resolved_size)
+	zoom_scale        = zoom_diff_scalar * scale
+	zoom_scale.x      = clamp(zoom_scale.x, 0, clamp_scale.x)
+	zoom_scale.y      = clamp(zoom_scale.y, 0, clamp_scale.y)
+	return
+}
+
+set_alpha_scalar     :: #force_inline proc( ctx : ^Context, scalar   : f32 ) { assert(ctx != nil); ctx.alpha_sharpen    = scalar }
+set_px_scalar        :: #force_inline proc( ctx : ^Context, scalar   : f32 ) { assert(ctx != nil); ctx.px_scalar        = scalar }
+set_zoom_px_interval :: #force_inline proc( ctx : ^Context, interval : i32 ) { assert(ctx != nil); ctx.zoom_px_interval = f32(interval) }
+
+// During a shaping pass on text, will snap each glyph's position via ceil.
+set_snap_glyph_shape_position :: #force_inline proc( ctx : ^Context, should_snap : b32 ) {
+	assert(ctx != nil)
+	ctx.shaper_ctx.snap_glyph_position = should_snap
+}
+
+// During to_cache pass within batch_generate_glyphs_draw_list, will snap the quad's size using ceil.
+set_snap_glyph_render_height :: #force_inline proc( ctx : ^Context, should_snap : b32 ) { 
+	assert(ctx != nil)
+	ctx.glyph_buffer.snap_glyph_height = cast(f32) i32(should_snap)
+}
+
+//#endregion("misc")
+
+//#region("scope stack")
+
+/* Scope stacking ease of use interface.
+
+View: Extents in 2D for the relative space the the text is being drawn within.
+Used with snap_to_view_extent to enforce position snapping.
+
+Position: Used with a draw procedure that uses relative positioning will offset the incoming position by the given amount.
+Scale   : Used with a draw procedure that uses relative scaling, will scale the procedures incoming scale by the given amount.
+Zoom    : Used with a draw procedure that uses scaling via zoom, will scale the procedure's incoming font size & scale based on an 'canvas' camera's notion of it.
+*/
+
+@(deferred_in = auto_pop_font)
+scope_font         :: #force_inline proc( ctx : ^Context, font     : Font_ID ) { assert(ctx != nil); append(& ctx.stack.font, font ) }
+push_font          :: #force_inline proc( ctx : ^Context, font     : Font_ID ) { assert(ctx != nil); append(& ctx.stack.font, font ) }
+pop_font           :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.font) }
+auto_pop_font      :: #force_inline proc( ctx : ^Context, font     : Font_ID ) { assert(ctx != nil); pop(& ctx.stack.font) }
+
+@(deferred_in = auto_pop_font_size)
+scope_font_size    :: #force_inline proc( ctx : ^Context, px_size  : f32     ) { assert(ctx != nil); append(& ctx.stack.font_size, px_size) }
+push_font_size     :: #force_inline proc( ctx : ^Context, px_size  : f32     ) { assert(ctx != nil); append(& ctx.stack.font_size, px_size) }
+pop_font_size      :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.font_size) }
+auto_pop_font_size :: #force_inline proc( ctx : ^Context, px_size  : f32     ) { assert(ctx != nil); pop(& ctx.stack.font_size) }
+
+@(deferred_in = auto_pop_colour )
+scope_colour       :: #force_inline proc( ctx : ^Context, colour   : RGBAN   ) { assert(ctx != nil); append(& ctx.stack.colour, colour) }
+push_colour        :: #force_inline proc( ctx : ^Context, colour   : RGBAN   ) { assert(ctx != nil); append(& ctx.stack.colour, colour) }
+pop_colour         :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.colour) }
+auto_pop_colour    :: #force_inline proc( ctx : ^Context, colour   : RGBAN   ) { assert(ctx != nil); pop(& ctx.stack.colour) }
+
+@(deferred_in = auto_pop_view)
+scope_view         :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); append(& ctx.stack.view, view) }
+push_view          :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); append(& ctx.stack.view, view) }
+pop_view           :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop(& ctx.stack.view) }
+auto_pop_view      :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); pop(& ctx.stack.view) }
+
+@(deferred_in = auto_pop_position)
+scope_position     :: #force_inline proc( ctx : ^Context, position : Vec2    ) { assert(ctx != nil); append(& ctx.stack.position, position ) }
+push_position      :: #force_inline proc( ctx : ^Context, position : Vec2    ) { assert(ctx != nil); append(& ctx.stack.position, position ) }
+pop_position       :: #force_inline proc( ctx : ^Context                     ) { assert(ctx != nil); pop( & ctx.stack.position) }
+auto_pop_position  :: #force_inline proc( ctx : ^Context, view     : Vec2    ) { assert(ctx != nil); pop( & ctx.stack.position) }
+
+@(deferred_in = auto_pop_scale)
+scope_scale        :: #force_inline proc( ctx : ^Context, scale    : Vec2    ) { assert(ctx != nil); append(& ctx.stack.scale, scale ) }
+push_scale         :: #force_inline proc( ctx : ^Context, scale    : Vec2    ) { assert(ctx != nil); append(& ctx.stack.scale, scale ) }
+pop_scale          :: #force_inline proc( ctx : ^Context,                    ) { assert(ctx != nil); pop(& ctx.stack.scale) }
+auto_pop_scale     :: #force_inline proc( ctx : ^Context, scale    : Vec2    ) { assert(ctx != nil); pop(& ctx.stack.scale) }
+
+@(deferred_in = auto_pop_zoom )
+scope_zoom         :: #force_inline proc( ctx : ^Context, zoom     : f32     ) { append(& ctx.stack.zoom, zoom ) }
+push_zoom          :: #force_inline proc( ctx : ^Context, zoom     : f32     ) { append(& ctx.stack.zoom, zoom)  }
+pop_zoom           :: #force_inline proc( ctx : ^Context                     ) { pop(& ctx.stack.zoom) }
+auto_pop_zoom      :: #force_inline proc( ctx : ^Context, zoom     : f32     ) { pop(& ctx.stack.zoom) }
+
+@(deferred_in = auto_pop_vpz)
+scope_vpz    :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform  ) { 
+	assert(ctx != nil)
+	append(& ctx.stack.view,     camera.view     )
+	append(& ctx.stack.position, camera.position )
+	append(& ctx.stack.zoom,     camera.zoom     )
+}
+push_vpz     :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform  ) { 
+	assert(ctx != nil)
+	append(& ctx.stack.view,     camera.view     )
+	append(& ctx.stack.position, camera.position )
+	append(& ctx.stack.zoom,     camera.zoom     )
+}
+pop_vpz      :: #force_inline proc( ctx : ^Context ) {
+	assert(ctx != nil)
+	pop(& ctx.stack.view    )
+	pop(& ctx.stack.position)
+	pop(& ctx.stack.zoom    )
+}
+auto_pop_vpz :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform ) { 
+	assert(ctx != nil)
+	pop(& ctx.stack.view    )
+	pop(& ctx.stack.position)
+	pop(& ctx.stack.zoom    )
+}
+
+//#endregion("scope stack")

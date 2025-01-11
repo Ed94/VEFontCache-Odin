@@ -48,7 +48,7 @@ append :: proc {
 }
 
 append_soa :: proc {
-	append_soa_elem
+	append_soa_elem,
 }
 
 ceil :: proc {
