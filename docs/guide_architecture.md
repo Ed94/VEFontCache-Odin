@@ -203,22 +203,22 @@ For `to_cached`:
 
 ### On Layering
 
-The base draw list generation pippline provided by the library allows the user to batch whatever the want into a single "layer".
+The base draw list generation pippline provided by the library allows the user to batch whatever they want into a single "layer".
 However, the user most likely would want take into consideration: font instances, font size, colors; these are things that may benefit from having shared locality during a layer batch. Overlaping text benefits from the user to handle the ordering via layers.
 
-Layers (so far) are just a set of offssets tracked by the library's `Context.draw_layer` struct. When `flush_draw_list_layer` is called, the offsets are set to the current leng of the draw list. This allows the rendering backend to retrieve the latest set of vertices, indices, and calls to render on a per-layer basis with: `get_draw_list_layer`.
+Layers (so far) are just a set of offssets tracked by the library's `Context.draw_layer` struct. When `flush_draw_list_layer` is called, the offsets are set to the current length of the draw list. This allows the rendering backend to retrieve the latest set of vertices, indices, and calls to render on a per-layer basis with: `get_draw_list_layer`.
 
 Importantly, this leads to the following pattern when enuquing a layer to render:
 
 1. Begin render pass
 2. For codepath that will deal with text layers
     1. Process user-level code-path that calls the draw text interface, populating the draw list layer (usually a for loop)
-    2. After iteration on the layer is complete render the text layer
+    2. After iteration on the layer is complete, render the text layer
         1. grab the draw list layer
         2. flush the layer so the draw list offsets are reset
     3. Repeat until all layers for the codepath are exhausted.
 
-There is consideration to instead explicitly have a draw list with more contextual information of the start and end of each layer. So that batching can be orchestrated in an isolated section of their pipline.
+There is consideration to instead explicitly have a draw list with more contextual information of the start and end of each layer. So that batching can be orchestrated in an isolated section of their pipeline.
 
 This would involve just tracking *slices* of thier draw-list that represents layers:
 
