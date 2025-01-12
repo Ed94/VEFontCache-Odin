@@ -697,7 +697,12 @@ shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_si
     <-> scale   : Scale the glyph beyond its default scaling from its px_size.
 */
 @(optimization_mode="favor_size")
-draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context, colour : RGBAN,  position : Vec2, scale : Vec2,  shape  : Shaped_Text )
+draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context, 
+	colour   : RGBAN,  
+	position : Vec2, 
+	scale    : Vec2,  
+	shape    : Shaped_Text
+)
 {
 	profile(#procedure)
 	assert( ctx != nil )

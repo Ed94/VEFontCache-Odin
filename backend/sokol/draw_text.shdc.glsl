@@ -32,7 +32,6 @@ void main()
 {
 	float alpha = texture(sampler2D( ve_draw_text_src_texture, ve_draw_text_src_sampler ), uv ).x;
 
-	// const vec2  texture_size = 1.0f / vec2( 2048.0f, 512.0f );
 	const vec2  texture_size = glyph_buffer_size;
 	const float down_sample  = 1.0f / over_sample;
 

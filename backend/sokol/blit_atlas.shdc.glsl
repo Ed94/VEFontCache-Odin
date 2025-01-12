@@ -35,7 +35,6 @@ float down_sample_to_texture( vec2 uv, vec2 texture_size )
 
 void main()
 {
-	// const vec2 texture_size = 1.0f /  vec2( 2048.0f, 512.0f );
 	const vec2 texture_size = 1.0f / glyph_buffer_size;
 	if ( region == 0 || region == 1 || region == 2 || region == 4 )
 	{

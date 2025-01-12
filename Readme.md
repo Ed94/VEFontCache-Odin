@@ -33,13 +33,17 @@ Upcoming:
 
 * Support for ear-clipping triangulation, or just better triangulation..
   * Support for which triangulation method used on a by font basis?
-  * https://www.microsoft.com/en-us/research/wp-content/uploads/2005/01/p1000-loop.pdf
+  * [paper](https://www.microsoft.com/en-us/research/wp-content/uploads/2005/01/p1000-loop.pdf)
 * Multi-threading supported job queue.
   * Lift heavy-lifting portion of the library's context into a thread context.
   * Synchronize threads by merging their generated layered draw list into a finished draw-list for processing on the user's render thread.
   * User defines how thread context's are distributed for drawing (a basic quandrant based selector procedure will be provided.)
 
-See: [docs/Readme.md](docs/Readme.md) for the library's interface.
+## Documentation
+
+* [docs/Readme.md](docs/Readme.md) for the library's interface.
+* [docs/guide_backend.md](docs/guide_backend.md) for information on whats needed rolling your own backend.
+* [docs/guide_architecture.md](docs/guide_architecture.md) for an in-depth breakdown of the significant design decisions, and codepaths.
 
 ## Building
 
