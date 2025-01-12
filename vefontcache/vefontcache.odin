@@ -581,8 +581,8 @@ unload_font :: proc( ctx : ^Context, font : Font_ID )
 	entry     := & ctx.entries[ font ]
 	entry.used = false
 
-	parser_unload_font( & entry.parser_info )
 	shaper_unload_font( & entry.shaper_info )
+	parser_unload_font( & entry.parser_info )
 }
 
 // Can be used with hot-reload

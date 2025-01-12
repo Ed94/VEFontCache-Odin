@@ -28,6 +28,7 @@ Glyph_Draw_Quad :: struct {
 // This is used by generate_shape_draw_list & batch_generate_glyphs_draw_list 
 // to track relevant glyph data in soa format for pipelined processing
 Glyph_Pack_Entry :: struct #packed {
+	vis_index          : i16,
 	position           : Vec2,
 
 	atlas_index        : i32,
@@ -320,7 +321,7 @@ generate_shape_draw_list :: proc( draw_list : ^Draw_List, shape : Shaped_Text,
 	oversized  := & glyph_buffer.oversized
 	to_cache   := & glyph_buffer.to_cache
 	cached     := & glyph_buffer.cached
-	resize_soa_non_zero(glyph_pack, len(shape.glyph))
+	resize_soa_non_zero(glyph_pack, len(shape.visible))
 
 	append_sub_pack :: #force_inline proc ( pack : ^[dynamic]i32, entry : i32 )
 	{
@@ -332,11 +333,18 @@ generate_shape_draw_list :: proc( draw_list : ^Draw_List, shape : Shaped_Text,
 
 	profile_begin("translate")
 	for & glyph, index in glyph_pack {
-		glyph.position = target_position + (shape.position[index]) * target_scale
+		// Throughout the draw list generation vis_id will need to be used over index as 
+		// not all glyphs or positions for the shape are visibly rendered.
+		vis_id        := shape.visible[index]
+		glyph.position = target_position + (shape.position[vis_id]) * target_scale
 	}
 	profile_end()
 
 	profile_begin("batching & segregating glyphs")
+	// We do any reservation up front as appending to the array's will not check.
+	reserve(oversized, len(shape.visible))
+	reserve(to_cache,  len(shape.visible))
+	reserve(cached,    len(shape.visible))
 	clear(oversized)
 	clear(to_cache)
 	clear(cached)
@@ -344,15 +352,13 @@ generate_shape_draw_list :: proc( draw_list : ^Draw_List, shape : Shaped_Text,
 
 	for & glyph, index in glyph_pack
 	{
+		// atlas_lru_code, region_kind, and bounds are all 1:1 with shape.visible
 		atlas_key          := shape.atlas_lru_code[index]
 		region_kind        := shape.region_kind[index]
 		bounds             := shape.bounds[index]
 		bounds_size_scaled := size(bounds) * font_scale
 
-		if region_kind == .None { 
-			assert(false, "FAILED TO ASSGIN REGION")
-			continue
-	 	}
+		assert(region_kind != .None, "FAILED TO ASSGIN REGION")
 		when ENABLE_OVERSIZED_GLYPHS
 		{
 			if region_kind == .E
@@ -454,7 +460,11 @@ generate_shape_draw_list :: proc( draw_list : ^Draw_List, shape : Shaped_Text,
 	The transform and draw quads are computed first (getting the math done in one spot as possible)
 	Some of the math from to_cache pass for glyph generation was not moved over (it could be but I'm not sure its worth it)
 
-	Order: Oversized first, then to_cache, then cached.
+	Order    : Oversized first, then to_cache, then cached.
+	Important: These slices store ids for glyph_pack which matches shape.visible in index. 
+	shape.position and shape.glyph DO NOT.
+
+	There are only two places this matters for: getting glyph shapes when doing glyph pass generation for oversized and to_cache iterations.
 
 	Oversized and to_cache will both enqueue operations for rendering glyphs to the glyph buffer render target.
 	The compute section will have operations regarding how many glyphs they may alloate before a flush must occur.
@@ -589,12 +599,13 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 			colour.g = 1.0
 			colour.b = 0.0
 		}
-		// for pack_id, index in oversized {
-		// 	error : Allocator_Error
-		// 	glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[pack_id])
-		// 	assert(error == .None)
-		// 	assert(glyph_pack[pack_id].shape != nil)
-		// }
+		for pack_id, index in oversized {
+			vis_id := shape.visible[pack_id]
+			error : Allocator_Error
+			glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[vis_id])
+			assert(error == .None)
+			assert(glyph_pack[pack_id].shape != nil)
+		}
 		for id, index in oversized
 		{
 			glyph  := & glyph_pack[id]
@@ -605,10 +616,11 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 				& glyph_buffer.allocated_x
 			)
 
-			error : Allocator_Error
-			glyph.shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[id])
-			assert(error == .None)
-			assert(len(glyph.shape) > 0)
+			// vis_id := shape.visible[id]
+			// error : Allocator_Error
+			// glyph.shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[vis_id])
+			// assert(error == .None)
+			// assert(len(glyph.shape) > 0)
 			
 			generate_glyph_pass_draw_list( draw_list, & glyph_buffer.shape_gen_scratch,
 				glyph_pack[id].shape, 
@@ -618,8 +630,8 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 				glyph_pack[id].draw_transform.scale
 			)
 
-			assert(len(glyph.shape) > 0)
-			parser_free_shape(entry.parser_info, glyph.shape)
+			// assert(len(glyph.shape) > 0)
+			// parser_free_shape(entry.parser_info, glyph.shape)
 
 			target_quad := & glyph_pack[id].draw_quad
 
@@ -639,10 +651,10 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 		}
 
 		flush_glyph_buffer_draw_list(draw_list, & glyph_buffer.draw_list, & glyph_buffer.clear_draw_list, & glyph_buffer.allocated_x)
-		// for pack_id, index in oversized {
-		// 	assert(glyph_pack[pack_id].shape != nil)
-		// 	parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
-		// }
+		for pack_id, index in oversized {
+			assert(glyph_pack[pack_id].shape != nil)
+			parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
+		}
 	}
 	profile_end()
 
@@ -671,12 +683,13 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 	profile_begin("to_cache: caching to atlas")
 	if len(to_cache) > 0
 	{
-		// for pack_id, index in to_cache {
-		// 	error : Allocator_Error
-		// 	glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[pack_id])
-		// 	assert(error == .None)
-		// 	assert(glyph_pack[pack_id].shape != nil)
-		// }
+		for pack_id, index in to_cache {
+			vis_id := shape.visible[pack_id]
+			error : Allocator_Error
+			glyph_pack[pack_id].shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[vis_id])
+			assert(error == .None)
+			assert(glyph_pack[pack_id].shape != nil)
+		}
 
 		for id, index in to_cache
 		{
@@ -730,10 +743,11 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 			append( & glyph_buffer.clear_draw_list.calls, clear_target_region )
 			append( & glyph_buffer.draw_list.calls,       blit_to_atlas )
 
-			error : Allocator_Error
-			glyph.shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[id])
-			assert(error == .None)
-			assert(len(glyph.shape) > 0)
+			// vis_id := shape.visible[id]
+			// error : Allocator_Error
+			// glyph.shape, error = parser_get_glyph_shape(entry.parser_info, shape.glyph[vis_id])
+			// assert(error == .None)
+			// assert(len(glyph.shape) > 0)
 	
 			// Render glyph to glyph render target (FBO)
 			generate_glyph_pass_draw_list( draw_list, & glyph_buffer.shape_gen_scratch, 
@@ -744,15 +758,15 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 				glyph.draw_transform.scale 
 			)
 			
-			assert(len(glyph.shape) > 0)
-			parser_free_shape(entry.parser_info, glyph.shape)
+			// assert(len(glyph.shape) > 0)
+			// parser_free_shape(entry.parser_info, glyph.shape)
 		}
 
 		flush_glyph_buffer_draw_list(draw_list, & glyph_buffer.draw_list, & glyph_buffer.clear_draw_list, & glyph_buffer.allocated_x)
-		// for pack_id, index in to_cache {
-		// 	assert(glyph_pack[pack_id].shape != nil)
-		// 	parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
-		// } 
+		for pack_id, index in to_cache {
+			assert(glyph_pack[pack_id].shape != nil)
+			parser_free_shape(entry.parser_info, glyph_pack[pack_id].shape)
+		} 
 
 		profile_begin("gen_cached_draw_list: to_cache")
 		when ENABLE_DRAW_TYPE_VISUALIZATION {

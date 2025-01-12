@@ -74,7 +74,9 @@ parser_stbtt_allocator_proc :: proc(
 	assert(error == .None)
 
 	if type == .Alloc || type == .Resize {
-		return transmute(rawptr) & result[0]
+		raw := transmute(Raw_Slice) result
+		// assert(raw.len > 0, "Allocation is 0 bytes?")
+		return transmute(rawptr) raw.data
 	}
 	else do return nil
 }

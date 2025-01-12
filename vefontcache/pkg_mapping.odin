@@ -5,6 +5,7 @@ import "base:builtin"
 import "base:runtime"
 	Raw_Dynamic_Array :: runtime.Raw_Dynamic_Array
 	Raw_Map           :: runtime.Raw_Map
+	Raw_Slice         :: runtime.Raw_Slice
 	raw_soa_footer    :: runtime.raw_soa_footer
 	nil_allocator     :: runtime.nil_allocator
 import "core:hash"

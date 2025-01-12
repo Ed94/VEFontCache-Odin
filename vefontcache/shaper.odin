@@ -27,6 +27,7 @@ Shape_Key :: u32
 Shaped_Text :: struct #packed {
 	glyph          : [dynamic]Glyph,
 	position       : [dynamic]Vec2,
+	visible        : [dynamic]i32,
 	atlas_lru_code : [dynamic]Atlas_Key,
 	region_kind    : [dynamic]Atlas_Region_Kind,
 	bounds         : [dynamic]Range2,
@@ -100,7 +101,7 @@ shaper_load_font :: #force_inline proc( ctx : ^Shaper_Context, label : string, d
 
 shaper_unload_font :: #force_inline proc( info : ^Shaper_Info )
 {
-	if info.blob != nil do harfbuzz.font_destroy( info.font )
+	if info.font != nil do harfbuzz.font_destroy( info.font )
 	if info.face != nil do harfbuzz.face_destroy( info.face )
 	if info.blob != nil do harfbuzz.blob_destroy( info.blob )
 }
@@ -125,6 +126,7 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context,
 
 	clear( & output.glyph )
 	clear( & output.position )
+	clear( & output.visible )
 
 	current_script := harfbuzz.Script.UNKNOWN
 	hb_ucfunc      := harfbuzz.unicode_funcs_get_default()
@@ -210,10 +212,15 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context,
 			(position^)      += advance
 			(max_line_width^) = max(max_line_width^, position.x)
 
-			is_empty := parser_is_glyph_empty(entry.parser_info, glyph)
-			if ! is_empty && glyph != 0 {
-				append( & output.glyph, glyph )
-				append( & output.position, glyph_pos)
+			// We track all glyphs so that user can use the shape for navigation purposes.
+			append( & output.glyph, glyph )
+			append( & output.position, glyph_pos)
+
+			// We don't accept all glyphs for rendering, harfbuzz preserves positions of non-visible codepoints (as .notdef glyphs)
+			// We also double check to make sure the glyph isn't detected for drawing by the parser.
+			visible_glyph := glyph != 0 && ! parser_is_glyph_empty(entry.parser_info, glyph)
+			if visible_glyph {
+				append( & output.visible, cast(i32) len(output.glyph) - 1 )
 			}
 		}
 
@@ -234,17 +241,23 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context,
 		// Can we continue the current run?
 		ScriptKind :: harfbuzz.Script
 
-		special_script : b32 = script == ScriptKind.UNKNOWN || script == ScriptKind.INHERITED || script == ScriptKind.COMMON
-		if special_script                \
+		// These scripts don't break runs because they don't represent script transitions - they adapt to their context. 
+		// Maintaining the current shaping run for these scripts ensures correct processing of marks, numbers, 
+		// and punctuation within the primary text flow.
+		is_neutral_script := script == ScriptKind.UNKNOWN || script == ScriptKind.INHERITED || script == ScriptKind.COMMON
+
+		// Essentially if the script is neutral, or the same as current, 
+		// or this is the first codepoint: add it to the buffer and continue the loop.
+		if is_neutral_script             \
 		|| script      == current_script \
 		|| byte_offset == 0 
 		{
 			harfbuzz.buffer_add( ctx.hb_buffer, hb_codepoint, codepoint == '\n' ? 1 : 0 )
-			current_script = special_script ? current_script : script
+			current_script = is_neutral_script ? current_script : script
 			continue
 		}
 
-		// End current run since we've encountered a script change.
+		// End current run since we've encountred a significant script change.
 		shape_run( output,
 			entry, 
 			ctx.hb_buffer, 
@@ -281,22 +294,26 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context,
 
 	// Resolve each glyphs: bounds, atlas lru, and the atlas region as we have everything we need now.
 
-	resize( & output.atlas_lru_code, len(output.glyph) )
-	resize( & output.region_kind,    len(output.glyph) )
-	resize( & output.bounds,         len(output.glyph) )
+	resize( & output.atlas_lru_code, len(output.visible) )
+	resize( & output.region_kind,    len(output.visible) )
+	resize( & output.bounds,         len(output.visible) )
 
 	profile_begin("atlas_lru_code")
-	for id, index in output.glyph {
-		output.atlas_lru_code[index] = atlas_glyph_lru_code(entry.id, font_px_size, id)
+	for vis_id, index in output.visible {
+		glyph_id                    := output.glyph[vis_id]
+		output.atlas_lru_code[index] = atlas_glyph_lru_code(entry.id, font_px_size, glyph_id)
+		// atlas_lru_code is 1:1 with visible index
 	}
 	profile_end()
 
 	profile_begin("bounds & region")
-	for id, index in output.glyph {
+	for vis_id, index in output.visible {
+		glyph_id                 := output.glyph[vis_id]
 		bounds                   := & output.bounds[index]
-		(bounds ^)                = parser_get_bounds( entry.parser_info, id )
+		(bounds ^)                = parser_get_bounds( entry.parser_info, glyph_id )
 		bounds_size_scaled       := (bounds.p1 - bounds.p0) * font_scale
 		output.region_kind[index] = atlas_decide_region( atlas, glyph_buffer_size, bounds_size_scaled )
+		// bounds & region_kind are 1:1 with visible index
 	}
 	profile_end()
 
@@ -323,6 +340,7 @@ shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 
 	clear( & output.glyph )
 	clear( & output.position )
+	clear( & output.visible )
 
 	line_height := (entry.ascent - entry.descent + entry.line_gap) * font_scale
 
@@ -353,14 +371,16 @@ shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 
 		glyph_index    := parser_find_glyph_index( entry.parser_info, codepoint )
 		is_glyph_empty := parser_is_glyph_empty( entry.parser_info, glyph_index )
-		if ! is_glyph_empty
-		{
-			if ctx.snap_glyph_position {
-				position.x = ceil(position.x)
-				position.y = ceil(position.y)
-			}
-			append( & output.glyph, glyph_index)
-			append( & output.position, position)
+
+		if ctx.snap_glyph_position {
+			position.x = ceil(position.x)
+			position.y = ceil(position.y)
+		}
+		append( & output.glyph, glyph_index)
+		append( & output.position, position)
+
+		if ! is_glyph_empty {
+			append( & output.visible, cast(i32) len(output.glyph) - 1 )
 		}
 
 		advance, _ := parser_get_codepoint_horizontal_metrics( entry.parser_info, codepoint )
@@ -381,17 +401,21 @@ shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 	resize( & output.bounds,         len(output.glyph) )
 
 	profile_begin("atlas_lru_code")
-	for id, index in output.glyph {
-		output.atlas_lru_code[index] = atlas_glyph_lru_code(entry.id, font_px_size, id)
+	for vis_id, index in output.visible {
+		glyph_id                    := output.glyph[vis_id]
+		output.atlas_lru_code[index] = atlas_glyph_lru_code(entry.id, font_px_size, glyph_id)
+		// atlas_lru_code is 1:1 with visible index
 	}
 	profile_end()
 
 	profile_begin("bounds & region")
-	for id, index in output.glyph {
+	for vis_id, index in output.visible {
+		glyph_id                 := output.glyph[vis_id]
 		bounds                   := & output.bounds[index]
-		(bounds ^)                = parser_get_bounds( entry.parser_info, id )
+		(bounds ^)                = parser_get_bounds( entry.parser_info, glyph_id )
 		bounds_size_scaled       := (bounds.p1 - bounds.p0) * font_scale
 		output.region_kind[index] = atlas_decide_region( atlas, glyph_buffer_size, bounds_size_scaled )
+		// bounds & region_kind are 1:1 with visible index
 	}
 	profile_end()
 
