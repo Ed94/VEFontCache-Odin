@@ -1,4 +1,4 @@
-# Backend Guide
+# Guide: Backend
 
 The end-user needs to adapt this library to hook into their own codebase. For reference, they can check the [examples](../examples/) and [backend](../backend/) directories for working code that demonstrates what this guide covers.
 
