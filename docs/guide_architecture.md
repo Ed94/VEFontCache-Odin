@@ -1,43 +1,42 @@
 # Guide: Architecture
 
-Overview on the state of package design and codepath layout.
+Overview of the package design and code-path layout.
 
 ---
 
-The purpose of this library to really allieviate four issues with one encapsulating package:
+The purpose of this library is to alleviate four key challenges with one encapsulating package:
 
-* font parsing
-* text codepoint shaping
-* glyph shape triangulation
-* glyph draw-list generation
+* Font parsing
+* Text codepoint shaping
+* Glyph shape triangulation
+* Glyph draw-list generation
 
-Shaping text, getting metrics for the glyphs, triangulating glyphs, and anti-aliasing their render are expensive todo per frame. So anything related to that compute that may be cached, will be.
+Shaping text, getting metrics for glyphs, triangulating glyphs, and anti-aliasing their render are expensive operations to perform per frame. Therefore, any compute operations that can be cached, will be.
 
 There are two cache types used:
 
-* shape cache (`Shaped_Text_Cache.state`)
-* atlas region cache (`Atlas_Region.state`)
+* Shape cache (`Shaped_Text_Cache.state`)
+* Atlas region cache (`Atlas_Region.state`)
 
 The shape cache stores all data for a piece of text that will be utilized in a draw call that is not dependent on a specific position & scale (and is faster to lookup vs compute per draw call).  
-The atlas region cache tracks what slots have glyphs rendered to the texture atlas. This essentially is caching of triangulation and super-sampling compute.
+The atlas region cache tracks what slots have glyphs rendered to the texture atlas. This essentially caches triangulation and super-sampling computations.
 
-All caching uses the [LRU.odin](../vefontcache/LRU.odin)
+All caching uses [LRU.odin](../vefontcache/LRU.odin)
 
-## Codepaths
+## Code Paths
 
 ### Lifetime
 
-The library lifetime is pretty straightfoward, you have a startup to do that should just be called sometime in your usual app start.s. From there you may either choose to manually shut it down or let the OS clean it up.
+The library lifetime is straightforward: you have a startup procedure that should be called during your usual app initialization. From there you may either choose to manually shut it down or let the OS clean it up.
 
-If hot-reload is desired, you just need to call hot_reload with the context's backing allocator to refresh the procedure references. After the dll has been reloaded those should be the only aspects that have been scrambled.
+If hot-reload is desired, you just need to call hot_reload with the context's backing allocator to refresh the procedure references. After the DLL has been reloaded, these should be the only aspects that have been scrambled.  
+Usually when hot-reloading the library for tuning or major changes, you'd also want to clear the caches. Simply call `clear_atlas_region_caches` & `clear_shape_cache` right after.
 
-Usually when hot-reloading the library for tuning or major changes, you'd also want to clear the caches. So just call the clear_atlas_region_caches` & `clear_shape_cache` right after.
-
-Ideally there should be zero dynamic allocation on a per-frame basis so long as the reserves for the dynamic containers are never exceeded. Its alright if they do as their memory locality is so large their distance in the pages to load into cpu cache won't matter, just needs to be a low incidence.
+Ideally, there should be zero dynamic allocation on a per-frame basis as long as the reserves for the dynamic containers are never exceeded. It's acceptable if they do exceed as their memory locality is so large their distance in the pages to load into CPU cache won't matter - it just needs to be a low incidence.
 
 ### Shaping Pass
 
-If the user is using the library's cache, then at some point `shaper_shape_text_cached` which handles the hasing and lookup. So long as a shape is found it will not enter uncached codepath. By default this library uses `shaper_shape_harfbuzz` as the `shape_text_uncached` procedure.
+If using the library's cache, `shaper_shape_text_cached` handles the hashing and lookup. As long as a shape is found, it will not enter the uncached code path. By default, this library uses `shaper_shape_harfbuzz` as the `shape_text_uncached` procedure.
 
 Shapes are cached using the following parameters to hash a key:
 
@@ -77,7 +76,7 @@ Shaped_Text :: struct #packed {
 }
 ```
 
-What is actually the result of the shaping process is the arrays of glyphs and their positions for the the shape or most historically known as: *Slug*, of prepared text for printing. The end position of where the user's "cursor" would be is also recorded which provided the end position of the shape. The size of the shape is also resolved here, which if using px_scalar must be downscaled. `measure_shape_size` does the downscaling for the user.
+The result of the shaping process is the glyphs and their positions for the the shape; historically resembling whats known as a *Slug* of prepared text for printing. The end position of where the user's "cursor" would be is also recorded which provided the end position of the shape. The size of the shape is also resolved here, which if using px_scalar must be downscaled. `measure_shape_size` does the downscaling for the user.
 
 `visible` tracks which of the glyphs will actually be relevant for the draw_list pass. This is to avoid a conditional jump during the draw list gen pass. When accessing glyph or position during the draw_list gen, they will use visible's relative index.
 
@@ -89,7 +88,7 @@ As stated under the main heading of this guide, the the following are within sha
 * region_kind
 * bounds
 
-They're arrays are the same length as `visible`, so indexing those will not need to use visibile's relative index.
+These are the same length as the `visible` array, so indexing those will not need to use visibile's relative index.
 
 `shaper_shape_text_latin` does naive shaping by utilizing the codepoint's kern_advance and detecting newlines.  
 `shaper_shape_harfbuzz` is an actual shaping *engine*. Here is the general idea of how the library utilizes it for shaping:
@@ -98,11 +97,11 @@ They're arrays are the same length as `visible`, so indexing those will not need
 2. Determine the line height
 3. Go through the codepoints: (for each)
     1. Determine the codepoint's script
-    2. If the script is netural (Uknown, Inherited, or of Common type), or the script has not changed, or this is the first codepoint of the shape we can add the codepoint to the buffer.
-    3. Otherwise we may have to start a shaping run if we do encounter a significant script change. After, we can add the codepoint to the post-run-cleared hb_buffer.
+    2. If the script is netural (Uknown, Inherited, or of Common type), the script has not changed, or this is the first codepoint of the shape we can add the codepoint to the buffer.
+    3. Otherwise we will have to start a shaping run if we do encounter a significant script change. After, we can add the codepoint to the post-run-cleared hb_buffer.
     4. This continues until all codepoints have been processed.
 4. We do a final shape run after iterating to make sure all codepoints have been processed.
-5. Set the size of the shape: x is max line width, y is line height multiplied by the line count.
+5. Set the size of the shape: X is max line width, Y is line height multiplied by the line count.
 6. Resolve the atlas_lru_code, region_kind, and bounds for all visible glyphs
 7. Store the font and px_size information.
 
@@ -134,15 +133,15 @@ There are other shapers out there:
 
 ### Draw List Generation
 
-All interface draw text procedures will ultimately call: `generate_shape_draw_list`. If the draw procedure is given text, it will call `shaper_shape_text_cached` the text immeidately before calling it.
+All interface draw text procedures will ultimately call `generate_shape_draw_list`. If the draw procedure is given text, it will call `shaper_shape_text_cached` the text immediately before calling it.
 
 Its implementation uses a batched-pipeline approach where its goal is to populate three arrays behavings as queues:  
 
 * oversized: For drawing oversized glyphs
-* to_cache: For glyphs that need triangulation/rendering to glyph buffer then blitting to atlas.
+* to_cache: For glyphs that need triangulation & rendering to glyph buffer then blitting to atlas.
 * cache: For glyphs that are already cached in the atlas and just need to be blit to the render target.
 
-And then sent those off to `batch_generate_glyphs_draw_list` for futher actual generaiton to be done. The size of a batch is determined by the capacity of the glyph_buffer's `batch_cache`. This can be set in `glyph_draw_params` for startup.
+And then sent those off to `batch_generate_glyphs_draw_list` for further actual generation to be done. The size of a batch is determined by the capacity of the glyph_buffer's `batch_cache`. This can be set in `glyph_draw_params` for startup.
 
 `glyph_buffer.glyph_pack` is utilized by both `generate_shape_draw_list` and `batch_generate_glyphs_draw_list` to various computed data in an SOA data structure for the glyphs.
 
@@ -151,12 +150,12 @@ generate_shape_draw_list outline:
 1. Prepare glyph_pack, oversized, to_cache, cached, and reset the batch cache
     * `glyph_pack` is resized to to the length of `shape.visible`
     * The other arrays populated have their reserved set to that length as well (they will not bounds check capacity on append)
-2. Iterate though the shape.visible and resolve glyph_pack's positions.
+2. Iterate through the shape.visible and resolve glyph_pack's positions.
 3. Iterate through shape.visible this time for final region resolution and segregation of glyphs to their appropriate queue.
     1. If the glyphs assigned region is `.E` its oversized. The `oversample` used for rendering to render target will either be 2x or 1x depending on how huge it is.
     2. The following glyphs are checked to see if their assigned region has the glyph `cached`.
         1. If it does, its just appended to cached and marked as seen in the `batch_cache`.
-        2. If its doesn't then a slot is reseved for within the atlas's region and the glyph is appended to `to_cache`.
+        2. If its doesn't then a slot is reserved for within the atlas's region and the glyph is appended to `to_cache`.
         3. For either case the atlas_region_bbox is computed.
     3. After a batch has been resolved, `batch_generate_glyphs_draw_list` is called.
 4. If there is an partially filled batch (the usual case), batch_generate_glyphs_draw_list will be called for it.
@@ -171,7 +170,7 @@ The batch is organized into three major stages:
 3. blit-from-atlas to render target draw list generation (`to_cache` & `cached`)
 
 Glyph transform & draw quads compute does an iteration for each of the 3 arrays.  
-Nearly all the math for all three is there *except* for `to_cache`, which does its blitting compute in its glyph_buffer draw-list gen pass.
+Nearly all the math for all three is done there *except* for `to_cache`, which does its blitting compute in its glyph_buffer draw-list gen pass.
 
 glyph_buffer draw list generation paths for `oversized` and `to_cache` are unique to each.
 
@@ -196,9 +195,9 @@ For `to_cached`:
 4. free glyph shapes
 5. Do blits from atlas to draw list.
 
-`cached` only needsto blit from the atlas to the render target.
+`cached` only needs to blit from the atlas to the render target.
 
-`generate_glyph_pass_draw_list`: sets up the draw call for glyph to the glyph buffer. Currently it also handles triangulation as well. For now the shape triangulation is rudimentary and uses triangle fanning. Eventually it would be nice to offer alternatve modes that can be specified on a per-font basis.
+`generate_glyph_pass_draw_list`: sets up the draw call for glyph to the glyph buffer. Currently it also handles triangulation as well. For now the shape triangulation is rudimentary and uses triangle fanning. Eventually it would be nice to offer alternative modes that can be specified on a per-font basis.
 
 `flush_glyph_buffer_draw_list`: Will merge the draw_lists contents of the glyph buffer over to the library's general draw_list, the clear the buffer's draw lists.
 

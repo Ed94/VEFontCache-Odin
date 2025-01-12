@@ -58,7 +58,7 @@ There a total of six procedures, 3 for shapes, 3 for text:
 * `draw_shape_normalized_space`
 * `draw_shape_view_space`
 * `draw_shape`
-* `draw_text_normalized_space
+* `draw_text_normalized_space`
 * `draw_text_view_space`
 * `draw_text`
 
