@@ -1,6 +1,6 @@
 # VE Font Cache
 
-Vertex Engine GPU Font Cache: A text rendering library.
+Vertex Engine GPU Font Cache: A text shaping & rendering library.
 
 This project started as a port of the [VEFontCache](https://github.com/hypernewbie/VEFontCache) library to the Odin programming language.  
 While originally intended for game engines, its rendering quality and performance make it suitable for many other applications.
@@ -19,7 +19,7 @@ Features:
   * Tracks text layers
   * Enforce even-only font sizing (useful for linear zoom)
   * Push and pop stack for font, font_size, color, view, position, scale, and zoom
-* Basic or advanced text shaping via Harfbuzz
+* Basic (latin) or advanced (harfbuzz) text shaping
 * All rendering is real-time, with triangulation on the CPU, vertex rendering and texture blitting on the GPU
   * Can handle thousands of draw text calls with very large or small shapes
 * 4-Level Regioned Texture Atlas for caching rendered glyphs
@@ -48,6 +48,8 @@ Upcoming:
 * [docs/Readme.md](docs/Readme.md) for the library's interface
 * [docs/guide_backend.md](docs/guide_backend.md) for information on implementing your own backend
 * [docs/guide_architecture.md](docs/guide_architecture.md) for an in-depth breakdown of significant design decisions and code-paths
+
+For learning about text shaping & rendering see: [notes](https://github.com/Ed94/TextRendering_Notes)
 
 ## Building
 
