@@ -51,6 +51,25 @@ Shape will NOT be cached by the library. Use this if you want to roll your own s
 
 ## Draw list generation
 
+### draw_text procedures
+
+There a total of six procedures, 3 for shapes, 3 for text:
+
+* `draw_shape_normalized_space`
+* `draw_shape_view_space`
+* `draw_shape`
+* `draw_text_normalized_space
+* `draw_text_view_space`
+* `draw_text`
+
+The normalized space procedures are the `baseline` interface draw procedures. They expec the position, and scale provided to operate with an unsigned normalized space where the bottom left is 0.0, 0.0 and the top right is 1.0, 1.0.
+
+The view space will normalize the position and scale for the user based on the provided view and zoom. The coordinate system is still unsigned just scaled to the view's size.
+
+The non-suffix named procedures use the scope stack to derive the position and scale the user provides a relative position and scale for the text that will be adjusted to the scope's view, position, scale, & zoom.
+
+See the comment above each of the procedures for diagrams.
+
 ### get_draw_list
 
 Get the enqueded draw_list (vertices, indices, and draw call arrays) in its entirety.

@@ -697,7 +697,7 @@ shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_si
     <-> scale   : Scale the glyph beyond its default scaling from its px_size.
 */
 @(optimization_mode="favor_size")
-draw_text_shape_normalized_space :: #force_inline proc( ctx : ^Context, 
+draw_shape_normalized_space :: #force_inline proc( ctx : ^Context, 
 	colour   : RGBAN,  
 	position : Vec2, 
 	scale    : Vec2,  
@@ -823,7 +823,7 @@ draw_text_normalized_space :: proc( ctx : ^Context,
 	    zoom    : Will affect the scale similar to how the zoom on a canvas would behave.
 */
 // @(optimization_mode="favor_size")
-draw_text_shape_view_space :: #force_inline proc( ctx : ^Context,
+draw_shape_view_space :: #force_inline proc( ctx : ^Context,
 	colour   : RGBAN, 
 	view     : Vec2,
 	position : Vec2,
