@@ -36,3 +36,17 @@ The index buffer is just a u32 stream.
 For how a quad mesh is laid out see `blit_quad` in [draw.odin](../vefontcache/draw.odin)
 
 For how glyph shape triangulation meshes, the library currently only uses a triangle fanning technique so `fill_path_via_fan_triangulation` within [draw.odin](../vefontcache/draw.odin) is where that is being done. Eventually the libary will also support other modes on a per-font basis.
+
+## Keep in mind GLSL vs HLSL UV (texture) coordinate convention
+
+The UV coordinates used DirectX, Metal, and Vulkan all consider the top-left corner (0, 0), Where the Y axis increases downwards (traditional screenspace). This library follows the convention of (0, 0) being at the bottom-left (Y goes up) which is what OpenGL uses.
+
+In the shader the UV just has to be adjusted accordingly:
+
+```c
+#if ! OpenGL
+uv = vec2( v_texture.x, 1.0 - v_texture.y );
+#else
+uv = vec2( v_texture.x, v_texture.y );
+#endif
+```
