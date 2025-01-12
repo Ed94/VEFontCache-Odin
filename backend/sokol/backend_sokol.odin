@@ -548,7 +548,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					samplers            = { SMP_ve_blit_atlas_src_sampler = ctx.glyph_rt_sampler, },
 				})
 
-			// 3. Use the atlas to then render the text.
+			// 3. Use the atlas (.Target) or the glyph buffer (.Target_Unchached) to then render the text.
 			case .None, .Target, .Target_Uncached:
 				if num_indices == 0 && ! draw_call.clear_before_draw {
 					continue

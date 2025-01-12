@@ -1,6 +1,6 @@
 # VE Font Cache
 
-
+Vertex Engine GPU Font Cache: A text rendering libary.
 
 This started off as a port of the [VEFontCache](https://github.com/hypernewbie/VEFontCache) library to the Odin programming language.
 Its original purpose was for use in game engines, however its rendeirng quality and performance is more than adequate for many other applications.
