@@ -147,7 +147,7 @@ measure_text_size :: proc( text : string, font : Font_ID, font_size := Font_Use_
 get_font_vertical_metrics :: #force_inline proc ( font : Font_ID, font_size := Font_Use_Default_Size ) -> ( ascent, descent, line_gap : f32 ) 
 {
 	def                      := demo_ctx.font_ids[ font.label ]
-	ascent, descent, line_gap = ve.get_font_vertical_metrics( & demo_ctx.ve_ctx, def.ve_id, font_size )
+	ascent, descent, line_gap = ve.get_font_vertical_metrics( demo_ctx.ve_ctx, def.ve_id, font_size )
 	return
 }
 

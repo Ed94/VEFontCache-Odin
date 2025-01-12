@@ -1144,7 +1144,7 @@ flush_draw_list_layer :: #force_inline proc( ctx : ^Context ) {
 // Where its assumed when utilizing the draw_list generators or shaping procedures that the shape will be affected by it so it must be handled.
 // If px_scalar is 1.0 no effect is done and its just redundant ops.
 
-measure_shape_size :: #force_inline proc( ctx : ^Context, shape : Shaped_Text ) -> (measured : Vec2) {
+measure_shape_size :: #force_inline proc( ctx : Context, shape : Shaped_Text ) -> (measured : Vec2) {
 	measured = shape.size * (1 / ctx.px_scalar)
 	return
 }
@@ -1178,9 +1178,8 @@ measure_text_size :: #force_inline proc( ctx : ^Context, font : Font_ID, px_size
 	return shaped.size * target_scale
 }
 
-get_font_vertical_metrics :: #force_inline proc ( ctx : ^Context, font : Font_ID, px_size : f32 ) -> ( ascent, descent, line_gap : f32 )
+get_font_vertical_metrics :: #force_inline proc ( ctx : Context, font : Font_ID, px_size : f32 ) -> ( ascent, descent, line_gap : f32 )
 {
-	assert( ctx != nil )
 	assert( font >= 0 && int(font) < len(ctx.entries) )
 
 	entry := ctx.entries[ font ]
