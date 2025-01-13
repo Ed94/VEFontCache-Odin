@@ -271,24 +271,24 @@ startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // N
 
 		for idx : u32 = 0; idx < shape_cache_params.capacity; idx += 1
 		{
-			stroage_entry := & shape_cache.storage[idx]
+			storage_entry := & shape_cache.storage[idx]
 
-			stroage_entry.glyph, error = make( [dynamic]Glyph, len = 0, cap = shape_cache_params.reserve )
+			storage_entry.glyph, error = make( [dynamic]Glyph, len = 0, cap = shape_cache_params.reserve )
 			assert( error == .None, "VEFontCache.init : Failed to allocate glyphs array for shape cache storage" )
 
-			stroage_entry.position, error = make( [dynamic]Vec2, len = 0, cap = shape_cache_params.reserve )
+			storage_entry.position, error = make( [dynamic]Vec2, len = 0, cap = shape_cache_params.reserve )
 			assert( error == .None, "VEFontCache.init : Failed to allocate positions array for shape cache storage" )
 
-			stroage_entry.visible, error = make( [dynamic]i32, len = 0, cap = shape_cache_params.reserve )
+			storage_entry.visible, error = make( [dynamic]i32, len = 0, cap = shape_cache_params.reserve )
 			assert( error == .None, "VEFontCache.init : Failed to allocate visible array for shape cache storage" )
 
-			stroage_entry.atlas_lru_code, error = make( [dynamic]Atlas_Key, len = 0, cap = shape_cache_params.reserve )
+			storage_entry.atlas_lru_code, error = make( [dynamic]Atlas_Key, len = 0, cap = shape_cache_params.reserve )
 			assert( error == .None, "VEFontCache.init : Failed to allocate atlas_lru_code array for shape cache storage" )
 
-			stroage_entry.region_kind, error = make( [dynamic]Atlas_Region_Kind, len = 0, cap = shape_cache_params.reserve )
+			storage_entry.region_kind, error = make( [dynamic]Atlas_Region_Kind, len = 0, cap = shape_cache_params.reserve )
 			assert( error == .None, "VEFontCache.init : Failed to allocate region_kind array for shape cache storage" )
 
-			stroage_entry.bounds, error = make( [dynamic]Range2, len = 0, cap = shape_cache_params.reserve )
+			storage_entry.bounds, error = make( [dynamic]Range2, len = 0, cap = shape_cache_params.reserve )
 			assert( error == .None, "VEFontCache.init : Failed to allocate bounds array for shape cache storage" )
 		}
 	}
@@ -604,11 +604,11 @@ clear_shape_cache :: proc (ctx : ^Context)
 {
 	lru_clear(& ctx.shape_cache.state)
 	for idx : i32 = 0; idx < cast(i32) cap(ctx.shape_cache.storage); idx += 1 {
-		stroage_entry := & ctx.shape_cache.storage[idx]
-		stroage_entry.end_cursor_pos = {}
-		stroage_entry.size           = {}
-		clear(& stroage_entry.glyph)
-		clear(& stroage_entry.position)
+		storage_entry := & ctx.shape_cache.storage[idx]
+		storage_entry.end_cursor_pos = {}
+		storage_entry.size           = {}
+		clear(& storage_entry.glyph)
+		clear(& storage_entry.position)
 	}
 	ctx.shape_cache.next_cache_id = 0
 }
