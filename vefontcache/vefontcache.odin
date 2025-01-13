@@ -1196,6 +1196,10 @@ get_font_vertical_metrics :: #force_inline proc ( ctx : Context, font : Font_ID,
 
 //#region("miscellaneous")
 
+get_font_entry :: #force_inline proc "contextless" ( ctx : ^Context, font : Font_ID ) -> Entry {
+	return ctx.entries[font]
+}
+
 get_cursor_pos :: #force_inline proc "contextless" ( ctx : Context ) -> Vec2 { return ctx.cursor_pos }
 
 // Will normalize the value of the position and scale based on the provided view.
@@ -1234,6 +1238,25 @@ resolve_zoom_size_scale :: #force_inline proc "contextless" (
 	zoom_scale        = zoom_diff_scalar * scale
 	zoom_scale.x      = clamp(zoom_scale.x, 0, clamp_scale.x)
 	zoom_scale.y      = clamp(zoom_scale.y, 0, clamp_scale.y)
+	return
+}
+
+resolve_px_scalar_size :: #force_inline proc "contextless" ( parser_info : Parser_Font_Info, px_size, px_scalar : f32, norm_scale : Vec2 
+) -> (target_px_size, target_font_scale : f32, target_scale : Vec2 )
+{
+	target_px_size    = px_size    * px_scalar
+	target_scale      = norm_scale * (1 / px_scalar)
+	target_font_scale = parser_scale( parser_info, target_px_size )
+	return
+}
+
+snap_normalized_position_to_view :: #force_inline proc "contextless" ( position, view : Vec2 ) -> (position_snapped : Vec2)
+{
+	should_snap   := cast(f32) i32(view.x > 0 && view.y > 0)
+	view_quotient := 1 / Vec2 { max(view.x, 1), max(view.y, 1) }
+
+	position_snapped = ceil(position * view) * view_quotient * should_snap
+	position_snapped = max(position, position_snapped)
 	return
 }
 
