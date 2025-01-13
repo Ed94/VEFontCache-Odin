@@ -1203,19 +1203,14 @@ get_cursor_pos :: #force_inline proc "contextless" ( ctx : Context ) -> Vec2 { r
 // (Does nothing if view is 1 or 0)
 get_normalized_position_scale :: #force_inline proc "contextless" ( position, scale, view : Vec2 ) -> (position_norm, scale_norm : Vec2)
 {
-	snap_quotient := 1 / Vec2 { max(view.x, 1), max(view.y, 1) }
-	should_snap   := view * snap_quotient
+	should_snap   := cast(f32) i32(view.x > 0 && view.y > 0)
+	view_quotient := 1 / Vec2 { max(view.x, 1), max(view.y, 1) }
 
-	snapped_position  := position 
-	snapped_position.x = ceil(position.x * view.x) * snap_quotient.x 
-	snapped_position.y = ceil(position.y * view.y) * snap_quotient.y
+	position_snapped := ceil(position) * view_quotient * should_snap
+	position_norm     = position       * view_quotient
 
-	snapped_position  *= should_snap
-	snapped_position.x = max(snapped_position.x, position.x)
-	snapped_position.y = max(snapped_position.y, position.y)
-
-	position_norm = snapped_position
-	scale_norm    = scale * snap_quotient
+	position_norm = max(position_snapped, position_norm)
+	scale_norm    = scale * view_quotient
 	return
 }
 
