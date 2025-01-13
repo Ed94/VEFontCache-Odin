@@ -279,6 +279,9 @@ startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // N
 			stroage_entry.position, error = make( [dynamic]Vec2, len = 0, cap = shape_cache_params.reserve )
 			assert( error == .None, "VEFontCache.init : Failed to allocate positions array for shape cache storage" )
 
+			stroage_entry.visible, error = make( [dynamic]i32, len = 0, cap = shape_cache_params.reserve )
+			assert( error == .None, "VEFontCache.init : Failed to allocate visible array for shape cache storage" )
+
 			stroage_entry.atlas_lru_code, error = make( [dynamic]Atlas_Key, len = 0, cap = shape_cache_params.reserve )
 			assert( error == .None, "VEFontCache.init : Failed to allocate atlas_lru_code array for shape cache storage" )
 
@@ -287,9 +290,6 @@ startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // N
 
 			stroage_entry.bounds, error = make( [dynamic]Range2, len = 0, cap = shape_cache_params.reserve )
 			assert( error == .None, "VEFontCache.init : Failed to allocate bounds array for shape cache storage" )
-
-			// stroage_entry.bounds_scaled, error = make( [dynamic]Range2, len = 0, cap = shape_cache_params.reserve )
-			// assert( error == .None, "VEFontCache.init : Failed to allocate bounds_scaled array for shape cache storage" )
 		}
 	}
 
@@ -417,10 +417,10 @@ hot_reload :: proc( ctx : ^Context, allocator : Allocator )
 		storage_entry := & shape_cache.storage[idx]
 		reload_array( & storage_entry.glyph,       allocator)
 		reload_array( & storage_entry.position,       allocator)
+		reload_array( & storage_entry.visible,        allocator)
 		reload_array( & storage_entry.atlas_lru_code, allocator)
 		reload_array( & storage_entry.region_kind,    allocator)
 		reload_array( & storage_entry.bounds,         allocator)
-		// reload_array( & storage_entry.bounds_scaled,  allocator)
 	}
 	reload_array( & shape_cache.storage, allocator )
 	
@@ -490,10 +490,10 @@ shutdown :: proc( ctx : ^Context )
 		storage_entry := & shape_cache.storage[idx]
 		delete( storage_entry.glyph )
 		delete( storage_entry.position )
+		delete( storage_entry.visible )
 		delete( storage_entry.atlas_lru_code)
 		delete( storage_entry.region_kind)
 		delete( storage_entry.bounds)
-		// delete( storage_entry.bounds_scaled)
 	}
 	lru_free( & shape_cache.state )
 	
