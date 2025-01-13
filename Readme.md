@@ -60,7 +60,7 @@ Currently, the scripts provided & the library itself were developed & tested on 
 The library depends on harfbuzz & stb_truetype to build.  
 Note: harfbuzz could technically be removed if the user removes their definitions, however this hasn't been made into a conditional compilation option yet.
 
-**NOTICE: All library dependencies are in the "thirdparty" collection of this repository. For their codebase, the user soley has to modify that collection specification for where they would like to put these external "vendor" dependencies not provided by odin.**
+**NOTICE: All library dependency packages are in the "thirdparty" collection of this repository. For their codebase, the user soley has to modify that collection specification for where they would like to put these external vendor package not provided by the offical Odin vendor collections.**
 
 ## Gallery
 
