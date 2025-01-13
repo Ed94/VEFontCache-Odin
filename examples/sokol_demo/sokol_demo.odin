@@ -158,16 +158,16 @@ draw_text :: proc( content : string, font : Font_ID, pos : Vec2, size : f32 = 0.
 	def        := demo_ctx.font_ids[ font.label ]
 	size       := size >= 2.0 ? size : f32(def.default_size)
 
-	ve.draw_text_view_space( & demo_ctx.ve_ctx, 
-		def.ve_id, 
-		size,
+	resolved_size, zoom_scale := ve.resolve_zoom_size_scale( zoom, size, scale, 2, 2, 999.0, demo_ctx.screen_size )
+	snapped_pos               := ve.snap_normalized_position_to_view( pos, demo_ctx.screen_size )
+	norm_scale                := zoom_scale * (1 / demo_ctx.screen_size)
+	ve.draw_text_normalized_space( & demo_ctx.ve_ctx,
+		def.ve_id,
+		resolved_size,
 		color_norm,
-		demo_ctx.screen_size,
-		pos, 
-		scale,
-		zoom,
-		content,
-		// ve.shaper_shape_text_latin,
+		snapped_pos,
+		norm_scale,
+		content
 	)
 	return
 }
