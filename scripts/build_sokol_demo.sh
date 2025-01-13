@@ -81,6 +81,12 @@ pushd "$path_thirdparty" > /dev/null
     fi
 popd > /dev/null
 
+path_stb_truetype="$path_thirdparty/stb/src"
+
+pushd "$path_stb_truetype" > /dev/null
+    eval make
+popd > /dev/null
+
 source "$(dirname "$0")/helpers/odin_compiler_defs.sh"
 
 pkg_collection_backend="backend=$path_backend"
