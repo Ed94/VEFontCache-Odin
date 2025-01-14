@@ -41,7 +41,13 @@ jobs:
           libfreetype6-dev \
           libharfbuzz-dev \
           libgl1-mesa-dev \
-          libglew-dev
+          libx11-dev \
+          libxcursor-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxi-dev \
+          libglew-dev \
+          libxtst-dev
 
     - name: Run build script
       run: |
