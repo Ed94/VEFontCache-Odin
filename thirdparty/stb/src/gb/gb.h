@@ -230,7 +230,7 @@ extern "C" {
 	#define GB_CACHE_LINE_SIZE 128
 	#endif
 
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
 	#ifndef GB_CPU_ARM
 	#define GB_CPU_ARM 1
 	#endif
