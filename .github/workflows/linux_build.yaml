@@ -41,8 +41,6 @@ jobs:
           libfreetype6-dev \
           libharfbuzz-dev
 
-        make -C "/usr/local/share/odin/vendor/stb/src"
-
     - name: Run build script
       run: |
         echo "Setting execute permissions on specific .sh files"
