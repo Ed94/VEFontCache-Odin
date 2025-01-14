@@ -1,127 +1,126 @@
 package vefontcache
 
+// There are only 4 actual regions of the atlas. E represents the atlas_decide_region detecting an oversized glyph.
+// Note(Ed): None should never really occur anymore. So its safe to most likely add an assert when its detected.
 Atlas_Region_Kind :: enum u8 {
 	None   = 0x00,
-	A      = 0x41,
-	B      = 0x42,
-	C      = 0x43,
-	D      = 0x44,
-	E      = 0x45,
+	A      = 0x01,
+	B      = 0x02,
+	C      = 0x03,
+	D      = 0x04,
+	E      = 0x05,
 	Ignore = 0xFF, // ve_fontcache_cache_glyph_to_atlas uses a -1 value in clear draw call
 }
 
-Atlas_Region :: struct {
-	state : LRU_Cache,
+Atlas_Key :: u32
 
-	width  : i32,
-	height : i32,
+// TODO(Ed) It might perform better with a tailored made hashtable implementation for the LRU_Cache or dedicated array struct/procs for the Atlas.
+/* Essentially a sub-atlas of the atlas. There is a state cache per region that tracks the glyph inventory (what slot they occupy).
+	Unlike the shape cache this one's fixed capacity (natrually) and the next avail slot is tracked.
+*/
+Atlas_Region :: struct {
+	state : LRU_Cache(Atlas_Key),
 
 	size     : Vec2i,
 	capacity : Vec2i,
 	offset   : Vec2i,
 
+	slot_size : Vec2i,
+
 	next_idx : i32,
 }
 
+/* There are four regions each succeeding region holds larger sized slots.
+	The generator pipeline for draw lists utilizes the regions array for info lookup.
+
+	Note(Ed):
+	Padding can techncially be larger than 1, however recently I haven't had any artififact issues...
+	size_multiplier usage isn't fully resolved. Intent was to further setup over_sampling or just having 
+	a more massive cache for content that used more than the usual common glyphs.
+*/
 Atlas :: struct {
-	width  : i32,
-	height : i32,
-
-	glyph_padding     : i32, // Padding to add to bounds_<width/height>_scaled for choosing which atlas region.
-	glyph_over_scalar : f32, // Scalar to apply to bounds_<width/height>_scaled for choosing which atlas region.
-
 	region_a : Atlas_Region,
 	region_b : Atlas_Region,
 	region_c : Atlas_Region,
 	region_d : Atlas_Region,
+
+	regions : [5] ^Atlas_Region,
+
+	glyph_padding   : f32, // Padding to add to bounds_<width/height>_scaled for choosing which atlas region.
+	size_multiplier : f32, // Grows all text by this multiple.
+
+	size : Vec2i,
 }
 
-atlas_bbox :: proc( atlas : ^Atlas, region : Atlas_Region_Kind, local_idx : i32 ) -> (position, size: Vec2)
-{
-	switch region
-	{
-		case .A:
-			size.x = f32(atlas.region_a.width)
-			size.y = f32(atlas.region_a.height)
-
-			position.x = cast(f32) (( local_idx % atlas.region_a.capacity.x ) * atlas.region_a.width)
-			position.y = cast(f32) (( local_idx / atlas.region_a.capacity.x ) * atlas.region_a.height)
-
-			position.x += f32(atlas.region_a.offset.x)
-			position.y += f32(atlas.region_a.offset.y)
-
-		case .B:
-			size.x = f32(atlas.region_b.width)
-			size.y = f32(atlas.region_b.height)
-
-			position.x = cast(f32) (( local_idx % atlas.region_b.capacity.x ) * atlas.region_b.width)
-			position.y = cast(f32) (( local_idx / atlas.region_b.capacity.x ) * atlas.region_b.height)
-
-			position.x += f32(atlas.region_b.offset.x)
-			position.y += f32(atlas.region_b.offset.y)
-
-		case .C:
-			size.x = f32(atlas.region_c.width)
-			size.y = f32(atlas.region_c.height)
-
-			position.x = cast(f32) (( local_idx % atlas.region_c.capacity.x ) * atlas.region_c.width)
-			position.y = cast(f32) (( local_idx / atlas.region_c.capacity.x ) * atlas.region_c.height)
-
-			position.x += f32(atlas.region_c.offset.x)
-			position.y += f32(atlas.region_c.offset.y)
-
-		case .D:
-			size.x = f32(atlas.region_d.width)
-			size.y = f32(atlas.region_d.height)
-
-			position.x = cast(f32) (( local_idx % atlas.region_d.capacity.x ) * atlas.region_d.width)
-			position.y = cast(f32) (( local_idx / atlas.region_d.capacity.x ) * atlas.region_d.height)
-
-			position.x += f32(atlas.region_d.offset.x)
-			position.y += f32(atlas.region_d.offset.y)
-
-		case .Ignore, .None, .E:
-	}
+// Hahser for the atlas.
+@(optimization_mode="favor_size")
+atlas_glyph_lru_code :: #force_inline proc "contextless" ( font : Font_ID, px_size : f32, glyph_index : Glyph ) -> (lru_code : Atlas_Key) {
+	// lru_code = u32(glyph_index) + ( ( 0x10000 * u32(font) ) & 0xFFFF0000 )
+	font        := font
+	glyph_index := glyph_index
+	px_size     := px_size
+	djb8_hash( & lru_code, to_bytes( & font) )
+	djb8_hash( & lru_code, to_bytes( & glyph_index ) )
+	djb8_hash( & lru_code, to_bytes( & px_size ) )
 	return
 }
 
-decide_codepoint_region :: proc(ctx : ^Context, entry : ^Entry, glyph_index : Glyph ) -> (region_kind : Atlas_Region_Kind, region : ^Atlas_Region, over_sample : Vec2)
+@(optimization_mode="favor_size")
+atlas_region_bbox :: #force_inline proc( region : Atlas_Region, local_idx : i32 ) -> (position, size: Vec2)
 {
-	if parser_is_glyph_empty(&entry.parser_info, glyph_index) {
-		return .None, nil, {}
+	size = vec2(region.slot_size)
+
+	position.x = cast(f32) (( local_idx % region.capacity.x ) * region.slot_size.x)
+	position.y = cast(f32) (( local_idx / region.capacity.x ) * region.slot_size.y)
+
+	position.x += f32(region.offset.x)
+	position.y += f32(region.offset.y)
+	return
+}
+
+@(optimization_mode="favor_size")
+atlas_decide_region :: #force_inline proc "contextless" (atlas : Atlas, glyph_buffer_size : Vec2, bounds_size_scaled : Vec2 ) -> (region_kind : Atlas_Region_Kind)
+{
+	// profile(#procedure)
+	glyph_padding_dbl  := atlas.glyph_padding * 2
+	padded_bounds      := bounds_size_scaled + glyph_padding_dbl
+
+	for kind in 1 ..= 4 do if	
+		padded_bounds.x <= f32(atlas.regions[kind].slot_size.x) && 
+	  padded_bounds.y <= f32(atlas.regions[kind].slot_size.y) 
+	{
+		return cast(Atlas_Region_Kind) kind
 	}
 
-	bounds_0, bounds_1 := parser_get_glyph_box(&entry.parser_info, glyph_index)
-	bounds_width       := f32(bounds_1.x - bounds_0.x)
-	bounds_height      := f32(bounds_1.y - bounds_0.y)
+	if padded_bounds.x <= glyph_buffer_size.x && padded_bounds.y <= glyph_buffer_size.y{
+		return .E
+	}
+	return .None
+}
 
-	atlas         := & ctx.atlas
-	glyph_buffer  := & ctx.glyph_buffer
-	glyph_padding := f32( atlas.glyph_padding ) * 2
+// Grab an atlas LRU cache slot.
+@(optimization_mode="favor_size")
+atlas_reserve_slot :: #force_inline proc ( region : ^Atlas_Region, lru_code : Atlas_Key ) -> (atlas_index : i32)
+{
+	if region.next_idx < region.state.capacity
+	{
+		evicted         := lru_put( & region.state, lru_code, region.next_idx )
+		atlas_index      = region.next_idx
+		region.next_idx += 1
+		assert( evicted == lru_code )
+	}
+	else
+	{
+		next_evict_codepoint := lru_get_next_evicted( region.state )
+		assert( next_evict_codepoint != LRU_Fail_Mask_16)
 
-	bounds_width_scaled  := i32(bounds_width  * entry.size_scale * atlas.glyph_over_scalar + glyph_padding)
-	bounds_height_scaled := i32(bounds_height * entry.size_scale * atlas.glyph_over_scalar + glyph_padding)
+		atlas_index = lru_peek( region.state, next_evict_codepoint, must_find = true )
+		assert( atlas_index != -1 )
 
-	// Use a lookup table for faster region selection
-	region_lookup := [4]struct { kind: Atlas_Region_Kind, region: ^Atlas_Region } {
-		{ .A, & atlas.region_a },
-		{ .B, & atlas.region_b },
-		{ .C, & atlas.region_c },
-		{ .D, & atlas.region_d },
+		evicted := lru_put( & region.state, lru_code, atlas_index )
+		assert( evicted == next_evict_codepoint )
 	}
 
-	for region in region_lookup do if bounds_width_scaled <= region.region.width && bounds_height_scaled <= region.region.height {
-		return region.kind, region.region, glyph_buffer.over_sample
-	}
-
-	if bounds_width_scaled  <= glyph_buffer.width \
-	&& bounds_height_scaled <= glyph_buffer.height {
-		over_sample = \
-			bounds_width_scaled  <= glyph_buffer.width  / 2 &&
-			bounds_height_scaled <= glyph_buffer.height / 2 ? \
-			  {2.0, 2.0}                                      \
-			: {1.0, 1.0}
-		return .E, nil, over_sample
-	}
-	return .None, nil, {}
+	assert( lru_get( & region.state, lru_code ) != - 1 )
+	return
 }

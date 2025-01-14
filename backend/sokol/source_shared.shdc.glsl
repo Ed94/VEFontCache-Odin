@@ -1,6 +1,5 @@
 in  vec2 v_position;
 in  vec2 v_texture;
-// in vec4 v_elem;
 out vec2 uv;
 
 void main()

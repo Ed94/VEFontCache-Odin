@@ -1,7 +1,15 @@
 package vefontcache
 
+import "base:builtin"
+	resize_soa_non_zero :: non_zero_resize_soa
+import "base:runtime"
+	Raw_Dynamic_Array :: runtime.Raw_Dynamic_Array
+	Raw_Map           :: runtime.Raw_Map
+	Raw_Slice         :: runtime.Raw_Slice
+	raw_soa_footer    :: runtime.raw_soa_footer
+	nil_allocator     :: runtime.nil_allocator
 import "core:hash"
-	fnv64a :: hash.fnv64a
+	ginger16 :: hash.ginger16
 import "core:math"
 	ceil_f16   :: math.ceil_f16
 	ceil_f16le :: math.ceil_f16le
@@ -29,11 +37,13 @@ import "core:mem"
 
 	Allocator       :: mem.Allocator
 	Allocator_Error :: mem.Allocator_Error
+	Allocator_Mode  :: mem.Allocator_Mode
 
 	Arena           :: mem.Arena
 	arena_allocator :: mem.arena_allocator
 	arena_init      :: mem.arena_init
 import "core:slice"
+import "core:unicode"
 
 //#region("Proc overload mappings")
 
@@ -41,6 +51,10 @@ append :: proc {
 	append_elem,
 	append_elems,
 	append_elem_string,
+}
+
+append_soa :: proc {
+	append_soa_elem,
 }
 
 ceil :: proc {
@@ -58,8 +72,8 @@ ceil :: proc {
 }
 
 clear :: proc {
-	clear_dynamic_array,
-	clear_map,
+	builtin.clear_dynamic_array,
+	builtin.clear_map,
 }
 
 floor :: proc {
@@ -80,16 +94,43 @@ fill :: proc {
 	slice.fill,
 }
 
+max :: proc {
+	linalg.max_single,
+	linalg.max_double,
+}
+
 make :: proc {
-	make_dynamic_array,
-	make_dynamic_array_len,
-	make_dynamic_array_len_cap,
-	make_map,
-	make_map_cap,
+	builtin.make_dynamic_array,
+	builtin.make_dynamic_array_len,
+	builtin.make_dynamic_array_len_cap,
+	builtin.make_slice,
+	builtin.make_map,
+	builtin.make_map_cap,
+}
+
+make_soa :: proc {
+	builtin.make_soa_dynamic_array_len_cap,
+	builtin.make_soa_slice,
+}
+
+mul :: proc {
+	mul_range2_vec2,
+}
+
+peek :: proc {
+	peek_array,
 }
 
 resize :: proc {
-	resize_dynamic_array,
+	builtin.resize_dynamic_array,
+}
+
+round :: proc {
+	math.round_f32,
+}
+
+size :: proc {
+	size_range2,
 }
 
 vec2 :: proc {

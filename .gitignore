@@ -1,6 +1,7 @@
-﻿build
-thirdparty
-.vscode
-# backend/sokol/render_glyph.odin
-# backend/sokol/blit_atlas.odin
-# backend/sokol/draw_text.odin
+﻿.vscode
+ols.json
+build
+thirdparty/freetype
+thirdparty/harfbuzz
+thirdparty/sokol
+thirdparty/sokol-tools

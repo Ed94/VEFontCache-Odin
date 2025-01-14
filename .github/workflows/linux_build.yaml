@@ -1,4 +1,4 @@
-name: MacOS Build
+name: Linux Build
 
 on:
   push:
@@ -12,30 +12,45 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Setup Odin
+      uses: laytan/setup-odin@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Set up environment
       run: |
         if ! command -v git &> /dev/null; then
           echo "Git not found. Installing Git..."
-          brew install git
+          sudo apt-get update
+          sudo apt-get install -y git
         else
           echo "Git is already installed."
         fi
         git --version
 
-        brew install bash
-        echo "Bash version: $(bash --version)"
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          bash \
+          libfreetype6-dev \
+          libharfbuzz-dev \
+          libgl1-mesa-dev \
+          libx11-dev \
+          libxcursor-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxi-dev \
+          libglew-dev \
+          libxtst-dev \
+          libasound-dev
 
-        brew install freetype
-        brew install harfbuzz
-        brew install odin
-
-        make -C "/opt/homebrew/Cellar/odin/2024-12/libexec/vendor/stb/src"
+        make -C "/home/runner/odin/vendor/stb/src"
 
     - name: Run build script
       run: |
@@ -57,6 +72,6 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: macos-build
+        name: linux-build
         path: ./build/
         if-no-files-found: warn

@@ -2,31 +2,34 @@ package vefontcache
 
 /*
 Notes:
+This is a minimal wrapper I originally did incase a font parser other than stb_truetype is introduced in the future.
+Otherwise, its essentially 1:1 with it.
 
-Freetype will do memory allocations and has an interface the user can implement.
-That interface is not exposed from this parser but could be added to parser_init.
+Freetype isn't really supported and its not a high priority.
+~~Freetype will do memory allocations and has an interface the user can implement.~~
+~~That interface is not exposed from this parser but could be added to parser_init.~~
 
-STB_Truetype has macros for its allocation unfortuantely
+STB_Truetype:
+* Added ability to set the stb_truetype allocator for STBTT_MALLOC and STBTT_FREE.
+* Changed procedure signatures to pass the font_info struct by immutable ptr (#by_ptr) 
+  when the C equivalent has their parameter as `const*`.
 */
 
-import "base:runtime"
 import "core:c"
-import "core:math"
-import "core:slice"
-import stbtt    "vendor:stb/truetype"
-import freetype "thirdparty:freetype"
+import stbtt    "thirdparty:stb/truetype"
+// import freetype "thirdparty:freetype"
 
 Parser_Kind :: enum u32 {
 	STB_TrueType,
-	Freetype,
+	Freetype, // Currently not implemented.
 }
 
 Parser_Font_Info :: struct {
 	label : string,
 	kind  : Parser_Kind,
 	using _ : struct #raw_union {
-		stbtt_info    : stbtt.fontinfo,
-		freetype_info : freetype.Face
+		stbtt_info : stbtt.fontinfo,
+		// freetype_info : freetype.Face
 	},
 	data : []byte,
 }
@@ -51,47 +54,55 @@ Parser_Glyph_Vertex :: struct {
 Parser_Glyph_Shape :: [dynamic]Parser_Glyph_Vertex
 
 Parser_Context :: struct {
-	kind       : Parser_Kind,
-	ft_library : freetype.Library,
+	lib_backing : Allocator,
+	kind        : Parser_Kind,
+	// ft_library : freetype.Library,
 }
 
-parser_init :: proc( ctx : ^Parser_Context, kind : Parser_Kind )
+parser_stbtt_allocator_proc :: proc(
+	allocator_data : rawptr, 
+	type           : stbtt.zpl_allocator_type, 
+	size           : c.ssize_t, 
+	alignment      : c.ssize_t, 
+	old_memory     : rawptr, 
+	old_size       : c.ssize_t, 
+	flags          : c.ulonglong
+) -> rawptr
 {
-	switch kind
-	{
-		case .Freetype:
-			result := freetype.init_free_type( & ctx.ft_library )
-			assert( result == freetype.Error.Ok, "VEFontCache.parser_init: Failed to initialize freetype" )
+	allocator := transmute(^Allocator) allocator_data
+	result, error := allocator.procedure( allocator.data, cast(Allocator_Mode) type, cast(int) size, cast(int) alignment, old_memory, cast(int) old_size )
+	assert(error == .None)
 
-		case .STB_TrueType:
-			// Do nothing intentional
+	if type == .Alloc || type == .Resize {
+		raw := transmute(Raw_Slice) result
+		// assert(raw.len > 0, "Allocation is 0 bytes?")
+		return transmute(rawptr) raw.data
 	}
+	else do return nil
+}
 
-	ctx.kind = kind
+parser_init :: proc( ctx : ^Parser_Context, kind : Parser_Kind, allocator := context.allocator )
+{
+	ctx.kind        = kind
+	ctx.lib_backing = allocator
+
+	stbtt_allocator := stbtt.zpl_allocator { parser_stbtt_allocator_proc, & ctx.lib_backing }
+	stbtt.SetAllocator( stbtt_allocator )
+}
+
+parser_reload :: proc( ctx : ^Parser_Context, allocator := context.allocator) {
+	ctx.lib_backing = allocator
+	stbtt_allocator := stbtt.zpl_allocator { parser_stbtt_allocator_proc, & ctx.lib_backing }
+	stbtt.SetAllocator( stbtt_allocator )
 }
 
 parser_shutdown :: proc( ctx : ^Parser_Context ) {
-	// TODO(Ed): Implement
+	// Note: Not necesssary for stb_truetype
 }
 
-parser_load_font :: proc( ctx : ^Parser_Context, label : string, data : []byte ) -> (font : Parser_Font_Info)
+parser_load_font :: proc( ctx : ^Parser_Context, label : string, data : []byte ) -> (font : Parser_Font_Info, error : b32)
 {
-	switch ctx.kind
-	{
-		case .Freetype:
-			when ODIN_OS == .Windows {
-				error := freetype.new_memory_face( ctx.ft_library, raw_data(data), cast(i32) len(data), 0, & font.freetype_info )
-				if error != .Ok do return
-			}
-			else when ODIN_OS == .Linux {
-				error := freetype.new_memory_face( ctx.ft_library, raw_data(data), cast(i64) len(data), 0, & font.freetype_info )
-				if error != .Ok do return
-			}
-
-		case .STB_TrueType:
-			success := stbtt.InitFont( & font.stbtt_info, raw_data(data), 0 )
-			if ! success do return
-	}
+	error = ! stbtt.InitFont( & font.stbtt_info, raw_data(data), 0 )
 
 	font.label = label
 	font.data  = data
@@ -101,242 +112,87 @@ parser_load_font :: proc( ctx : ^Parser_Context, label : string, data : []byte )
 
 parser_unload_font :: proc( font : ^Parser_Font_Info )
 {
-	switch font.kind {
-		case .Freetype:
-			error := freetype.done_face( font.freetype_info )
-			assert( error == .Ok, "VEFontCache.parser_unload_font: Failed to unload freetype face" )
-
-		case .STB_TrueType:
-			// Do Nothing
-	}
+	// case .STB_TrueType:
+		// Do Nothing
 }
 
-parser_find_glyph_index :: #force_inline proc "contextless" ( font : ^Parser_Font_Info, codepoint : rune ) -> (glyph_index : Glyph)
+parser_find_glyph_index :: #force_inline proc "contextless" ( font : Parser_Font_Info, codepoint : rune ) -> (glyph_index : Glyph)
 {
-	switch font.kind
-	{
-		case .Freetype:
-			when ODIN_OS == .Windows {
-				glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) codepoint )
-			}
-			else when ODIN_OS == .Linux {
-				glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, cast(u64) codepoint )
-			}
-			return
-
-		case .STB_TrueType:
-			glyph_index = transmute(Glyph) stbtt.FindGlyphIndex( & font.stbtt_info, codepoint )
-			return
-	}
-	return Glyph(-1)
-}
-
-parser_free_shape :: proc( font : ^Parser_Font_Info, shape : Parser_Glyph_Shape )
-{
-	switch font.kind
-	{
-		case .Freetype:
-			delete(shape)
-
-		case .STB_TrueType:
-			stbtt.FreeShape( & font.stbtt_info, transmute( [^]stbtt.vertex) raw_data(shape) )
-	}
-}
-
-parser_get_codepoint_horizontal_metrics :: #force_inline proc "contextless" ( font : ^Parser_Font_Info, codepoint : rune ) -> ( advance, to_left_side_glyph : i32 )
-{
-	switch font.kind
-	{
-		case .Freetype:
-			glyph_index : Glyph
-			when ODIN_OS == .Windows {
-				glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) codepoint )
-			}
-			else when ODIN_OS == .Linux {
-				glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, cast(u64) codepoint )
-			}
-
-			if glyph_index != 0
-			{
-				freetype.load_glyph( font.freetype_info, c.uint(codepoint), { .No_Bitmap, .No_Hinting, .No_Scale } )
-				advance            = i32(font.freetype_info.glyph.advance.x)              >> 6
-				to_left_side_glyph = i32(font.freetype_info.glyph.metrics.hori_bearing_x) >> 6
-			}
-			else
-			{
-				advance            = 0
-				to_left_side_glyph = 0
-			}
-
-		case .STB_TrueType:
-			stbtt.GetCodepointHMetrics( & font.stbtt_info, codepoint, & advance, & to_left_side_glyph )
-	}
+	glyph_index = transmute(Glyph) stbtt.FindGlyphIndex( font.stbtt_info, codepoint )
 	return
 }
 
-parser_get_codepoint_kern_advance :: #force_inline proc "contextless" ( font : ^Parser_Font_Info, prev_codepoint, codepoint : rune ) -> i32
+parser_free_shape :: #force_inline proc( font : Parser_Font_Info, shape : Parser_Glyph_Shape )
 {
-	switch font.kind
-	{
-		case .Freetype:
-			prev_glyph_index : Glyph
-			glyph_index      : Glyph
-			when ODIN_OS == .Windows {
-				prev_glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) prev_codepoint )
-				glyph_index      = transmute(Glyph) freetype.get_char_index( font.freetype_info, transmute(u32) codepoint )
-			}
-			else when ODIN_OS == .Linux {
-				prev_glyph_index = transmute(Glyph) freetype.get_char_index( font.freetype_info, cast(u64) prev_codepoint )
-				glyph_index      = transmute(Glyph) freetype.get_char_index( font.freetype_info, cast(u64) codepoint )
-			}
-
-			if prev_glyph_index != 0 && glyph_index != 0
-			{
-				kerning : freetype.Vector
-				font.freetype_info.driver.clazz.get_kerning( font.freetype_info, transmute(u32) prev_codepoint, transmute(u32) codepoint, & kerning )
-			}
-
-		case .STB_TrueType:
-			kern := stbtt.GetCodepointKernAdvance( & font.stbtt_info, prev_codepoint, codepoint )
-			return kern
-	}
-	return -1
+	shape     := shape
+	shape_raw := transmute( ^Raw_Dynamic_Array) & shape
+	stbtt.FreeShape( font.stbtt_info, transmute( [^]stbtt.vertex) shape_raw.data )
 }
 
-parser_get_font_vertical_metrics :: #force_inline proc "contextless" ( font : ^Parser_Font_Info ) -> (ascent, descent, line_gap : i32 )
+parser_get_codepoint_horizontal_metrics :: #force_inline proc "contextless" ( font : Parser_Font_Info, codepoint : rune ) -> ( advance, to_left_side_glyph : i32 )
 {
-	switch font.kind
-	{
-		case .Freetype:
-			info    := font.freetype_info
-			ascent   = i32(info.ascender)
-			descent  = i32(info.descender)
-			line_gap = i32(info.height) - (ascent - descent)
-
-		case .STB_TrueType:
-			stbtt.GetFontVMetrics( & font.stbtt_info, & ascent, & descent, & line_gap )
-	}
+	stbtt.GetCodepointHMetrics( font.stbtt_info, codepoint, & advance, & to_left_side_glyph )
 	return
 }
 
-parser_get_glyph_box :: #force_inline proc ( font : ^Parser_Font_Info, glyph_index : Glyph ) -> (bounds_0, bounds_1 : Vec2i)
+parser_get_codepoint_kern_advance :: #force_inline proc "contextless" ( font : Parser_Font_Info, prev_codepoint, codepoint : rune ) -> i32
 {
-	switch font.kind
-	{
-		case .Freetype:
-			freetype.load_glyph( font.freetype_info, c.uint(glyph_index), { .No_Bitmap, .No_Hinting, .No_Scale } )
+	kern := stbtt.GetCodepointKernAdvance( font.stbtt_info, prev_codepoint, codepoint )
+	return kern
+}
 
-			metrics := font.freetype_info.glyph.metrics
-
-			bounds_0 = {i32(metrics.hori_bearing_x), i32(metrics.hori_bearing_y - metrics.height)}
-			bounds_1 = {i32(metrics.hori_bearing_x + metrics.width), i32(metrics.hori_bearing_y)}
-
-		case .STB_TrueType:
-			x0, y0, x1, y1 : i32
-			success := cast(bool) stbtt.GetGlyphBox( & font.stbtt_info, i32(glyph_index), & x0, & y0, & x1, & y1 )
-			assert( success )
-
-			bounds_0 = { i32(x0), i32(y0) }
-			bounds_1 = { i32(x1), i32(y1) }
-	}
+parser_get_font_vertical_metrics :: #force_inline proc "contextless" ( font : Parser_Font_Info ) -> (ascent, descent, line_gap : i32 )
+{
+	stbtt.GetFontVMetrics( font.stbtt_info, & ascent, & descent, & line_gap )
 	return
 }
 
-parser_get_glyph_shape :: proc( font : ^Parser_Font_Info, glyph_index : Glyph ) -> (shape : Parser_Glyph_Shape, error : Allocator_Error)
+parser_get_bounds :: #force_inline proc "contextless" ( font : Parser_Font_Info, glyph_index : Glyph ) -> (bounds : Range2)
 {
-	switch font.kind
-	{
-		case .Freetype:
-			// TODO(Ed): Don't do this, going a completely different route for handling shapes.
-			// This abstraction fails to be time-saving or performant.
+	// profile(#procedure)
+	bounds_0, bounds_1 : Vec2i
 
-		case .STB_TrueType:
-			stb_shape : [^]stbtt.vertex
-			nverts    := stbtt.GetGlyphShape( & font.stbtt_info, cast(i32) glyph_index, & stb_shape )
+	x0, y0, x1, y1 : i32
+	success := cast(bool) stbtt.GetGlyphBox( font.stbtt_info, i32(glyph_index), & x0, & y0, & x1, & y1 )
 
-			shape_raw          := transmute( ^runtime.Raw_Dynamic_Array) & shape
-			shape_raw.data      = stb_shape
-			shape_raw.len       = int(nverts)
-			shape_raw.cap       = int(nverts)
-			shape_raw.allocator = runtime.nil_allocator()
-			error = Allocator_Error.None
-			return
-	}
-
+	bounds_0 = { x0, y0 }
+	bounds_1 = { x1, y1 }
+	bounds = { vec2(bounds_0), vec2(bounds_1) }
 	return
 }
 
-parser_is_glyph_empty :: #force_inline proc "contextless" ( font : ^Parser_Font_Info, glyph_index : Glyph ) -> b32
+parser_get_glyph_shape :: #force_inline proc ( font : Parser_Font_Info, glyph_index : Glyph ) -> (shape : Parser_Glyph_Shape, error : Allocator_Error)
 {
-	switch font.kind
-	{
-		case .Freetype:
-			error := freetype.load_glyph( font.freetype_info, cast(u32) glyph_index, { .No_Bitmap, .No_Hinting, .No_Scale } )
-			if error == .Ok
-			{
-				if font.freetype_info.glyph.format == .Outline {
-					return font.freetype_info.glyph.outline.n_points == 0
-				}
-				else if font.freetype_info.glyph.format == .Bitmap {
-					return font.freetype_info.glyph.bitmap.width == 0 && font.freetype_info.glyph.bitmap.rows == 0;
-				}
-			}
-			return false
+	stb_shape : [^]stbtt.vertex
+	nverts    := stbtt.GetGlyphShape( font.stbtt_info, cast(i32) glyph_index, & stb_shape )
 
-		case .STB_TrueType:
-			return stbtt.IsGlyphEmpty( & font.stbtt_info, cast(c.int) glyph_index )
-	}
-	return false
+	shape_raw          := transmute( ^Raw_Dynamic_Array) & shape
+	shape_raw.data      = stb_shape
+	shape_raw.len       = int(nverts)
+	shape_raw.cap       = int(nverts)
+	shape_raw.allocator = nil_allocator()
+	error = Allocator_Error.None
+	return
 }
 
-parser_scale :: #force_inline proc "contextless" ( font : ^Parser_Font_Info, size : f32 ) -> f32
+parser_is_glyph_empty :: #force_inline proc "contextless" ( font : Parser_Font_Info, glyph_index : Glyph ) -> b32
 {
-	size_scale := size < 0.0 ?                            \
-		parser_scale_for_pixel_height( font, -size )        \
-	: parser_scale_for_mapping_em_to_pixels( font, size )
-	// size_scale = 1.0
+	return stbtt.IsGlyphEmpty( font.stbtt_info, cast(c.int) glyph_index )
+}
+
+parser_scale :: #force_inline proc "contextless" ( font : Parser_Font_Info, size : f32 ) -> f32
+{
+	// profile(#procedure)
+	size_scale := size > 0.0 ? parser_scale_for_mapping_em_to_pixels( font, size ) :  parser_scale_for_pixel_height( font, -size )
 	return size_scale
 }
 
-parser_scale_for_pixel_height :: #force_inline proc "contextless" ( font : ^Parser_Font_Info, size : f32 ) -> f32
+parser_scale_for_pixel_height :: #force_inline proc "contextless" ( font : Parser_Font_Info, size : f32 ) -> f32
 {
-	switch font.kind {
-		case .Freetype:
-			freetype.set_pixel_sizes( font.freetype_info, 0, cast(u32) size )
-			size_scale := size / cast(f32)font.freetype_info.units_per_em
-			return size_scale
-
-		case.STB_TrueType:
-			return stbtt.ScaleForPixelHeight( & font.stbtt_info, size )
-	}
-	return 0
+	return stbtt.ScaleForPixelHeight( font.stbtt_info, size )
 }
 
-parser_scale_for_mapping_em_to_pixels :: #force_inline proc "contextless" ( font : ^Parser_Font_Info, size : f32 ) -> f32
+parser_scale_for_mapping_em_to_pixels :: #force_inline proc "contextless" ( font : Parser_Font_Info, size : f32 ) -> f32
 {
-	switch font.kind {
-		case .Freetype:
-			Inches_To_CM  :: cast(f32) 2.54
-			Points_Per_CM :: cast(f32) 28.3465
-			CM_Per_Point  :: cast(f32) 1.0 / DPT_DPCM
-			CM_Per_Pixel  :: cast(f32) 1.0 / DPT_PPCM
-			DPT_DPCM      :: cast(f32) 72.0 * Inches_To_CM // 182.88 points/dots per cm
-			DPT_PPCM      :: cast(f32) 96.0 * Inches_To_CM // 243.84 pixels per cm
-			DPT_DPI       :: cast(f32) 72.0
-
-			// TODO(Ed): Don't assume the dots or pixels per inch.
-			system_dpi :: DPT_DPI
-
-			FT_Font_Size_Point_Unit :: 1.0 / 64.0
-			FT_Point_10             :: 64.0
-
-			points_per_em := (size / system_dpi ) * DPT_DPI
-			freetype.set_char_size( font.freetype_info, 0, cast(freetype.F26Dot6) f32(points_per_em * FT_Point_10), cast(u32) DPT_DPI, cast(u32) DPT_DPI )
-			size_scale := f32(f64(size) / cast(f64) font.freetype_info.units_per_em)
-			return size_scale
-
-		case .STB_TrueType:
-			return stbtt.ScaleForMappingEmToPixels( & font.stbtt_info, size )
-	}
-	return 0
+	return stbtt.ScaleForMappingEmToPixels( font.stbtt_info, size )
 }
