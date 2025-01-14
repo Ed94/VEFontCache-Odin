@@ -1,4 +1,4 @@
-VEFontCache Odin
+VEFontCache Odin  
 Copyright 2024 Edward R. Gonzalez
 
 This project is based on Vertex Engine GPU Font Cache
