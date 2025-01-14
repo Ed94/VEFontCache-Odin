@@ -50,6 +50,8 @@ jobs:
           libxtst-dev \
           libasound-dev
 
+        make -C "/home/runner/odin/vendor/stb/src"
+
     - name: Run build script
       run: |
         echo "Setting execute permissions on specific .sh files"
