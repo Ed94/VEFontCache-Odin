@@ -84,7 +84,7 @@ popd > /dev/null
 path_stb_truetype="$path_thirdparty/stb/src"
 
 pushd "$path_stb_truetype" > /dev/null
-    eval make -C "$path_stb_truetype"
+    make
 popd > /dev/null
 
 source "$(dirname "$0")/helpers/odin_compiler_defs.sh"

@@ -537,6 +537,8 @@ typedef i32 b32; // NOTE(bill): Prefer this!!!
 		#else
 		#define gb_inline __forceinline
 		#endif
+	#elif (__GNUC__)
+		#define gb_inline inline
 	#else
 		#define gb_inline __attribute__ ((__always_inline__))
 	#endif
@@ -964,11 +966,12 @@ gb_mutex_init(&m);
 #endif
 
 
+typedef struct gbThread gbThread;
 
-#define GB_THREAD_PROC(name) isize name(struct gbThread *thread)
+#define GB_THREAD_PROC(name) isize name(gbThread *thread)
 typedef GB_THREAD_PROC(gbThreadProc);
 
-typedef struct gbThread {
+struct gbThread {
 #if defined(GB_SYSTEM_WINDOWS)
 	void *        win32_handle;
 #else
@@ -983,7 +986,7 @@ typedef struct gbThread {
 	gbSemaphore   semaphore;
 	isize         stack_size;
 	b32 volatile  is_running;
-} gbThread;
+};
 
 GB_DEF void gb_thread_init            (gbThread *t);
 GB_DEF void gb_thread_destroy         (gbThread *t);
