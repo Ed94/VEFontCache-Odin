@@ -47,7 +47,8 @@ jobs:
           libxinerama-dev \
           libxi-dev \
           libglew-dev \
-          libxtst-dev
+          libxtst-dev \
+          libasound-dev
 
     - name: Run build script
       run: |
