@@ -39,7 +39,9 @@ jobs:
           build-essential \
           bash \
           libfreetype6-dev \
-          libharfbuzz-dev
+          libharfbuzz-dev \
+          libgl1-mesa-dev \
+          libglew-dev
 
     - name: Run build script
       run: |
