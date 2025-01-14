@@ -1,0 +1,68 @@
+name: Linux Build
+
+on:
+  push:
+    branches:
+      - '**'
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Odin
+      uses: laytan/setup-odin@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up environment
+      run: |
+        if ! command -v git &> /dev/null; then
+          echo "Git not found. Installing Git..."
+          sudo apt-get update
+          sudo apt-get install -y git
+        else
+          echo "Git is already installed."
+        fi
+        git --version
+
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          bash \
+          libfreetype6-dev \
+          libharfbuzz-dev
+
+        make -C "/usr/local/share/odin/vendor/stb/src"
+
+    - name: Run build script
+      run: |
+        echo "Setting execute permissions on specific .sh files"
+        chmod +x ./scripts/build_sokol_demo.sh
+        chmod +x ./scripts/build_sokol_library.sh
+        chmod +x ./scripts/compile_sokol_shaders.sh
+        chmod +x ./scripts/clean.sh
+        chmod +x ./scripts/helpers/misc.sh
+        chmod +x ./scripts/helpers/odin_compiler_defs.sh
+
+        echo "Running build_sokol_demo.sh"
+        ./scripts/build_sokol_demo.sh
+      shell: bash
+
+    - name: List build artifacts
+      run: ls -R ./build || echo "build directory not found"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-build
+        path: ./build/
+        if-no-files-found: warn
