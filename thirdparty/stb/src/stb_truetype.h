@@ -415,9 +415,9 @@ int main(int arg, char **argv)
 #pragma region ODIN: CUSTOM ALLOCATOR
 
 #ifdef STB_TRUETYPE_IMPLEMENTATION
-#define GB_IMPLEMENTATION
+#define ZPL_IMPLEMENTATION
 #endif
-#include "gb/gb.h"
+#include "zpl/zpl.h"
 
 #ifdef STBTT_STATIC
 #define STBTT_DEF static
@@ -429,21 +429,21 @@ int main(int arg, char **argv)
 extern "C" {
 #endif
 
-STBTT_DEF void stbtt_SetAllocator( gbAllocator allocator );
+STBTT_DEF void stbtt_SetAllocator( zpl_allocator allocator );
 
 #ifdef __cplusplus
 }
 #endif
 
 #ifndef STBTT_malloc 
-#define STBTT_malloc(x,u) ((void)(u), gb_alloc(stbtt__allocator, x))
-#define STBTT_free(x,u)   ((void)(u), gb_free(stbtt__allocator, x))
+#define STBTT_malloc(x,u) ((void)(u), zpl_alloc(stbtt__allocator, x))
+#define STBTT_free(x,u)   ((void)(u), zpl_free(stbtt__allocator, x))
 #endif
 
 #ifdef STB_TRUETYPE_IMPLEMENTATION
-gb_global gbAllocator stbtt__allocator = { gb_heap_allocator_proc, NULL };
+zpl_global zpl_allocator stbtt__allocator = { zpl_heap_allocator_proc, NULL };
 
-STBTT_DEF void stbtt_SetAllocator( gbAllocator allocator ) {
+STBTT_DEF void stbtt_SetAllocator( zpl_allocator allocator ) {
 	stbtt__allocator = allocator;
 }
 #endif

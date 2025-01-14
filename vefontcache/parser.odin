@@ -61,7 +61,7 @@ Parser_Context :: struct {
 
 parser_stbtt_allocator_proc :: proc(
 	allocator_data : rawptr, 
-	type           : stbtt.gbAllocationType, 
+	type           : stbtt.zpl_allocator_type, 
 	size           : c.ssize_t, 
 	alignment      : c.ssize_t, 
 	old_memory     : rawptr, 
@@ -86,13 +86,13 @@ parser_init :: proc( ctx : ^Parser_Context, kind : Parser_Kind, allocator := con
 	ctx.kind        = kind
 	ctx.lib_backing = allocator
 
-	stbtt_allocator := stbtt.gbAllocator { parser_stbtt_allocator_proc, & ctx.lib_backing }
+	stbtt_allocator := stbtt.zpl_allocator { parser_stbtt_allocator_proc, & ctx.lib_backing }
 	stbtt.SetAllocator( stbtt_allocator )
 }
 
 parser_reload :: proc( ctx : ^Parser_Context, allocator := context.allocator) {
 	ctx.lib_backing = allocator
-	stbtt_allocator := stbtt.gbAllocator { parser_stbtt_allocator_proc, & ctx.lib_backing }
+	stbtt_allocator := stbtt.zpl_allocator { parser_stbtt_allocator_proc, & ctx.lib_backing }
 	stbtt.SetAllocator( stbtt_allocator )
 }
 

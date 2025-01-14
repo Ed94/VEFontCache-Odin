@@ -40,27 +40,27 @@ when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
 // CUSTOM: ODIN COMPATIBLE ALLOCATOR
 //-----------------------------------------------------------------------------
 
-gbAllocationType :: enum(i32) {
+zpl_allocator_type :: enum(i32) {
 	Alloc,
 	Free,
 	FreeAll,
 	Resize,
 }
 
-gbAllocatorProc :: #type proc(allocator_data: rawptr, type: gbAllocationType, 
+zpl_allocator_proc :: #type proc(allocator_data: rawptr, type: zpl_allocator_type, 
 	size: c.ssize_t, alignment: c.ssize_t, 
 	old_memory: rawptr, old_size: c.ssize_t,
 	flags : c.ulonglong
 ) -> rawptr
 
-gbAllocator :: struct {
-	procedure: gbAllocatorProc,
+zpl_allocator :: struct {
+	procedure: zpl_allocator_proc,
 	data: rawptr,
 }
 
 @(default_calling_convention="c", link_prefix="stbtt_")
 foreign stbtt {
-	SetAllocator :: proc(allocator : gbAllocator) ---
+	SetAllocator :: proc(allocator : zpl_allocator) ---
 }
 
 //-----------------------------------------------------------------------------
