@@ -32,19 +32,19 @@ elseif ( $IsWindows ) {
 write-host "Core Count - Physical: $CoreCount_Physical Logical: $CoreCount_Logical"
 #endregion CPU_Info
 
-$url_freetype       = 'https://github.com/Ed94/odin-freetype.git'
+# $url_freetype       = 'https://github.com/Ed94/odin-freetype.git'
 $url_harfbuzz       = 'https://github.com/Ed94/harfbuzz-odin.git'
 $url_sokol          = 'https://github.com/floooh/sokol-odin.git'
 $url_sokol_tools    = 'https://github.com/floooh/sokol-tools-bin.git'
 
-$path_freetype      = join-path $path_thirdparty 'freetype'
+# $path_freetype      = join-path $path_thirdparty 'freetype'
 $path_harfbuzz      = join-path $path_thirdparty 'harfbuzz'
 $path_sokol         = join-path $path_thirdparty 'sokol'
 $path_sokol_tools   = join-path $path_thirdparty 'sokol-tools'
 
 $sokol_build_clibs_command = join-path $path_scripts 'build_sokol_library.ps1'
 
-clone-gitrepo $path_freetype    $url_freetype
+# clone-gitrepo $path_freetype    $url_freetype
 clone-gitrepo $path_sokol_tools $url_sokol_tools
 
 Update-GitRepo -path $path_sokol    -url $url_sokol     -build_command $sokol_build_clibs_command

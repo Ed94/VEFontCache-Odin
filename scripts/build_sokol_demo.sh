@@ -42,20 +42,20 @@ else
 fi
 echo "Core Count - Physical: $CoreCount_Physical Logical: $CoreCount_Logical"
 
-url_freetype='https://github.com/Ed94/odin-freetype.git'
+# url_freetype='https://github.com/Ed94/odin-freetype.git'
 url_harfbuzz='https://github.com/Ed94/harfbuzz-odin.git'
 url_sokol='https://github.com/floooh/sokol-odin.git'
 url_sokol_tools='https://github.com/floooh/sokol-tools-bin.git'
 
-path_freetype="$path_thirdparty/freetype"
+# path_freetype="$path_thirdparty/freetype"
 path_harfbuzz="$path_thirdparty/harfbuzz"
 path_sokol="$path_thirdparty/sokol"
 path_sokol_tools="$path_thirdparty/sokol-tools"
 
 sokol_build_clibs_command="$path_scripts/build_sokol_library.sh"
 
-clone_gitrepo "$path_freetype" "$url_freetype"
-clone_gitrepo "$path_sokol_tools" "$url_sokol_tools"
+# clone_git_repo "$path_freetype" "$url_freetype"
+clone_git_repo "$path_sokol_tools" "$url_sokol_tools"
 
 update_git_repo "$path_sokol" "$url_sokol" "$sokol_build_clibs_command"
 update_git_repo "$path_harfbuzz" "$url_harfbuzz" "./scripts/build.sh"

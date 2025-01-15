@@ -63,3 +63,4 @@ flag_vet_using_stmt='-vet-using-stmt'
 
 # Assuming to be in default path, change if otherwise
 odin_compiler='odin'
+# odin_compiler='/mnt/c/projects/SectrPrototype/toolchain/Odin/odin'

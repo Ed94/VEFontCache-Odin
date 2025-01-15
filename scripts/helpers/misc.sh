@@ -1,6 +1,6 @@
 #!/bin/bash
 
-clone_gitrepo() {
+clone_git_repo() {
     local path="$1"
     local url="$2"
 
