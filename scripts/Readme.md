@@ -14,7 +14,7 @@ Its assumed the user has Odin installed and exposed to the OS enviornment's PATH
 
 A custom version of the vendor:stb/truetype is maintained by this library:
 
-* Added ability to set the stb_truetype allocator for STBTT_MALLOC and STBTT_FREE.
+* Added ability to set the stb_truetype allocator for `STBTT_MALLOC` and `STBTT_FREE`.
 * Changed procedure signatures to pass the font_info struct by immutable ptr (#by_ptr) when the C equivalent has their parameter as `const*`.
 
 All other dependencies are cloned directly into a created thirdparty directory.
@@ -45,7 +45,6 @@ Will run `Launch-VsDevShell.ps1` for the user to populate the shell with its env
 ### misc.ps1
 
 A few helper functions to utilize powerhsell & github repos as package management.
-
 
 ### odin_compiler_defs.ps1
 

@@ -62,7 +62,7 @@ There a total of six procedures, 3 for shapes, 3 for text:
 * `draw_text_view_space`
 * `draw_text`
 
-The normalized space procedures are the `baseline` interface draw procedures. They expec the position, and scale provided to operate with an unsigned normalized space where the bottom left is 0.0, 0.0 and the top right is 1.0, 1.0.
+The normalized space procedures are the `baseline` interface draw procedures. They expect the position, and scale provided to operate with an unsigned normalized space where the bottom left is 0.0, 0.0 and the top right is 1.0, 1.0.
 
 The view space will normalize the position and scale for the user based on the provided view and zoom. The coordinate system is still unsigned just scaled to the view's size.
 
@@ -105,9 +105,13 @@ Provides a Vec2 the width and height occupied by the provided text string. The y
 
 A wrapper for `parser_get_font_vertical_metrics`. Will provide the ascent, descent, and line_gap for a font entry.
 
+Stuff used by the draw list generation interface or just getters and setters.
+
 ## Miscellaneous
 
-Stuff used by the draw list generation interface or just getters and setters.
+### get_font_entry
+
+Provides the backend Entry for for the given `Font_ID` (passed immutably). If the user desires a mutable reference, just resolve it manually.
 
 ### get_cursor_pos
 
@@ -135,6 +139,11 @@ Provides a way to get a "zoom" on the font size and scale, similar conceptually 
 Does nothing when zoom is 1.0
 
 Uses `resolve_draw_px_size` to constrain which font size is used for the zoom.
+
+### snap_normalized_position_to_view
+
+Will snap the given position to the nearest pixel via ceil of the given view.  
+Does nothing if view is 1 or 0
 
 ### set_alpha_scalar
 

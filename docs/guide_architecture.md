@@ -203,7 +203,7 @@ For `to_cached`:
 
 ### On Layering
 
-The base draw list generation pippline provided by the library allows the user to batch whatever they want into a single "layer".
+The base draw list generation pipeline provided by the library allows the user to batch whatever they want into a single "layer".
 However, the user most likely would want take into consideration: font instances, font size, colors; these are things that may benefit from having shared locality during a layer batch. Overlaping text benefits from the user to handle the ordering via layers.
 
 Layers (so far) are just a set of offssets tracked by the library's `Context.draw_layer` struct. When `flush_draw_list_layer` is called, the offsets are set to the current length of the draw list. This allows the rendering backend to retrieve the latest set of vertices, indices, and calls to render on a per-layer basis with: `get_draw_list_layer`.

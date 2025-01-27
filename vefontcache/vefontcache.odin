@@ -1273,7 +1273,7 @@ set_snap_glyph_render_height :: #force_inline proc( ctx : ^Context, should_snap 
 	ctx.glyph_buffer.snap_glyph_height = cast(f32) i32(should_snap)
 }
 
-//#endregion("misc")
+//#endregion("miscellaneous")
 
 //#region("scope stack")
 
