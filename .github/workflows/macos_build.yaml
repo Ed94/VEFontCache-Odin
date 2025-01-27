@@ -35,7 +35,11 @@ jobs:
         brew install harfbuzz
         brew install odin
 
-        make -C "/opt/homebrew/Cellar/odin/2024-12/libexec/vendor/stb/src"
+        # Get the latest Odin directory dynamically
+        ODIN_VER_DIR=$(ls /opt/homebrew/Cellar/odin/ | sort -r | head -n1)
+        echo "ODIN_VER_DIR=$ODIN_VER_DIR" >> $GITHUB_ENV
+                
+        make -C "/opt/homebrew/Cellar/odin/$ODIN_VER_DIR/libexec/vendor/stb/src"
 
     - name: Run build script
       run: |
