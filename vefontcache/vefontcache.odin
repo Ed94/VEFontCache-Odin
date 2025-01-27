@@ -173,8 +173,8 @@ startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // N
 	glyph_draw_params           := Init_Glyph_Draw_Params_Default,
 	shape_cache_params          := Init_Shape_Cache_Params_Default,
 	shaper_params               := Init_Shaper_Params_Default,
-	alpha_sharpen               : f32 = 0.35,
-	px_scalar                   : f32 = 1.6,
+	alpha_sharpen               : f32 = 0.1,
+	px_scalar                   : f32 = 1.4,
 	zoom_px_interval            : i32 = 2,
 	
 	// Curve quality to use for a font when unspecified,
