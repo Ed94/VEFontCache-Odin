@@ -81,9 +81,6 @@ Context :: struct {
 	// debug_print         : b32,
 	// debug_print_verbose : b32,
 
-	// Will enforce even px_size when drawing.
-	even_size_only : f32,
-
 	// Whether or not to snap positioning to the pixel of the view
 	// Helps with hinting
 	snap_to_view_extent : b32,
