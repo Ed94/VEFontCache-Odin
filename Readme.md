@@ -38,10 +38,12 @@ Upcoming:
 * Better support for tuning glyph render sampling
   * Support for sub-pixel AA
   * Ability to decide AA method & degree on a per-font basis
+* Support for Hamza shaper
+  * C-library with ability to set allocator.
 * Multi-threading supported job queue
   * Lift heavy-lifting portion of the library's context into a thread context
   * Synchronize threads by merging their generated layered draw list into a finished draw list for processing on the user's render thread
-  * User defines how thread contexts are distributed for drawing (a basic quadrant-based selector procedure will be provided)
+  * User defines how thread contexts are distributed for drawing.
 
 ## Documentation
 
@@ -57,10 +59,10 @@ See [scripts/Readme.md](scripts/Readme.md) for building examples or utilizing th
 
 Currently, the scripts provided & the library itself were developed & tested on Windows. There are bash scripts for building on Linux (they build on WSL but need additional testing).
 
-The library depends on harfbuzz & stb_truetype to build.  
+The library depends on harfbuzz & stb_truetype to build (a custom stb_truetype package is provided in [thirdparty](./thirdparty/stb/)).  
 Note: harfbuzz could technically be removed if the user removes their definitions, however this hasn't been made into a conditional compilation option yet.
 
-**NOTICE: All library dependency packages are in the "thirdparty" collection of this repository. For their codebase, the user soley has to modify that collection specification for where they would like to put these external vendor package not provided by the offical Odin vendor collections.**
+**NOTICE: All library dependency packages are in the "thirdparty" collection of this repository. For their codebase, the user soley has to modify that collection specification for where they would like to put these packages.**
 
 ## Gallery
 
