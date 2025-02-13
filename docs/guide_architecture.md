@@ -29,7 +29,7 @@ All caching uses [LRU.odin](../vefontcache/LRU.odin)
 
 The library lifetime is straightforward: you have a startup procedure that should be called during your usual app initialization. From there you may either choose to manually shut it down or let the OS clean it up.
 
-If hot-reload is desired, you just need to call hot_reload with the context's backing allocator to refresh the procedure references. After the DLL has been reloaded, these should be the only aspects that have been scrambled.  
+If hot-reload is desired, you just need to call `hot_reload` with the context's backing allocator to refresh the procedure references. After the DLL has been reloaded, these should be the only aspects that have been scrambled.  
 Usually when hot-reloading the library for tuning or major changes, you'd also want to clear the caches. Simply call `clear_atlas_region_caches` & `clear_shape_cache` right after.
 
 Ideally, there should be zero dynamic allocation on a per-frame basis as long as the reserves for the dynamic containers are never exceeded. It's acceptable if they do exceed as their memory locality is so large their distance in the pages to load into CPU cache won't matter - it just needs to be a low incidence.
@@ -76,7 +76,7 @@ Shaped_Text :: struct #packed {
 }
 ```
 
-The result of the shaping process is the glyphs and their positions for the the shape; historically resembling whats known as a *Slug* of prepared text for printing. The end position of where the user's "cursor" would be is also recorded which provided the end position of the shape. The size of the shape is also resolved here, which if using px_scalar must be downscaled. `measure_shape_size` does the downscaling for the user.
+The result of the shaping process is the glyphs and their positions for the the shape; historically resembling whats known as a *Slug* of prepared text for printing. The end position of where the user's "cursor" would be is recorded which is provided at the end position of the shape. The size of the shape is resolved here as well. If using px_scalar, the shape.size must be downscaled. `measure_shape_size` does the downscaling for the user.
 
 `visible` tracks which of the glyphs will actually be relevant for the draw_list pass. This is to avoid a conditional jump during the draw list gen pass. When accessing glyph or position during the draw_list gen, they will use visible's relative index.
 
@@ -231,4 +231,4 @@ Draw_List_Layer :: struct {
 ```
 
 Eventually the library may provide this since adding that feature is relatively cheap and and a low line-count addition to the interface.
-There should be little to no perfomrance loss from doing so as the iteration size is two large of a surface area to matter (so its just pipeline ergonomics)
+There should be little to no perfomrance loss from doing so as the iteration size is two large of a surface area to matter (so its just pipeline ergonomics).

@@ -140,6 +140,18 @@ Does nothing when zoom is 1.0
 
 Uses `resolve_draw_px_size` to constrain which font size is used for the zoom.
 
+## resolve_px_scalar_size
+
+Get the target pixel, font_scale, and scale for the given font pixel size, and scalar multiple to apply. (Normalized space with norm_scale)
+To derived norm_scale use:  get_normalized_position_scale or just do (scale * (1 / view))
+
+This is used within:
+
+* draw_shape_view_space
+* draw_text_view_space
+* draw_shape
+* draw_text
+
 ### snap_normalized_position_to_view
 
 Will snap the given position to the nearest pixel via ceil of the given view.  

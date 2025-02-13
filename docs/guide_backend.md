@@ -23,7 +23,7 @@ There are four passes that need to be handled when rendering a draw list:
 * Target: Blitting from the atlas image to the target image
 * Target_Uncached: Blitting from the glyph buffer image to the target image
 
-The Target & Target_Uncached passes can technically be handled in the same case. The user just needs to swap between using the atlas image and the glyph buffer image. This is how the backend_soko.odin's `render_text_layer` has these passes set up.
+The Target & Target_Uncached passes can technically be handled in the same case. The user just needs to swap between using the atlas image and the glyph buffer image. This is how the backend_sokol.odin's `render_text_layer` has these passes set up.
 
 ## Vertex Buffer Layout
 
