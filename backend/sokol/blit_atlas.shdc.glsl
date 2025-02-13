@@ -12,10 +12,10 @@
 in  vec2 uv;
 out vec4 frag_color;
 
-layout(binding = 0) uniform texture2D ve_blit_atlas_src_texture;
-layout(binding = 0) uniform sampler   ve_blit_atlas_src_sampler;
+layout(binding = 0) uniform texture2D blit_atlas_src_texture;
+layout(binding = 0) uniform sampler   blit_atlas_src_sampler;
 
-layout(binding = 0) uniform ve_blit_atlas_fs_params {
+layout(binding = 0) uniform blit_atlas_fs_params {
 	vec2  glyph_buffer_size;
 	float over_sample;
 	int   region;
@@ -26,10 +26,10 @@ float down_sample_to_texture( vec2 uv, vec2 texture_size )
 	float down_sample = 1.0f / over_sample;
 
 	float value =
-		texture(sampler2D( ve_blit_atlas_src_texture, ve_blit_atlas_src_sampler ), uv + vec2( 0.0f, 0.0f ) * texture_size ).x * down_sample
-	+	texture(sampler2D( ve_blit_atlas_src_texture, ve_blit_atlas_src_sampler ), uv + vec2( 0.0f, 1.0f ) * texture_size ).x * down_sample
-	+	texture(sampler2D( ve_blit_atlas_src_texture, ve_blit_atlas_src_sampler ), uv + vec2( 1.0f, 0.0f ) * texture_size ).x * down_sample
-	+	texture(sampler2D( ve_blit_atlas_src_texture, ve_blit_atlas_src_sampler ), uv + vec2( 1.0f, 1.0f ) * texture_size ).x * down_sample;
+		texture(sampler2D( blit_atlas_src_texture, blit_atlas_src_sampler ), uv + vec2( 0.0f, 0.0f ) * texture_size ).x * down_sample
+	+	texture(sampler2D( blit_atlas_src_texture, blit_atlas_src_sampler ), uv + vec2( 0.0f, 1.0f ) * texture_size ).x * down_sample
+	+	texture(sampler2D( blit_atlas_src_texture, blit_atlas_src_sampler ), uv + vec2( 1.0f, 0.0f ) * texture_size ).x * down_sample
+	+	texture(sampler2D( blit_atlas_src_texture, blit_atlas_src_sampler ), uv + vec2( 1.0f, 1.0f ) * texture_size ).x * down_sample;
 
 	return value;
 }
@@ -55,4 +55,4 @@ void main()
 }
 @end
 
-@program ve_blit_atlas blit_atlas_vs blit_atlas_fs
+@program blit_atlas blit_atlas_vs blit_atlas_fs

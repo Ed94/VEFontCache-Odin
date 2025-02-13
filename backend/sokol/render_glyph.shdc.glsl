@@ -18,4 +18,4 @@ void main()
 }
 @end
 
-@program ve_render_glyph render_glyph_vs render_glyph_fs
+@program render_glyph render_glyph_vs render_glyph_fs
