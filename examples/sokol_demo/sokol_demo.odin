@@ -227,7 +227,7 @@ init :: proc "c" ()
 	}
 
 	glyph_draw_opts := ve.Init_Glyph_Draw_Params_Default
-	glyph_draw_opts.snap_glyph_height = true
+	glyph_draw_opts.snap_glyph_height = false
 
 	shaper_opts := ve.Init_Shaper_Params_Default
 	shaper_opts.snap_glyph_position = true
