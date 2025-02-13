@@ -59,7 +59,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	backend := gfx.query_backend()
 	app_env := glue.environment()
 
-	ctx.glyph_shader  = gfx.make_shader(render_glyph_shader_desc(backend) )
+	ctx.glyph_shader  = gfx.make_shader(ve_render_glyph_shader_desc(backend) )
 	ctx.atlas_shader  = gfx.make_shader(ve_blit_atlas_shader_desc(backend) )
 	ctx.screen_shader = gfx.make_shader(ve_draw_text_shader_desc(backend) )
 
@@ -83,12 +83,12 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	{
 		vs_layout : Vertex_Layout_State
 		{
-			vs_layout.attrs[ATTR_render_glyph_v_position] = Vertex_Attribute_State {
+			vs_layout.attrs[ATTR_ve_render_glyph_v_position] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = 0,
 				buffer_index = 0,
 			}
-			vs_layout.attrs[ATTR_render_glyph_v_texture] = Vertex_Attribute_State {
+			vs_layout.attrs[ATTR_ve_render_glyph_v_texture] = Vertex_Attribute_State {
 				format       = Vertex_Format.FLOAT2,
 				offset       = size_of(ve.Vec2),
 				buffer_index = 0,

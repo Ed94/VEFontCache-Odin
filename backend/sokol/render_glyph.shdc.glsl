@@ -1,4 +1,5 @@
-@module render_glyph
+// module naming rules are currently dumb with shdc rn...
+// @module render_glyph
 
 @header package ve_sokol
 @header import sg "thirdparty:sokol/gfx"
@@ -17,4 +18,4 @@ void main()
 }
 @end
 
-@program render_glyph render_glyph_vs render_glyph_fs
+@program ve_render_glyph render_glyph_vs render_glyph_fs

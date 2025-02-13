@@ -1,13 +1,14 @@
-@module ve_blit_atlas
+// module naming rules are currently dumb with shdc rn...
+// @module ve_blit_atlas 
 
 @header package ve_sokol
 @header import sg "thirdparty:sokol/gfx"
 
-@vs ve_blit_atlas_vs
+@vs blit_atlas_vs
 @include ./source_shared.shdc.glsl
 @end
 
-@fs ve_blit_atlas_fs
+@fs blit_atlas_fs
 in  vec2 uv;
 out vec4 frag_color;
 
@@ -54,4 +55,4 @@ void main()
 }
 @end
 
-@program ve_blit_atlas ve_blit_atlas_vs ve_blit_atlas_fs
+@program ve_blit_atlas blit_atlas_vs blit_atlas_fs

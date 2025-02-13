@@ -27,10 +27,8 @@ Parser_Kind :: enum u32 {
 Parser_Font_Info :: struct {
 	label : string,
 	kind  : Parser_Kind,
-	using _ : struct #raw_union {
-		stbtt_info : stbtt.fontinfo,
-		// freetype_info : freetype.Face
-	},
+	stbtt_info : stbtt.fontinfo,
+	// freetype_info : freetype.Face
 	data : []byte,
 }
 

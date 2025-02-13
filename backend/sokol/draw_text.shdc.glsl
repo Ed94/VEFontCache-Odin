@@ -1,4 +1,5 @@
-@module ve_draw_text
+// module naming rules are currently dumb with shdc rn...
+// @module ve_draw_text
 
 @header package ve_sokol
 @header import sg "thirdparty:sokol/gfx"
