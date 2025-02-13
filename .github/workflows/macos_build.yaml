@@ -59,7 +59,7 @@ jobs:
       run: ls -R ./build || echo "build directory not found"
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-build
         path: ./build/
