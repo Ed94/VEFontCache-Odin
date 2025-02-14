@@ -84,6 +84,7 @@ Glyph_Draw_Buffer :: struct{
 	size              : Vec2i,
 	draw_padding      : f32,
 	snap_glyph_height : f32,
+	snap_glyph_width  : f32,
 
 	allocated_x     : i32, // Space used (horizontally) within the glyph buffer
 	clear_draw_list : Draw_List,
@@ -703,13 +704,13 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 			
 			dst_glyph_pos    := glyph.region_pos
 			dst_glyph_size   := bounds_size_scaled + atlas.glyph_padding
-			dst_glyph_size.x  = ceil(dst_glyph_size.x)
+			dst_glyph_size.x  = max(dst_glyph_size.x, ceil(dst_glyph_size.x) * glyph_buffer.snap_glyph_width)   // Note(Ed): Can (in specific cases, rare.) improve hinting
 			dst_glyph_size.y  = max(dst_glyph_size.y, ceil(dst_glyph_size.y) * glyph_buffer.snap_glyph_height)  // Note(Ed): Seems to improve hinting
 			to_glyph_buffer_space( & dst_glyph_pos, & dst_glyph_size, atlas_size )
 	
 			src_position  := Vec2 { glyph.buffer_x, 0 }
 			src_size      := (bounds_size_scaled + atlas.glyph_padding) * glyph_buffer.over_sample
-			src_size.x     = ceil(src_size.x)
+			src_size.x     = max(src_size.x, ceil(src_size.x) * glyph_buffer.snap_glyph_width)  // Note(Ed): Can (in specific cases, rare.) improve hinting
 			src_size.y     = max(src_size.y, ceil(src_size.y) * glyph_buffer.snap_glyph_height) // Note(Ed): Seems to improve hinting
 			to_target_space( & src_position, & src_size, glyph_buffer_size )
 			

@@ -24,6 +24,9 @@ Entry :: struct {
 	used          : b32,
 	curve_quality : f32,
 
+	// TODO(Ed): Move over settings related to (snapping) hinting, oversample, px_scalar, etc; 
+	// to here as there is no need to restrict the user to have one option for all fonts.
+
 	ascent   : f32,
 	descent  : f32,
 	line_gap : f32,
@@ -113,7 +116,10 @@ Init_Atlas_Params_Default :: Init_Atlas_Params {
 }
 
 Init_Glyph_Draw_Params :: struct {
-	// During the draw list generation stage when blitting to atlas, the quad wil be ceil()'d to the closest pixel.
+	// During the draw list generation stage when blitting to atlas, the quad's width will be ceil()'d to the closest pixel.
+	// Generally its not recommend todo this and is disabled on most renderers, but on rare occasion some fonts benefit from this.
+	snap_glyph_width          : b32,
+	// During the draw list generation stage when blitting to atlas, the quad's height be ceil()'d to the closest pixel.
 	snap_glyph_height         : b32,
 	// Intended to be x16 (4x4) super-sampling from the glyph buffer to the atlas.
 	// Oversized glyphs don't use this and instead do 2x or 1x depending on how massive they are.
@@ -128,12 +134,13 @@ Init_Glyph_Draw_Params :: struct {
 }
 
 Init_Glyph_Draw_Params_Default :: Init_Glyph_Draw_Params {
-	snap_glyph_height               = true,
-	over_sample                     = 4,
-	draw_padding                    = Init_Atlas_Params_Default.glyph_padding,
-	shape_gen_scratch_reserve       = 512,
-	buffer_glyph_limit              = 16,
-	batch_glyph_limit               = 256,
+	snap_glyph_width          = false,
+	snap_glyph_height         = true,
+	over_sample               = 4,
+	draw_padding              = Init_Atlas_Params_Default.glyph_padding,
+	shape_gen_scratch_reserve = 512,
+	buffer_glyph_limit        = 16,
+	batch_glyph_limit         = 256,
 }
 
 Init_Shaper_Params :: struct {
@@ -293,6 +300,7 @@ startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // N
 	Glyph_Buffer_Setup:
 	{
 		glyph_buffer := & ctx.glyph_buffer
+		glyph_buffer.snap_glyph_width  = cast(f32) i32(glyph_draw_params.snap_glyph_width)
 		glyph_buffer.snap_glyph_height = cast(f32) i32(glyph_draw_params.snap_glyph_height)
 		glyph_buffer.over_sample       = { f32(glyph_draw_params.over_sample), f32(glyph_draw_params.over_sample) }
 		glyph_buffer.size.x            = atlas.region_d.slot_size.x * i32(glyph_buffer.over_sample.x) * i32(glyph_draw_params.buffer_glyph_limit)
