@@ -518,14 +518,18 @@ render_glyph_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.vertex_func.entry = "main"
         desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_glsl410
         desc.fragment_func.entry = "main"
+        desc.attrs[0].base_type = .FLOAT
         desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].base_type = .FLOAT
         desc.attrs[1].glsl_name = "v_texture"
     case .GLES3:
         desc.vertex_func.source = transmute(cstring)&render_glyph_vs_source_glsl300es
         desc.vertex_func.entry = "main"
         desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_glsl300es
         desc.fragment_func.entry = "main"
+        desc.attrs[0].base_type = .FLOAT
         desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].base_type = .FLOAT
         desc.attrs[1].glsl_name = "v_texture"
     case .D3D11:
         desc.vertex_func.source = transmute(cstring)&render_glyph_vs_source_hlsl4
@@ -534,8 +538,10 @@ render_glyph_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_hlsl4
         desc.fragment_func.d3d11_target = "ps_4_0"
         desc.fragment_func.entry = "main"
+        desc.attrs[0].base_type = .FLOAT
         desc.attrs[0].hlsl_sem_name = "TEXCOORD"
         desc.attrs[0].hlsl_sem_index = 0
+        desc.attrs[1].base_type = .FLOAT
         desc.attrs[1].hlsl_sem_name = "TEXCOORD"
         desc.attrs[1].hlsl_sem_index = 1
     case .METAL_MACOS:
@@ -543,11 +549,15 @@ render_glyph_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.vertex_func.entry = "main0"
         desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_metal_macos
         desc.fragment_func.entry = "main0"
+        desc.attrs[0].base_type = .FLOAT
+        desc.attrs[1].base_type = .FLOAT
     case .WGPU:
         desc.vertex_func.source = transmute(cstring)&render_glyph_vs_source_wgsl
         desc.vertex_func.entry = "main"
         desc.fragment_func.source = transmute(cstring)&render_glyph_fs_source_wgsl
         desc.fragment_func.entry = "main"
+        desc.attrs[0].base_type = .FLOAT
+        desc.attrs[1].base_type = .FLOAT
     }
     return desc
 }

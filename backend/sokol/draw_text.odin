@@ -913,7 +913,9 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.vertex_func.entry = "main"
         desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_glsl410
         desc.fragment_func.entry = "main"
+        desc.attrs[0].base_type = .FLOAT
         desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].base_type = .FLOAT
         desc.attrs[1].glsl_name = "v_texture"
         desc.uniform_blocks[0].stage = .FRAGMENT
         desc.uniform_blocks[0].layout = .STD140
@@ -936,7 +938,9 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.vertex_func.entry = "main"
         desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_glsl300es
         desc.fragment_func.entry = "main"
+        desc.attrs[0].base_type = .FLOAT
         desc.attrs[0].glsl_name = "v_position"
+        desc.attrs[1].base_type = .FLOAT
         desc.attrs[1].glsl_name = "v_texture"
         desc.uniform_blocks[0].stage = .FRAGMENT
         desc.uniform_blocks[0].layout = .STD140
@@ -961,8 +965,10 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_hlsl4
         desc.fragment_func.d3d11_target = "ps_4_0"
         desc.fragment_func.entry = "main"
+        desc.attrs[0].base_type = .FLOAT
         desc.attrs[0].hlsl_sem_name = "TEXCOORD"
         desc.attrs[0].hlsl_sem_index = 0
+        desc.attrs[1].base_type = .FLOAT
         desc.attrs[1].hlsl_sem_name = "TEXCOORD"
         desc.attrs[1].hlsl_sem_index = 1
         desc.uniform_blocks[0].stage = .FRAGMENT
@@ -985,6 +991,8 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.vertex_func.entry = "main0"
         desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_metal_macos
         desc.fragment_func.entry = "main0"
+        desc.attrs[0].base_type = .FLOAT
+        desc.attrs[1].base_type = .FLOAT
         desc.uniform_blocks[0].stage = .FRAGMENT
         desc.uniform_blocks[0].layout = .STD140
         desc.uniform_blocks[0].size = 32
@@ -1005,6 +1013,8 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.vertex_func.entry = "main"
         desc.fragment_func.source = transmute(cstring)&draw_text_fs_source_wgsl
         desc.fragment_func.entry = "main"
+        desc.attrs[0].base_type = .FLOAT
+        desc.attrs[1].base_type = .FLOAT
         desc.uniform_blocks[0].stage = .FRAGMENT
         desc.uniform_blocks[0].layout = .STD140
         desc.uniform_blocks[0].size = 32
