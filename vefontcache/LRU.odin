@@ -94,7 +94,7 @@ pool_list_clear :: proc( pool: ^Pool_List($V_Type) )
 	pool.size  = 0
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 pool_list_push_front :: proc( pool : ^Pool_List($V_Type), value : V_Type ) #no_bounds_check
 {
 	if pool.size >= pool.capacity do return
@@ -121,7 +121,7 @@ pool_list_push_front :: proc( pool : ^Pool_List($V_Type), value : V_Type ) #no_b
 	pool.size  += 1
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 pool_list_erase :: proc( pool : ^Pool_List($V_Type), iter : Pool_ListIter ) #no_bounds_check
 {
 	if pool.size <= 0 do return
@@ -150,7 +150,7 @@ pool_list_erase :: proc( pool : ^Pool_List($V_Type), iter : Pool_ListIter ) #no_
 	}
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 pool_list_move_to_front :: proc "contextless" ( pool : ^Pool_List($V_Type), iter : Pool_ListIter ) #no_bounds_check
 {
 	if pool.front == iter do return
@@ -166,14 +166,14 @@ pool_list_move_to_front :: proc "contextless" ( pool : ^Pool_List($V_Type), iter
 	pool.front                    = iter
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 pool_list_peek_back :: #force_inline proc ( pool : Pool_List($V_Type) ) -> V_Type #no_bounds_check {
 	assert( pool.back != - 1 )
 	value := pool.items[ pool.back ].value
 	return value
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 pool_list_pop_back :: #force_inline proc( pool : ^Pool_List($V_Type) ) -> V_Type #no_bounds_check { 
 	if pool.size <= 0 do return 0
 	assert( pool.back != -1 )
@@ -220,13 +220,13 @@ lru_clear :: proc ( cache : ^LRU_Cache($Key_Type) ) {
 	cache.num = 0
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 lru_find :: #force_inline proc "contextless" ( cache : LRU_Cache($Key_Type), key : Key_Type, must_find := false ) -> (LRU_Link, bool) #no_bounds_check { 
 	link, success := cache.table[key]
 	return link, success
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 lru_get :: #force_inline proc ( cache: ^LRU_Cache($Key_Type), key : Key_Type ) -> i32 #no_bounds_check {
 	if link, ok := &cache.table[ key ]; ok {
 		pool_list_move_to_front(&cache.key_queue, link.ptr)
@@ -235,7 +235,7 @@ lru_get :: #force_inline proc ( cache: ^LRU_Cache($Key_Type), key : Key_Type ) -
 	return -1
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 lru_get_next_evicted :: #force_inline proc ( cache : LRU_Cache($Key_Type) ) -> Key_Type #no_bounds_check {
 	if cache.key_queue.size >= cache.capacity {
 		evict := pool_list_peek_back( cache.key_queue )
@@ -244,7 +244,7 @@ lru_get_next_evicted :: #force_inline proc ( cache : LRU_Cache($Key_Type) ) -> K
 	return ~Key_Type(0)
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 lru_peek :: #force_inline proc "contextless" ( cache : LRU_Cache($Key_Type), key : Key_Type, must_find := false ) -> i32 #no_bounds_check {
 	iter, success := lru_find( cache, key, must_find )
 	if success == false {
@@ -253,7 +253,7 @@ lru_peek :: #force_inline proc "contextless" ( cache : LRU_Cache($Key_Type), key
 	return iter.value
 }
 
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 lru_put :: proc( cache : ^LRU_Cache($Key_Type), key : Key_Type, value : i32 ) -> Key_Type #no_bounds_check
 {
 	// profile(#procedure)

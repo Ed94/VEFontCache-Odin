@@ -109,7 +109,7 @@ shaper_unload_font :: #force_inline proc( info : ^Shaper_Info )
 // TODO(Ed): Allow the user to override snap_glyph_position of the shaper context on a per-call basis (as a param)
 // Recommended shaper. Very performant.
 // TODO(Ed): Would be nice to properly support vertical shaping, right now its strictly just horizontal...
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context, 
 	atlas             : Atlas, 
 	glyph_buffer_size : Vec2,
@@ -142,7 +142,7 @@ shaper_shape_harfbuzz :: proc( ctx : ^Shaper_Context,
 
 	position : Vec2
 
-	@(optimization_mode="size")
+	@(optimization_mode="favor_size")
 	shape_run :: proc( output : ^Shaped_Text,
 		entry  : Entry, 
 		buffer : harfbuzz.Buffer,
@@ -428,7 +428,7 @@ shaper_shape_text_latin :: proc( ctx : ^Shaper_Context,
 // Thus this procedures cost will be proporitonal to how much text it has to sift through.
 // djb8_hash is used as its been pretty good for thousands of hashed lines that around 6-250 charactes long
 // (and its very fast).
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 shaper_shape_text_cached :: proc( text_utf8 : string, 
 	ctx                 : ^Shaper_Context,
 	shape_cache         : ^Shaped_Text_Cache, 

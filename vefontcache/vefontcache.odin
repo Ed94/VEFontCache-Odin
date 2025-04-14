@@ -701,7 +701,7 @@ shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_si
     •   position: Anchor point in normalized space (where the bottom-right vertex of the first glyph quad will be positioned)
     <-> scale   : Scale the glyph beyond its default scaling from its px_size.
 */
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 draw_shape_normalized_space :: #force_inline proc( ctx : ^Context, 
 	colour   : RGBAN,  
 	position : Vec2, 
@@ -757,7 +757,7 @@ draw_shape_normalized_space :: #force_inline proc( ctx : ^Context,
     •   position: Anchor point in normalized space (where the bottom-right vertex of the first glyph quad will be positioned)
     <-> scale   : Scale the glyph beyond its default scaling from its px_size.
 */
-@(optimization_mode = "size")
+@(optimization_mode="favor_size")
 draw_text_normalized_space :: proc( ctx : ^Context, 
 	font        : Font_ID,
 	px_size     : f32,
@@ -1149,7 +1149,7 @@ measure_shape_size :: #force_inline proc( ctx : Context, shape : Shaped_Text ) -
 }
 
 // Don't use this if you already have the shape instead use measure_shape_size
-@(optimization_mode="size")
+@(optimization_mode="favor_size")
 measure_text_size :: proc( ctx : ^Context, font : Font_ID, px_size : f32, text_utf8 : string, 
 	shaper_proc : $Shaper_Shape_Text_Uncached_Proc = shaper_shape_harfbuzz
 ) -> (measured : Vec2)

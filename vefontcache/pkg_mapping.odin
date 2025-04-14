@@ -105,6 +105,7 @@ make :: proc {
 	builtin.make_dynamic_array_len_cap,
 	builtin.make_slice,
 	builtin.make_map,
+	builtin.make_map_cap,
 }
 
 make_soa :: proc {
