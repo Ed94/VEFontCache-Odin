@@ -17,10 +17,9 @@ A custom version of the vendor:stb/truetype is maintained by this library:
 * Added ability to set the stb_truetype allocator for `STBTT_MALLOC` and `STBTT_FREE`.
 * Changed procedure signatures to pass the font_info struct by immutable ptr (#by_ptr) when the C equivalent has their parameter as `const*`.
 
-All other dependencies are cloned directly into a created thirdparty directory.
+All other dependencies are provided directly into the thirdparty directory. However they can be cloned from their corresponding github repos:
 
 [harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it will use the MSVC toolchain (you can change it to use meson instead of preferred).  
-[freetype](https://github.com/Ed94/odin-freetype) package has pre-built .lib files for windows (debug/release).  
 [sokol](https://github.com/floooh/sokol) built using `build_sokol_library.ps1`.  
 [sokol-tools](https://github.com/floooh/sokol-tools) used by `compile_sokol_shaders.ps1` to compile the glsl files into odin files for the sokol backend.
 
@@ -54,16 +53,17 @@ Just variable declarations based on flags used with the odin compiler's CLI.
 
 Essentially equivalent scripts from the PS scripts used on windows were ported to bash. Tested in WSL ubuntu image for Linux, and a github action workflow for MacOS.
 
+Build sokol manually if not using a fresh clone.
+
 #### Note on dependency packages
 
-Some dependencies are cloned directly into a created thirdparty directory.
+All other dependencies are provided directly into the thirdparty directory. However they can be cloned from their corresponding github repos:
 
 [harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it will use the gcc toolchain (you can change it to use meson instead of preferred).  
 
 * On MacOS, harbuzz imports through system:harfbuzz instead as there is an issue with importing via relative directories.
   * Use for example `brew install harfbuzz`
 
-[freetype](https://github.com/Ed94/odin-freetype) package does not come with binaries (uses "system:" instead)  
 [sokol](https://github.com/floooh/sokol) built using `build_sokol_library.sh`.  
 [sokol-tools](https://github.com/floooh/sokol-tools) used by `compile_sokol_shaders.sh` to compile the glsl files into odin files for the sokol backend.
 
