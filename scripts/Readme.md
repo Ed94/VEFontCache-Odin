@@ -17,7 +17,7 @@ A custom version of the vendor:stb/truetype is maintained by this library:
 * Added ability to set the stb_truetype allocator for `STBTT_MALLOC` and `STBTT_FREE`.
 * Changed procedure signatures to pass the font_info struct by immutable ptr (#by_ptr) when the C equivalent has their parameter as `const*`.
 
-All other dependencies are provided directly into the thirdparty directory. However they can be cloned from their corresponding github repos:
+All other dependencies are provided directly into the thirdparty directory (EXCEPT sokol-tools, its cloned). However they can be cloned from their corresponding github repos:
 
 [harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it will use the MSVC toolchain (you can change it to use meson instead of preferred).  
 [sokol](https://github.com/floooh/sokol) built using `build_sokol_library.ps1`.  
@@ -57,7 +57,7 @@ Build sokol manually if not using a fresh clone.
 
 #### Note on dependency packages
 
-All other dependencies are provided directly into the thirdparty directory. However they can be cloned from their corresponding github repos:
+All other dependencies are provided directly into the thirdparty directory (EXCEPT sokol-tools, its cloned). However they can be cloned from their corresponding github repos:
 
 [harfbuzz](https://github.com/Ed94/odin_harfbuzz) is configured to pull & build the C++ library, it will use the gcc toolchain (you can change it to use meson instead of preferred).  
 
