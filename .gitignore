@@ -1,7 +1,6 @@
 ﻿.vscode
 ols.json
 build
-thirdparty/freetype
-thirdparty/harfbuzz
-thirdparty/sokol
-thirdparty/sokol-tools
+# thirdparty/harfbuzz
+# thirdparty/sokol
+# thirdparty/sokol-tools

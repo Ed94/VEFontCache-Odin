@@ -1,0 +1,15 @@
+.vscode/
+build/
+*.a
+*.o
+*.lib
+*.obj
+*.pdb
+*.bin
+*.exp
+*.ilk
+*.dll
+*.dylib
+*.exe
+*.dSYM/
+ols.json
