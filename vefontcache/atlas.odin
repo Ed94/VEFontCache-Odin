@@ -53,7 +53,7 @@ Atlas :: struct {
 }
 
 // Hahser for the atlas.
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 atlas_glyph_lru_code :: #force_inline proc "contextless" ( font : Font_ID, px_size : f32, glyph_index : Glyph ) -> (lru_code : Atlas_Key) {
 	// lru_code = u32(glyph_index) + ( ( 0x10000 * u32(font) ) & 0xFFFF0000 )
 	font        := font
@@ -65,7 +65,7 @@ atlas_glyph_lru_code :: #force_inline proc "contextless" ( font : Font_ID, px_si
 	return
 }
 
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 atlas_region_bbox :: #force_inline proc( region : Atlas_Region, local_idx : i32 ) -> (position, size: Vec2)
 {
 	size = vec2(region.slot_size)
@@ -78,7 +78,7 @@ atlas_region_bbox :: #force_inline proc( region : Atlas_Region, local_idx : i32 
 	return
 }
 
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 atlas_decide_region :: #force_inline proc "contextless" (atlas : Atlas, glyph_buffer_size : Vec2, bounds_size_scaled : Vec2 ) -> (region_kind : Atlas_Region_Kind)
 {
 	// profile(#procedure)
@@ -99,7 +99,7 @@ atlas_decide_region :: #force_inline proc "contextless" (atlas : Atlas, glyph_bu
 }
 
 // Grab an atlas LRU cache slot.
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 atlas_reserve_slot :: #force_inline proc ( region : ^Atlas_Region, lru_code : Atlas_Key ) -> (atlas_index : i32)
 {
 	if region.next_idx < region.state.capacity

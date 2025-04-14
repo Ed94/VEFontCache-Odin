@@ -30,7 +30,7 @@ reload_map :: #force_inline proc( self : ^map [$KeyType] $EntryType, allocator :
 
 to_bytes :: #force_inline proc "contextless" ( typed_data : ^$Type ) -> []byte { return slice_ptr( transmute(^byte) typed_data, size_of(Type) ) }
 
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 djb8_hash :: #force_inline proc "contextless" ( hash : ^$Type, bytes : []byte ) { for value in bytes do (hash^) = (( (hash^) << 8) + (hash^) ) + Type(value) }
 
 RGBA8   :: [4]u8
@@ -79,7 +79,7 @@ logf :: proc( fmt : string, args : ..any,  level := core_log.Level.Info, loc := 
 	core_log.logf( level, fmt, ..args, location = loc )
 }
 
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 to_glyph_buffer_space :: #force_inline proc "contextless" ( #no_alias position, scale : ^Vec2, size : Vec2 )
 {
 	pos      := position^
@@ -93,7 +93,7 @@ to_glyph_buffer_space :: #force_inline proc "contextless" ( #no_alias position, 
 	(scale^)    = scale_32
 }
 
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 to_target_space :: #force_inline proc "contextless" ( #no_alias position, scale : ^Vec2, size : Vec2 )
 {
 	quotient : Vec2 = 1.0 / size
@@ -145,17 +145,17 @@ else
 {
 	Vec2_SIMD :: simd.f32x4
 
-	@(optimization_mode="favor_size")
+	@(optimization_mode="size")
 	vec2_to_simd :: #force_inline proc "contextless" (v: Vec2) -> Vec2_SIMD {
 		return Vec2_SIMD{v.x, v.y, 0, 0}
 	}
 
-	@(optimization_mode="favor_size")
+	@(optimization_mode="size")
 	simd_to_vec2 :: #force_inline proc "contextless" (v: Vec2_SIMD) -> Vec2 {
 		return Vec2{ simd.extract(v, 0), simd.extract(v, 1) }
 	}
 
-	@(optimization_mode="favor_size")
+	@(optimization_mode="size")
 	eval_point_on_bezier3 :: #force_inline proc "contextless" (p0, p1, p2: Vec2, alpha: f32) -> Vec2
 	{
 		simd_p0 := vec2_to_simd(p0)
@@ -179,7 +179,7 @@ else
 		return simd_to_vec2(result)
 	}
 
-	@(optimization_mode="favor_size")
+	@(optimization_mode="size")
 	eval_point_on_bezier4 :: #force_inline proc "contextless" (p0, p1, p2, p3: Vec2, alpha: f32) -> Vec2
 	{
 		simd_p0 := vec2_to_simd(p0)

@@ -100,7 +100,7 @@ Glyph_Draw_Buffer :: struct{
 }
 
 // Contructs a quad mesh for bliting a texture from source render target (src uv0 & 1) to the destination render target (p0, p1)
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 blit_quad :: #force_inline proc ( draw_list : ^Draw_List, 
 	p0  : Vec2 = {0, 0}, 
 	p1  : Vec2 = {1, 1}, 
@@ -140,7 +140,7 @@ blit_quad :: #force_inline proc ( draw_list : ^Draw_List,
 }
 
 // Constructs a triangle fan mesh to fill a shape using the provided path outside_point represents the center point of the fan.
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 fill_path_via_fan_triangulation :: proc( draw_list : ^Draw_List, 
 	outside_point : Vec2, 
 	path          : []Vertex,
@@ -178,7 +178,7 @@ fill_path_via_fan_triangulation :: proc( draw_list : ^Draw_List,
 }
 
 // Glyph triangulation generator
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 generate_glyph_pass_draw_list :: proc(draw_list : ^Draw_List, path : ^[dynamic]Vertex,
 	glyph_shape      : Parser_Glyph_Shape, 
 	curve_quality    : f32, 
@@ -464,7 +464,7 @@ generate_shape_draw_list :: proc( draw_list : ^Draw_List, shape : Shaped_Text,
 	  * Oversized will have a draw call setup to blit directly from the glyph buffer to the target.
 		* to_cache will blit the glyphs rendered from the buffer to the atlas.
 */
-@(optimization_mode = "favor_size")
+@(optimization_mode = "size")
 batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 	shape      : Shaped_Text,
 	glyph_pack : ^#soa[dynamic]Glyph_Pack_Entry,
@@ -641,7 +641,7 @@ batch_generate_glyphs_draw_list :: proc ( draw_list : ^Draw_List,
 	}
 	profile_end()
 
-	@(optimization_mode = "favor_size")
+	@(optimization_mode = "size")
 	generate_blit_from_atlas_draw_list :: #force_inline proc  (draw_list : ^Draw_List, glyph_pack : #soa[]Glyph_Pack_Entry, sub_pack : []i32, colour : RGBAN )
 	{
 		profile(#procedure)
@@ -781,7 +781,7 @@ flush_glyph_buffer_draw_list :: proc( #no_alias draw_list, glyph_buffer_draw_lis
 	(allocated_x ^) = 0
 }
 
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 clear_draw_list :: #force_inline proc ( draw_list : ^Draw_List ) {
 	clear( & draw_list.calls )
 	clear( & draw_list.indices )
@@ -789,7 +789,7 @@ clear_draw_list :: #force_inline proc ( draw_list : ^Draw_List ) {
 }
 
 // Helper used by flush_glyph_buffer_draw_list. Used to append all the content from the src draw list o the destination.
-@(optimization_mode="favor_size")
+@(optimization_mode="size")
 merge_draw_list :: proc ( #no_alias dst, src : ^Draw_List ) #no_bounds_check
 {
 	profile(#procedure)
