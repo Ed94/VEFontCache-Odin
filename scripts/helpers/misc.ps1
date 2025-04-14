@@ -65,6 +65,10 @@ function Update-GitRepo
 		write-host
 		return
 	}
+	
+	if ( -not(test-path -Path (join-path $path '.git'))) {
+		return # Assume the user doesn't want to use git grab packages automatically.
+	}
 
 	git -C $path fetch
 	$latest_commit_hash = git -C $path rev-parse '@{u}'

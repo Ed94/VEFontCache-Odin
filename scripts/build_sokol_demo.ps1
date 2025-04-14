@@ -44,7 +44,6 @@ $path_sokol_tools   = join-path $path_thirdparty 'sokol-tools'
 
 $sokol_build_clibs_command = join-path $path_scripts 'build_sokol_library.ps1'
 
-# clone-gitrepo $path_freetype    $url_freetype
 clone-gitrepo $path_sokol_tools $url_sokol_tools
 
 Update-GitRepo -path $path_sokol    -url $url_sokol     -build_command $sokol_build_clibs_command
