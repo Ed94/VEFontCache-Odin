@@ -77,6 +77,10 @@ update_git_repo() {
         return
     fi
 
+    if [ ! -d "$path/.git" ]; then
+        return # Assume the user doesn't want to use git grab packages automatically.
+    fi
+
     git -C "$path" fetch
     local latest_commit_hash=$(git -C "$path" rev-parse '@{u}')
     local last_built_hash=""
