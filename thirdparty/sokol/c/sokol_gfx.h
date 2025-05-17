@@ -452,7 +452,7 @@
         sg_apply_scissor_rect[f]
         sg_draw
 
-    The folling function may be called inside a render- or compute-pass, but
+    The following function may be called inside a render- or compute-pass, but
     not outside a pass:
 
         sg_apply_pipeline
@@ -818,7 +818,7 @@
         - for the GLES3 backend, source code must be provided in '#version 300 es' syntax
         - for the D3D11 backend, shaders can be provided as source or binary
           blobs, the source code should be in HLSL4.0 (for compatibility with old
-          low-end GPUs) or preferrably in HLSL5.0 syntax, note that when
+          low-end GPUs) or preferably in HLSL5.0 syntax, note that when
           shader source code is provided for the D3D11 backend, sokol-gfx will
           dynamically load 'd3dcompiler_47.dll'
         - for the Metal backends, shaders can be provided as source or binary blobs, the
@@ -883,7 +883,7 @@
         - a boolean 'readonly' flag, this is used for validation and hazard
           tracking in some 3D backends. Note that in render passes, only
           readonly storage buffer bindings are allowed. In compute passes, any
-          read/write storage buffer binding is assumbed to be written to by the
+          read/write storage buffer binding is assumed to be written to by the
           compute shader.
         - a backend-specific bind slot:
             - D3D11/HLSL:
@@ -978,7 +978,7 @@
         - for Metal:    https://github.com/floooh/sokol-samples/tree/master/metal
         - for OpenGL:   https://github.com/floooh/sokol-samples/tree/master/glfw
         - for GLES3:    https://github.com/floooh/sokol-samples/tree/master/html5
-        - for WebGPI:   https://github.com/floooh/sokol-samples/tree/master/wgpu
+        - for WebGPU:   https://github.com/floooh/sokol-samples/tree/master/wgpu
 
 
     ON SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT AND SG_SAMPLERTYPE_NONFILTERING
@@ -4124,7 +4124,7 @@ typedef struct sg_frame_stats {
     _SG_LOGITEM_XMACRO(VALIDATE_PIPELINEDESC_COMPUTE_SHADER_EXPECTED, "sg_pipeline_desc.shader must be a compute shader") \
     _SG_LOGITEM_XMACRO(VALIDATE_PIPELINEDESC_NO_COMPUTE_SHADER_EXPECTED, "sg_pipeline_desc.compute is false, but shader is a compute shader") \
     _SG_LOGITEM_XMACRO(VALIDATE_PIPELINEDESC_NO_CONT_ATTRS, "sg_pipeline_desc.layout.attrs is not continuous") \
-    _SG_LOGITEM_XMACRO(VALIDATE_PIPELINEDESC_ATTR_BASETYPE_MISMATCH, "sg_pipeline_desc.layout.attrs[].format is incompatble with sg_shader_desc.attrs[].base_type") \
+    _SG_LOGITEM_XMACRO(VALIDATE_PIPELINEDESC_ATTR_BASETYPE_MISMATCH, "sg_pipeline_desc.layout.attrs[].format is incompatible with sg_shader_desc.attrs[].base_type") \
     _SG_LOGITEM_XMACRO(VALIDATE_PIPELINEDESC_LAYOUT_STRIDE4, "sg_pipeline_desc.layout.buffers[].stride must be multiple of 4") \
     _SG_LOGITEM_XMACRO(VALIDATE_PIPELINEDESC_ATTR_SEMANTICS, "D3D11 missing vertex attribute semantics in shader") \
     _SG_LOGITEM_XMACRO(VALIDATE_PIPELINEDESC_SHADER_READONLY_STORAGEBUFFERS, "sg_pipeline_desc.shader: only readonly storage buffer bindings allowed in render pipelines") \
