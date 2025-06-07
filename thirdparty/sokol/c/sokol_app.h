@@ -4097,11 +4097,11 @@ _SOKOL_PRIVATE void _sapp_macos_frame(void) {
     #endif
     [_sapp.macos.window center];
     _sapp.valid = true;
+    NSApp.activationPolicy = NSApplicationActivationPolicyRegular;
     if (_sapp.fullscreen) {
         /* ^^^ on GL, this already toggles a rendered frame, so set the valid flag before */
         [_sapp.macos.window toggleFullScreen:self];
     }
-    NSApp.activationPolicy = NSApplicationActivationPolicyRegular;
     [NSApp activateIgnoringOtherApps:YES];
     [_sapp.macos.window makeKeyAndOrderFront:nil];
     _sapp_macos_update_dimensions();
@@ -6624,19 +6624,20 @@ _SOKOL_PRIVATE void _sapp_d3d11_create_device_and_swapchain(void) {
     #if defined(SOKOL_DEBUG)
         create_flags |= D3D11_CREATE_DEVICE_DEBUG;
     #endif
-    D3D_FEATURE_LEVEL feature_level;
+    D3D_FEATURE_LEVEL requested_feature_levels[] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0 };
+    D3D_FEATURE_LEVEL result_feature_level;
     HRESULT hr = D3D11CreateDeviceAndSwapChain(
         NULL,                           /* pAdapter (use default) */
         D3D_DRIVER_TYPE_HARDWARE,       /* DriverType */
         NULL,                           /* Software */
         create_flags,                   /* Flags */
-        NULL,                           /* pFeatureLevels */
-        0,                              /* FeatureLevels */
+        requested_feature_levels,       /* pFeatureLevels */
+        2,                              /* FeatureLevels */
         D3D11_SDK_VERSION,              /* SDKVersion */
         sc_desc,                        /* pSwapChainDesc */
         &_sapp.d3d11.swap_chain,        /* ppSwapChain */
         &_sapp.d3d11.device,            /* ppDevice */
-        &feature_level,                 /* pFeatureLevel */
+        &result_feature_level,          /* pFeatureLevel */
         &_sapp.d3d11.device_context);   /* ppImmediateContext */
     _SOKOL_UNUSED(hr);
     #if defined(SOKOL_DEBUG)
@@ -6657,13 +6658,13 @@ _SOKOL_PRIVATE void _sapp_d3d11_create_device_and_swapchain(void) {
             D3D_DRIVER_TYPE_HARDWARE,       /* DriverType */
             NULL,                           /* Software */
             create_flags,                   /* Flags */
-            NULL,                           /* pFeatureLevels */
-            0,                              /* FeatureLevels */
+            requested_feature_levels,       /* pFeatureLevels */
+            2,                              /* FeatureLevels */
             D3D11_SDK_VERSION,              /* SDKVersion */
             sc_desc,                        /* pSwapChainDesc */
             &_sapp.d3d11.swap_chain,        /* ppSwapChain */
             &_sapp.d3d11.device,            /* ppDevice */
-            &feature_level,                 /* pFeatureLevel */
+            &result_feature_level,          /* pFeatureLevel */
             &_sapp.d3d11.device_context);   /* ppImmediateContext */
     }
     #endif
@@ -10829,27 +10830,18 @@ _SOKOL_PRIVATE void _sapp_x11_create_window(Visual* visual, int depth) {
 
     int display_width = DisplayWidth(_sapp.x11.display, _sapp.x11.screen);
     int display_height = DisplayHeight(_sapp.x11.display, _sapp.x11.screen);
-    int window_width = _sapp.window_width;
-    int window_height = _sapp.window_height;
+    int window_width = (int)(_sapp.window_width * _sapp.dpi_scale);
+    int window_height = (int)(_sapp.window_height * _sapp.dpi_scale);
     if (0 == window_width) {
         window_width = (display_width * 4) / 5;
     }
     if (0 == window_height) {
         window_height = (display_height * 4) / 5;
     }
-    int window_xpos = (display_width - window_width) / 2;
-    int window_ypos = (display_height - window_height) / 2;
-    if (window_xpos < 0) {
-        window_xpos = 0;
-    }
-    if (window_ypos < 0) {
-        window_ypos = 0;
-    }
     _sapp_x11_grab_error_handler();
     _sapp.x11.window = XCreateWindow(_sapp.x11.display,
                                      _sapp.x11.root,
-                                     window_xpos,
-                                     window_ypos,
+                                     0, 0,
                                      (uint32_t)window_width,
                                      (uint32_t)window_height,
                                      0,     /* border width */
@@ -10867,17 +10859,14 @@ _SOKOL_PRIVATE void _sapp_x11_create_window(Visual* visual, int depth) {
     };
     XSetWMProtocols(_sapp.x11.display, _sapp.x11.window, protocols, 1);
 
+    // NOTE: PPosition and PSize are obsolete and ignored
     XSizeHints* hints = XAllocSizeHints();
-    hints->flags = (PWinGravity | PPosition | PSize);
-    hints->win_gravity = StaticGravity;
-    hints->x = window_xpos;
-    hints->y = window_ypos;
-    hints->width = window_width;
-    hints->height = window_height;
+    hints->flags = PWinGravity;
+    hints->win_gravity = CenterGravity;
     XSetWMNormalHints(_sapp.x11.display, _sapp.x11.window, hints);
     XFree(hints);
 
-    /* announce support for drag'n'drop */
+    // announce support for drag'n'drop
     if (_sapp.drop.enabled) {
         const Atom version = _SAPP_X11_XDND_VERSION;
         XChangeProperty(_sapp.x11.display, _sapp.x11.window, _sapp.x11.xdnd.XdndAware, XA_ATOM, 32, PropModeReplace, (unsigned char*) &version, 1);

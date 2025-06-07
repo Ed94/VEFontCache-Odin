@@ -114,7 +114,7 @@ package sokol_gfx
             });
 
     --- create resource objects (at least buffers, shaders and pipelines,
-        and optionally images, samplers and render-pass-attachments):
+        and optionally images, samplers and render/compute-pass-attachments):
 
             sg_buffer sg_make_buffer(const sg_buffer_desc*)
             sg_image sg_make_image(const sg_image_desc*)
@@ -148,17 +148,22 @@ package sokol_gfx
 
             sg_begin_pass(&(sg_pass){ .compute = true });
 
+        If the compute pass writes into storage images, provide those as
+        'storage attachments' via an sg_attachments object:
+
+            sg_begin_pass(&(sg_pass){ .compute = true, .attachments = attattachments });
+
     --- set the pipeline state for the next draw call with:
 
             sg_apply_pipeline(sg_pipeline pip)
 
     --- fill an sg_bindings struct with the resource bindings for the next
         draw- or dispatch-call (0..N vertex buffers, 0 or 1 index buffer, 0..N images,
-        samplers and storage-buffers), and call:
+        samplers and storage-buffers), and call
 
             sg_apply_bindings(const sg_bindings* bindings)
 
-        to update the resource bindings. Note that in a compute pass, no vertex-
+        ...to update the resource bindings. Note that in a compute pass, no vertex-
         or index-buffer bindings are allowed and will be rejected by the validation
         layer.
 
@@ -239,7 +244,7 @@ package sokol_gfx
             sg_update_image(sg_image img, const sg_image_data* data)
 
         Buffers and images to be updated must have been created with
-        SG_USAGE_DYNAMIC or SG_USAGE_STREAM.
+        sg_buffer_desc.usage.dynamic_update or .stream_update.
 
         Only one update per frame is allowed for buffer and image resources when
         using the sg_update_*() functions. The rationale is to have a simple
@@ -278,7 +283,7 @@ package sokol_gfx
         }
 
         A buffer to be used with sg_append_buffer() must have been created
-        with SG_USAGE_DYNAMIC or SG_USAGE_STREAM.
+        with sg_buffer_desc.usage.dynamic_update or .stream_update.
 
         If the application appends more data to the buffer then fits into
         the buffer, the buffer will go into the "overflow" state for the
@@ -396,7 +401,7 @@ package sokol_gfx
         This is why calling sg_query_surface_pitch() for a compressed pixel format and height
         N, N+1, N+2, ... may return the same result.
 
-        The row_align_bytes parammeter is for added flexibility. For image data that goes into
+        The row_align_bytes parameter is for added flexibility. For image data that goes into
         the sg_make_image() or sg_update_image() this should generally be 1, because these
         functions take tightly packed image data as input no matter what alignment restrictions
         exist in the backend 3D APIs.
@@ -702,10 +707,11 @@ package sokol_gfx
 
     ON COMPUTE PASSES
     =================
-    Compute passes are used to update the content of storage resources
-    (currently only storage buffers) by running compute shader code on
-    the GPU. This will almost always be more efficient than computing
-    that same data on the CPU and uploading the data via `sg_update_buffer()`.
+    Compute passes are used to update the content of storage buffers and
+    storage images by running compute shader code on
+    the GPU. Updating storage resources with a compute shader will almost always
+    be more efficient than computing the same data on the CPU and then uploading
+    it via `sg_update_buffer()` or `sg_update_image()`.
 
     NOTE: compute passes are only supported on the following platforms and
     backends:
@@ -724,33 +730,49 @@ package sokol_gfx
         - iOS with GLES3
         - Web with WebGL2
 
-    A compute pass is started with:
+    A compute pass which only updates storage buffers is started with:
 
         sg_begin_pass(&(sg_pass){ .compute = true });
 
-    ...and finished with:
+    ...if the compute pass updates storage images, the images must be 'bound'
+    via an sg_attachments object:
+
+        sg_begin_pass(&(sg_pass){ .compute = true, .attachments = attachments });
+
+    Image objects in such a compute pass attachments object must be created with
+    `storage_attachment` usage:
+
+        sg_image storage_image = sg_make_image(&(sg_image_desc){
+            .usage = {
+                .storage_attachment = true,
+            },
+            // ...
+        });
+
+    ...a compute pass is finished with a regular:
 
         sg_end_pass();
 
     Typically the following functions will be called inside a compute pass:
 
-        sg_apply_pipeline
-        sg_apply_bindings
-        sg_apply_uniforms
-        sg_dispatch
+        sg_apply_pipeline()
+        sg_apply_bindings()
+        sg_apply_uniforms()
+        sg_dispatch()
 
     The following functions are disallowed inside a compute pass
     and will cause validation layer errors:
 
-        sg_apply_viewport[f]
-        sg_apply_scissor_rect[f]
-        sg_draw
+        sg_apply_viewport[f]()
+        sg_apply_scissor_rect[f]()
+        sg_draw()
 
     Only special 'compute shaders' and 'compute pipelines' can be used in
     compute passes. A compute shader only has a compute-function instead
     of a vertex- and fragment-function pair, and it doesn't accept vertex-
-    and index-buffers as input, only storage-buffers, textures and non-filtering
-    samplers (more details on compute shaders in the following section).
+    and index-buffers as input, only storage-buffers, textures, non-filtering
+    samplers and images via storage attachments (more details on compute shaders in
+    the following section).
 
     A compute pipeline is created by providing a compute shader object,
     setting the .compute creation parameter to true and not defining any
@@ -774,6 +796,7 @@ package sokol_gfx
 
         - https://floooh.github.io/sokol-webgpu/instancing-compute-sapp.html
         - https://floooh.github.io/sokol-webgpu/computeboids-sapp.html
+        - https://floooh.github.io/sokol-webgpu/imageblur-sapp.html
 
 
     ON SHADER CREATION
@@ -787,7 +810,8 @@ package sokol_gfx
     The easiest way to provide all this shader creation data is to use the
     sokol-shdc shader compiler tool to compile shaders from a common
     GLSL syntax into backend-specific sources or binary blobs, along with
-    shader interface information and uniform blocks mapped to C structs.
+    shader interface information and uniform blocks and storage buffer array items
+    mapped to C structs.
 
     To create a shader using a C header which has been code-generated by sokol-shdc:
 
@@ -816,7 +840,9 @@ package sokol_gfx
         - for the desktop GL backend, source code can be provided in '#version 410' or
           '#version 430', version 430 is required when using storage buffers and
           compute shaders support, but note that this is not available on macOS
-        - for the GLES3 backend, source code must be provided in '#version 300 es' syntax
+        - for the GLES3 backend, source code must be provided in '#version 300 es' or
+          '#version 310 es' syntax (version 310 is required for storage buffer and
+          compute shader support, but note that this is not supported on WebGL2)
         - for the D3D11 backend, shaders can be provided as source or binary
           blobs, the source code should be in HLSL4.0 (for compatibility with old
           low-end GPUs) or preferably in HLSL5.0 syntax, note that when
@@ -863,7 +889,7 @@ package sokol_gfx
             .mtl_threads_per_threadgroup = { .x = 64, .y = 1, .z = 1 },
         }
 
-    - Information about each uniform block used in the shader:
+    - Information about each uniform block binding used in the shader:
         - the shader stage of the uniform block (vertex, fragment or compute)
         - the size of the uniform block in number of bytes
         - a memory layout hint (currently 'native' or 'std140') where 'native' defines a
@@ -879,7 +905,7 @@ package sokol_gfx
         - please also NOTE the documentation sections about UNIFORM DATA LAYOUT
           and CROSS-BACKEND COMMON UNIFORM DATA LAYOUT below!
 
-    - A description of each storage buffer used in the shader:
+    - A description of each storage buffer binding used in the shader:
         - the shader stage of the storage buffer
         - a boolean 'readonly' flag, this is used for validation and hazard
           tracking in some 3D backends. Note that in render passes, only
@@ -893,15 +919,41 @@ package sokol_gfx
                   buffers and textures share the same bind space for
                   'shader resource views')
                 - for read/write storage buffer buffer bindings: the UAV register N
-                  (`register(uN)`) where N is 0..7 (in HLSL, readwrite storage
+                  (`register(uN)`) where N is 0..11 (in HLSL, readwrite storage
                   buffers use their own bind space for 'unordered access views')
             - Metal/MSL: the buffer bind slot N (`[[buffer(N)]]`) where N is 8..15
             - WebGPU/WGSL: the binding N in `@group(0) @binding(N)` where N is 0..127
             - GL/GLSL: the buffer binding N in `layout(binding=N)` where N is 0..7
-        - note that storage buffers are not supported on all backends
+        - note that storage buffer bindings are not supported on all backends
           and platforms
 
-    - A description of each texture/image used in the shader:
+    - A description of each storage image binding used in the shader (only supported
+      in compute shaders):
+        - the shader stage (*must* be compute)
+        - the expected image type:
+            - SG_IMAGETYPE_2D
+            - SG_IMAGETYPE_CUBE
+            - SG_IMAGETYPE_3D
+            - SG_IMAGETYPE_ARRAY
+        - the 'access pixel format', this is currently limited to:
+            - SG_PIXELFORMAT_RGBA8
+            - SG_PIXELFORMAT_RGBA8SN/UI/SI
+            - SG_PIXELFORMAT_RGBA16UI/SI/F
+            - SG_PIXELFORMAT_R32UIUI/SI/F
+            - SG_PIXELFORMAT_RG32UI/SI/F
+            - SG_PIXELFORMAT_RGBA32UI/SI/F
+        - the access type (readwrite or writeonly)
+        - a backend-specific bind slot:
+            - D3D11/HLSL: the UAV register N (`register(uN)` where N is 0..11, the
+              bind slot must not collide with UAV storage buffer bindings
+            - Metal/MSL: the texture bind slot N (`[[texture(N)]])` where N is 0..19,
+              the bind slot must not collide with other texture bindings on the same
+              stage
+            - WebGPU/WGSL: the binding N in `@group(2) @binding(N)` where N is 0..3
+            - GL/GLSL: the buffer binding N in `layout(binding=N)` where N is 0..3
+        - note that storage image bindings are not supported on all backends and platforms
+
+    - A description of each texture binding used in the shader:
         - the shader stage of the texture (vertex, fragment or compute)
         - the expected image type:
             - SG_IMAGETYPE_2D
@@ -918,7 +970,8 @@ package sokol_gfx
         - a backend-specific bind slot:
             - D3D11/HLSL: the texture register N (`register(tN)`) where N is 0..23
               (in HLSL, readonly storage buffers and texture share the same bind space)
-            - Metal/MSL: the texture bind slot N (`[[texture(N)]]`) where N is 0..15
+            - Metal/MSL: the texture bind slot N (`[[texture(N)]]`) where N is 0..19
+              (the bind slot must not collide with storage image bindings on the same stage)
             - WebGPU/WGSL: the binding N in `@group(0) @binding(N)` where N is 0..127
 
     - A description of each sampler used in the shader:
@@ -953,24 +1006,26 @@ package sokol_gfx
 
         - D3D11/HLSL:
             - separate bindslot space per shader stage
-            - uniform blocks (as cbuffer): `register(b0..b7)`
-            - textures and readonly storage buffers: `register(t0..t23)`
-            - read/write storage buffers: `register(u0..u7)`
+            - uniform block bindings (as cbuffer): `register(b0..b7)`
+            - texture- and readonly storage buffer bindings: `register(t0..t23)`
+            - read/write storage buffer and storage image bindings: `register(u0..u11)`
             - samplers: `register(s0..s15)`
         - Metal/MSL:
             - separate bindslot space per shader stage
             - uniform blocks: `[[buffer(0..7)]]`
             - storage buffers: `[[buffer(8..15)]]`
-            - textures: `[[texture(0..15)]]`
+            - textures and storage image bindings: `[[texture(0..19)]]`
             - samplers: `[[sampler(0..15)]]`
         - WebGPU/WGSL:
             - common bindslot space across shader stages
             - uniform blocks: `@group(0) @binding(0..15)`
             - textures, samplers and storage buffers: `@group(1) @binding(0..127)`
+            - storage image bindings: `@group(2) @binding(0..3)`
         - GL/GLSL:
             - uniforms and image-samplers are bound by name
-            - storage buffers: `layout(std430, binding=0..7)` (common
+            - storage buffer bindings: `layout(std430, binding=0..7)` (common
               bindslot space across shader stages)
+            - storage image bindings: `layout(binding=0..3, [access_format])`
 
     For example code of how to create backend-specific shader objects,
     please refer to the following samples:
@@ -1194,7 +1249,7 @@ package sokol_gfx
           can only read from storage buffers, while compute-shaders can both read
           and write storage buffers)
         - create one or more storage buffers via sg_make_buffer() with the
-          buffer type SG_BUFFERTYPE_STORAGEBUFFER
+          `.usage.storage_buffer = true`
         - when creating a shader via sg_make_shader(), populate the sg_shader_desc
           struct with binding info (when using sokol-shdc, this step will be taken care
           of automatically)
@@ -1305,8 +1360,8 @@ package sokol_gfx
               (https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-object-rwbyteaddressbuffer)
             - readonly-storage buffers and textures are both bound as 'shader-resource-view' and
               share the same bind slots (declared as `register(tN)` in HLSL), where N must be in the range 0..23)
-            - read/write storage buffers are bound as 'unordered-access-view' (declared as `register(uN)` in HLSL
-              where N is in the range 0..7)
+            - read/write storage buffers and storage images are bound as 'unordered-access-view'
+              (declared as `register(uN)` in HLSL where N is in the range 0..11)
 
         Metal:
             - in Metal there is no internal difference between vertex-, uniform- and
@@ -1333,6 +1388,53 @@ package sokol_gfx
 
               `@group(1) @binding(0..127)
 
+    ON STORAGE IMAGES:
+    ==================
+    To write pixel data to texture objects in compute shaders, first an image
+    object must be created with `storage_attachment usage`:
+
+        sg_image storage_image = sg_make_image(&(sg_image_desc){
+            .usage = {
+                .storage_attachment = true,
+            },
+            .width = ...,
+            .height = ...,
+            .pixel_format = ...,
+        });
+
+    ...next the image object must be wrapped in an attachment object, this allows
+    to pick a specific mipmap level or slice to be accessed by the compute shader:
+
+        sg_attachments storage_attachment = sg_make_attachment(&(sg_attachments_desc){
+            .storages[0] = {
+                .image = storage_image,
+                .mip_level = ...,
+                .slice = ...,
+            },
+        });
+
+    Finally 'bind' the storage image as pass attachment in the `sg_begin_pass`
+    call of a compute pass:
+
+        sg_begin_pass(&(sg_pass){ .compute = true, .attachments = storage_attachments });
+        ...
+        sg_end_pass();
+
+    Storage attachments should only be accessed as `readwrite` or `writeonly` mode
+    in compute shaders because if the limited bind space of up to 4 slots. For
+    readonly access, just bind the storage image as regular texture via
+    `sg_apply_bindings()`.
+
+    For an example of using storage images in compute shaders see imageblur-sapp:
+
+        - C code: https://github.com/floooh/sokol-samples/blob/master/sapp/imageblur-sapp.c
+        - shader: https://github.com/floooh/sokol-samples/blob/master/sapp/imageblur-sapp.glsl
+
+    NOTE: in the (hopefully not-too-distant) future, working with storage
+    images will change by moving the resource binding from pass attachments to
+    regular bindings via `sg_apply_bindings()`, but this requires the
+    introduction of resource view objects into sokol-gfx (see planning
+    ticket: https://github.com/floooh/sokol/issues/1252)
 
     TRACE HOOKS:
     ============
@@ -1667,6 +1769,11 @@ package sokol_gfx
 
         @group(1) @binding(0..127)
 
+      All storage image attachments must use `@group(2)` and bindings
+      must be in the range 0..3:
+
+        @group(2) @binding(0..3)
+
       Note that the number of texture, sampler and storage buffer bindings
       is still limited despite the large bind range:
 
@@ -1721,7 +1828,7 @@ package sokol_gfx
     - Likewise, the following sokol-gfx pixel formats are not supported in WebGPU:
       R16, R16SN, RG16, RG16SN, RGBA16, RGBA16SN.
       Unlike unsupported vertex formats, unsupported pixel formats can be queried
-      in cross-backend code via sg_query_pixel_format() though.
+      in cross-backend code via sg_query_pixelformat() though.
 
     - The Emscripten WebGPU shim currently doesn't support the Closure minification
       post-link-step (e.g. currently the emcc argument '--closure 1' or '--closure 2'
@@ -1913,15 +2020,14 @@ foreign sokol_gfx_clib {
     query_attachments_defaults :: proc(#by_ptr desc: Attachments_Desc) -> Attachments_Desc ---
     // assorted query functions
     query_buffer_size :: proc(buf: Buffer) -> c.size_t ---
-    query_buffer_type :: proc(buf: Buffer) -> Buffer_Type ---
-    query_buffer_usage :: proc(buf: Buffer) -> Usage ---
+    query_buffer_usage :: proc(buf: Buffer) -> Buffer_Usage ---
     query_image_type :: proc(img: Image) -> Image_Type ---
     query_image_width :: proc(img: Image) -> c.int ---
     query_image_height :: proc(img: Image) -> c.int ---
     query_image_num_slices :: proc(img: Image) -> c.int ---
     query_image_num_mipmaps :: proc(img: Image) -> c.int ---
     query_image_pixelformat :: proc(img: Image) -> Pixel_Format ---
-    query_image_usage :: proc(img: Image) -> Usage ---
+    query_image_usage :: proc(img: Image) -> Image_Usage ---
     query_image_sample_count :: proc(img: Image) -> c.int ---
     // separate resource allocation and initialization (for async setup)
     alloc_buffer :: proc() -> Buffer ---
@@ -2087,6 +2193,7 @@ Range :: struct {
 INVALID_ID :: 0
 NUM_INFLIGHT_FRAMES :: 2
 MAX_COLOR_ATTACHMENTS :: 4
+MAX_STORAGE_ATTACHMENTS :: 4
 MAX_UNIFORMBLOCK_MEMBERS :: 16
 MAX_VERTEX_ATTRIBUTES :: 16
 MAX_MIPMAPS :: 16
@@ -2249,6 +2356,8 @@ Pixelformat_Info :: struct {
     msaa : bool,
     depth : bool,
     compressed : bool,
+    read : bool,
+    write : bool,
     bytes_per_pixel : c.int,
 }
 
@@ -2260,6 +2369,7 @@ Features :: struct {
     mrt_independent_write_mask : bool,
     compute : bool,
     msaa_image_bindings : bool,
+    separate_buffer_types : bool,
 }
 
 // Runtime information about resource limits, returned by sg_query_limit()
@@ -2298,64 +2408,6 @@ Resource_State :: enum i32 {
     VALID,
     FAILED,
     INVALID,
-}
-
-/*
-    sg_usage
-
-    A resource usage hint describing the update strategy of
-    buffers and images. This is used in the sg_buffer_desc.usage
-    and sg_image_desc.usage members when creating buffers
-    and images:
-
-    SG_USAGE_IMMUTABLE:     the resource will never be updated with
-                            new (CPU-side) data, instead the content of the
-                            resource must be provided on creation
-    SG_USAGE_DYNAMIC:       the resource will be updated infrequently
-                            with new data (this could range from "once
-                            after creation", to "quite often but not
-                            every frame")
-    SG_USAGE_STREAM:        the resource will be updated each frame
-                            with new content
-
-    The rendering backends use this hint to prevent that the
-    CPU needs to wait for the GPU when attempting to update
-    a resource that might be currently accessed by the GPU.
-
-    Resource content is updated with the functions sg_update_buffer() or
-    sg_append_buffer() for buffer objects, and sg_update_image() for image
-    objects. For the sg_update_*() functions, only one update is allowed per
-    frame and resource object, while sg_append_buffer() can be called
-    multiple times per frame on the same buffer. The application must update
-    all data required for rendering (this means that the update data can be
-    smaller than the resource size, if only a part of the overall resource
-    size is used for rendering, you only need to make sure that the data that
-    *is* used is valid).
-
-    The default usage is SG_USAGE_IMMUTABLE.
-*/
-Usage :: enum i32 {
-    DEFAULT,
-    IMMUTABLE,
-    DYNAMIC,
-    STREAM,
-}
-
-/*
-    sg_buffer_type
-
-    Indicates whether a buffer will be bound as vertex-,
-    index- or storage-buffer.
-
-    Used in the sg_buffer_desc.type member when creating a buffer.
-
-    The default value is SG_BUFFERTYPE_VERTEXBUFFER.
-*/
-Buffer_Type :: enum i32 {
-    DEFAULT,
-    VERTEXBUFFER,
-    INDEXBUFFER,
-    STORAGEBUFFER,
 }
 
 /*
@@ -3164,18 +3216,44 @@ Bindings :: struct {
 }
 
 /*
+    sg_buffer_usage
+
+    Describes how a buffer object is going to be used:
+
+    .vertex_buffer (default: true)
+        the buffer will bound as vertex buffer via sg_bindings.vertex_buffers[]
+    .index_buffer (default: false)
+        the buffer will bound as index buffer via sg_bindings.index_buffer
+    .storage_buffer (default: false)
+        the buffer will bound as storage buffer via sg_bindings.storage_buffers[]
+    .immutable (default: true)
+        the buffer content will never be updated from the CPU side (but
+        may be written to by a compute shader)
+    .dynamic_update (default: false)
+        the buffer content will be infrequently updated from the CPU side
+    .stream_upate (default: false)
+        the buffer content will be updated each frame from the CPU side
+*/
+Buffer_Usage :: struct {
+    vertex_buffer : bool,
+    index_buffer : bool,
+    storage_buffer : bool,
+    immutable : bool,
+    dynamic_update : bool,
+    stream_update : bool,
+}
+
+/*
     sg_buffer_desc
 
-    Creation parameters for sg_buffer objects, used in the
-    sg_make_buffer() call.
+    Creation parameters for sg_buffer objects, used in the sg_make_buffer() call.
 
     The default configuration is:
 
     .size:      0       (*must* be >0 for buffers without data)
-    .type:      SG_BUFFERTYPE_VERTEXBUFFER
-    .usage:     SG_USAGE_IMMUTABLE
-    .data.ptr   0       (*must* be valid for immutable buffers)
-    .data.size  0       (*must* be > 0 for immutable buffers)
+    .usage              .vertex_buffer = true, .immutable = true
+    .data.ptr   0       (*must* be valid for immutable buffers without storage buffer usage)
+    .data.size  0       (*must* be > 0 for immutable buffers without storage buffer usage)
     .label      0       (optional string label)
 
     For immutable buffers which are initialized with initial data,
@@ -3185,13 +3263,17 @@ Bindings :: struct {
     For immutable or mutable buffers without initial data, keep the .data item
     zero-initialized, and set the buffer size in the .size item instead.
 
-    NOTE: Immutable buffers without initial data are guaranteed to be
-    zero-initialized. For mutable (dynamic or streaming) buffers, the
-    initial content is undefined.
-
     You can also set both size values, but currently both size values must
     be identical (this may change in the future when the dynamic resource
     management may become more flexible).
+
+    NOTE: Immutable buffers without storage-buffer-usage *must* be created
+    with initial content, this restriction doesn't apply to storage buffer usage,
+    because storage buffers may also get their initial content by running
+    a compute shader on them.
+
+    NOTE: Buffers without initial data will have undefined content, e.g.
+    do *not* expect the buffer to be zero-initialized!
 
     ADVANCED TOPIC: Injecting native 3D-API buffers:
 
@@ -3203,12 +3285,12 @@ Bindings :: struct {
     .d3d11_buffer
 
     You must still provide all other struct items except the .data item, and
-    these must match the creation parameters of the native buffers you
-    provide. For SG_USAGE_IMMUTABLE, only provide a single native 3D-API
-    buffer, otherwise you need to provide SG_NUM_INFLIGHT_FRAMES buffers
+    these must match the creation parameters of the native buffers you provide.
+    For sg_buffer_desc.usage.immutable buffers, only provide a single native
+    3D-API buffer, otherwise you need to provide SG_NUM_INFLIGHT_FRAMES buffers
     (only for GL and Metal, not D3D11). Providing multiple buffers for GL and
-    Metal is necessary because sokol_gfx will rotate through them when
-    calling sg_update_buffer() to prevent lock-stalls.
+    Metal is necessary because sokol_gfx will rotate through them when calling
+    sg_update_buffer() to prevent lock-stalls.
 
     Note that it is expected that immutable injected buffer have already been
     initialized with content, and the .content member must be 0!
@@ -3219,8 +3301,7 @@ Bindings :: struct {
 Buffer_Desc :: struct {
     _ : u32,
     size : c.size_t,
-    type : Buffer_Type,
-    usage : Usage,
+    usage : Buffer_Usage,
     data : Range,
     label : cstring,
     gl_buffers : [2]u32,
@@ -3228,6 +3309,35 @@ Buffer_Desc :: struct {
     d3d11_buffer : rawptr,
     wgpu_buffer : rawptr,
     _ : u32,
+}
+
+/*
+    sg_image_usage
+
+    Describes how the image object is going to be used:
+
+    .render_attachment (default: false)
+        the image object is used as color-, resolve- or depth-stencil-
+        attachment in a render pass
+    .storage_attachment (default: false)
+        the image object is used as storage-attachment in a
+        compute pass (to be written to by compute shaders)
+    .immutable (default: true)
+        the image content cannot be updated from the CPU side
+        (but may be updated by the GPU in a render- or compute-pass)
+    .dynamic_update (default: false)
+        the image content is updated infrequently by the CPU
+    .stream_update (default: false)
+        the image content is updated each frame by the CPU via
+
+    Note that the usage as texture binding is implicit and always allowed.
+*/
+Image_Usage :: struct {
+    render_attachment : bool,
+    storage_attachment : bool,
+    immutable : bool,
+    dynamic_update : bool,
+    stream_update : bool,
 }
 
 /*
@@ -3248,15 +3358,14 @@ Image_Data :: struct {
 
     The default configuration is:
 
-    .type:              SG_IMAGETYPE_2D
-    .render_target:     false
+    .type               SG_IMAGETYPE_2D
+    .usage              .immutable = true
     .width              0 (must be set to >0)
     .height             0 (must be set to >0)
     .num_slices         1 (3D textures: depth; array textures: number of layers)
-    .num_mipmaps:       1
-    .usage:             SG_USAGE_IMMUTABLE
-    .pixel_format:      SG_PIXELFORMAT_RGBA8 for textures, or sg_desc.environment.defaults.color_format for render targets
-    .sample_count:      1 for textures, or sg_desc.environment.defaults.sample_count for render targets
+    .num_mipmaps        1
+    .pixel_format       SG_PIXELFORMAT_RGBA8 for textures, or sg_desc.environment.defaults.color_format for render targets
+    .sample_count       1 for textures, or sg_desc.environment.defaults.sample_count for render targets
     .data               an sg_image_data struct to define the initial content
     .label              0 (optional string label for trace hooks)
 
@@ -3271,8 +3380,12 @@ Image_Data :: struct {
 
     NOTE:
 
-    Images with usage SG_USAGE_IMMUTABLE must be fully initialized by
+    Regular (non-attachment) images with usage.immutable must be fully initialized by
     providing a valid .data member which points to initialization data.
+
+    Images with usage.render_attachment or usage.storage_attachment must
+    *not* be created with initial content. Be aware that the initial
+    content of render- and storage-attachment images is undefined.
 
     ADVANCED TOPIC: Injecting native 3D-API textures:
 
@@ -3300,12 +3413,11 @@ Image_Data :: struct {
 Image_Desc :: struct {
     _ : u32,
     type : Image_Type,
-    render_target : bool,
+    usage : Image_Usage,
     width : c.int,
     height : c.int,
     num_slices : c.int,
     num_mipmaps : c.int,
-    usage : Usage,
     pixel_format : Pixel_Format,
     sample_count : c.int,
     data : Image_Data,
@@ -3366,7 +3478,7 @@ Sampler_Desc :: struct {
     reflection information to sokol-gfx.
 
     If you use sokol-shdc you can ignore the following information since
-    the sg_shader_desc struct will be code generated.
+    the sg_shader_desc struct will be code-generated.
 
     Otherwise you need to provide the following information to the
     sg_make_shader() call:
@@ -3401,7 +3513,7 @@ Sampler_Desc :: struct {
             - WGSL: `@workgroup_size(x, y, z)`
           ...but in Metal the workgroup size is declared on the CPU side
 
-    - reflection information for each uniform block used by the shader:
+    - reflection information for each uniform block binding used by the shader:
         - the shader stage the uniform block appears in (SG_SHADERSTAGE_*)
         - the size in bytes of the uniform block
         - backend-specific bindslots:
@@ -3415,14 +3527,14 @@ Sampler_Desc :: struct {
                 - if the member is an array, the array count
                 - the member name
 
-    - reflection information for each texture used by the shader:
+    - reflection information for each texture binding used by the shader:
         - the shader stage the texture appears in (SG_SHADERSTAGE_*)
         - the image type (SG_IMAGETYPE_*)
         - the image-sample type (SG_IMAGESAMPLETYPE_*)
         - whether the texture is multisampled
         - backend specific bindslots:
             - HLSL: the texture register `register(t0..23)`
-            - MSL: the texture attribute `[[texture(0..15)]]`
+            - MSL: the texture attribute `[[texture(0..19)]]`
             - WGSL: the binding in `@group(1) @binding(0..127)`
 
     - reflection information for each sampler used by the shader:
@@ -3433,17 +3545,30 @@ Sampler_Desc :: struct {
             - MSL: the sampler attribute `[[sampler(0..15)]]`
             - WGSL: the binding in `@group(0) @binding(0..127)`
 
-    - reflection information for each storage buffer used by the shader:
+    - reflection information for each storage buffer binding used by the shader:
         - the shader stage the storage buffer appears in (SG_SHADERSTAGE_*)
-        - whether the storage buffer is readonly (currently this must
-          always be true)
+        - whether the storage buffer is readonly
         - backend specific bindslots:
             - HLSL:
                 - for readonly storage buffer bindings: `register(t0..23)`
-                - for read/write storage buffer bindings: `register(u0..7)`
+                - for read/write storage buffer bindings: `register(u0..11)`
             - MSL: the buffer attribute `[[buffer(8..15)]]`
             - WGSL: the binding in `@group(1) @binding(0..127)`
             - GL: the binding in `layout(binding=0..7)`
+
+    - reflection information for each storage image binding used by the shader:
+        - the shader stage (*must* be SG_SHADERSTAGE_COMPUTE)
+        - whether the storage image is writeonly or readwrite (for readonly
+          access use a regular texture binding instead)
+        - the image type expected by the shader (SG_IMAGETYPE_*)
+        - the access pixel format expected by the shader (SG_PIXELFORMAT_*),
+          note that only a subset of pixel formats is allowed for storage image
+          bindings
+        - backend specific bindslots:
+            - HLSL: the UAV register `register(u0..u11)`
+            - MSL: the texture attribute `[[texture(0..19)]]`
+            - WGSL: the binding in `@group(2) @binding(0..3)`
+            - GLSL: the binding in `layout(binding=0..3, [access_format])`
 
     - reflection information for each combined image-sampler object
       used by the shader:
@@ -3474,9 +3599,9 @@ Sampler_Desc :: struct {
     For all GL backends, shader source-code must be provided. For D3D11 and Metal,
     either shader source-code or byte-code can be provided.
 
-    NOTE that the uniform block, image, sampler and storage_buffer arrays
-    can have gaps. This allows to use the same sg_bindings struct for
-    different related shader variants.
+    NOTE that the uniform block, image, sampler, storage_buffer and
+    storage_image arrays may have gaps. This allows to use the same sg_bindings
+    struct for different related shader variants.
 
     For D3D11, if source code is provided, the d3dcompiler_47.dll will be loaded
     on demand. If this fails, shader creation will fail. When compiling HLSL
@@ -3556,6 +3681,17 @@ Shader_Storage_Buffer :: struct {
     glsl_binding_n : u8,
 }
 
+Shader_Storage_Image :: struct {
+    stage : Shader_Stage,
+    image_type : Image_Type,
+    access_format : Pixel_Format,
+    writeonly : bool,
+    hlsl_register_u_n : u8,
+    msl_texture_n : u8,
+    wgsl_group2_binding_n : u8,
+    glsl_binding_n : u8,
+}
+
 Shader_Image_Sampler_Pair :: struct {
     stage : Shader_Stage,
     image_slot : u8,
@@ -3580,6 +3716,7 @@ Shader_Desc :: struct {
     images : [16]Shader_Image,
     samplers : [16]Shader_Sampler,
     image_sampler_pairs : [16]Shader_Image_Sampler_Pair,
+    storage_images : [4]Shader_Storage_Image,
     mtl_threads_per_threadgroup : Mtl_Shader_Threads_Per_Threadgroup,
     label : cstring,
     _ : u32,
@@ -3612,6 +3749,10 @@ Shader_Desc :: struct {
     strides from the vertex component formats (.layout.attrs[].format).
     Please note that ALL vertex attribute offsets must be 0 in order for the
     automatic offset computation to kick in.
+
+    Note that if you use vertex-pulling from storage buffers instead of
+    fixed-function vertex input you can simply omit the entire nested .layout
+    struct.
 
     The default configuration is as follows:
 
@@ -3748,11 +3889,25 @@ Pipeline_Desc :: struct {
     Creation parameters for an sg_attachments object, used as argument to the
     sg_make_attachments() function.
 
-    An attachments object bundles 0..4 color attachments, 0..4 msaa-resolve
-    attachments, and none or one depth-stencil attachmente for use
-    in a render pass. At least one color attachment or one depth-stencil
-    attachment must be provided (no color attachment and a depth-stencil
-    attachment is useful for a depth-only render pass).
+    An attachments object bundles either bundles 'render attachments' for
+    a render pass, or 'storage attachments' for a compute pass which writes
+    to storage images.
+
+    Render attachments are:
+
+        - 0..4 color attachment images
+        - 0..4 msaa-resolve attachment images
+        - 0 or one depth-stencil attachment image
+
+    Note that all types of render attachment images must be created with
+    `sg_image_desc.usage.render_attachment = true`. At least one color-attachment
+    or depth-stencil-attachment image must be provided in a render pass
+    (only providing a depth-stencil-attachment is useful for depth-only passes).
+
+    Alternatively provide 1..4 storage attachment images which must be created
+    with `sg_image_desc.usage.storage_attachment = true`.
+
+    An sg_attachments object cannot have both render- and storage-attachments.
 
     Each attachment definition consists of an image object, and two additional indices
     describing which subimage the pass will render into: one mipmap index, and if the image
@@ -3784,6 +3939,7 @@ Attachments_Desc :: struct {
     colors : [4]Attachment_Desc,
     resolves : [4]Attachment_Desc,
     depth_stencil : Attachment_Desc,
+    storages : [4]Attachment_Desc,
     label : cstring,
     _ : u32,
 }
@@ -4022,6 +4178,7 @@ Log_Item :: enum i32 {
     GL_3D_TEXTURES_NOT_SUPPORTED,
     GL_ARRAY_TEXTURES_NOT_SUPPORTED,
     GL_STORAGEBUFFER_GLSL_BINDING_OUT_OF_RANGE,
+    GL_STORAGEIMAGE_GLSL_BINDING_OUT_OF_RANGE,
     GL_SHADER_COMPILATION_FAILED,
     GL_SHADER_LINKING_FAILED,
     GL_VERTEX_ATTRIBUTE_NOT_FOUND_IN_SHADER,
@@ -4051,6 +4208,7 @@ Log_Item :: enum i32 {
     D3D11_STORAGEBUFFER_HLSL_REGISTER_U_OUT_OF_RANGE,
     D3D11_IMAGE_HLSL_REGISTER_T_OUT_OF_RANGE,
     D3D11_SAMPLER_HLSL_REGISTER_S_OUT_OF_RANGE,
+    D3D11_STORAGEIMAGE_HLSL_REGISTER_U_OUT_OF_RANGE,
     D3D11_LOAD_D3DCOMPILER_47_DLL_FAILED,
     D3D11_SHADER_COMPILATION_FAILED,
     D3D11_SHADER_COMPILATION_OUTPUT,
@@ -4061,6 +4219,7 @@ Log_Item :: enum i32 {
     D3D11_CREATE_BLEND_STATE_FAILED,
     D3D11_CREATE_RTV_FAILED,
     D3D11_CREATE_DSV_FAILED,
+    D3D11_CREATE_UAV_FAILED,
     D3D11_MAP_FOR_UPDATE_BUFFER_FAILED,
     D3D11_MAP_FOR_APPEND_BUFFER_FAILED,
     D3D11_MAP_FOR_UPDATE_IMAGE_FAILED,
@@ -4074,6 +4233,7 @@ Log_Item :: enum i32 {
     METAL_SHADER_ENTRY_NOT_FOUND,
     METAL_UNIFORMBLOCK_MSL_BUFFER_SLOT_OUT_OF_RANGE,
     METAL_STORAGEBUFFER_MSL_BUFFER_SLOT_OUT_OF_RANGE,
+    METAL_STORAGEIMAGE_MSL_TEXTURE_SLOT_OUT_OF_RANGE,
     METAL_IMAGE_MSL_TEXTURE_SLOT_OUT_OF_RANGE,
     METAL_SAMPLER_MSL_SAMPLER_SLOT_OUT_OF_RANGE,
     METAL_CREATE_CPS_FAILED,
@@ -4095,6 +4255,7 @@ Log_Item :: enum i32 {
     WGPU_STORAGEBUFFER_WGSL_GROUP1_BINDING_OUT_OF_RANGE,
     WGPU_IMAGE_WGSL_GROUP1_BINDING_OUT_OF_RANGE,
     WGPU_SAMPLER_WGSL_GROUP1_BINDING_OUT_OF_RANGE,
+    WGPU_STORAGEIMAGE_WGSL_GROUP2_BINDING_OUT_OF_RANGE,
     WGPU_CREATE_PIPELINE_LAYOUT_FAILED,
     WGPU_CREATE_RENDER_PIPELINE_FAILED,
     WGPU_CREATE_COMPUTE_PIPELINE_FAILED,
@@ -4136,27 +4297,35 @@ Log_Item :: enum i32 {
     APPLY_BINDINGS_STORAGE_BUFFER_TRACKER_EXHAUSTED,
     DRAW_WITHOUT_BINDINGS,
     VALIDATE_BUFFERDESC_CANARY,
+    VALIDATE_BUFFERDESC_IMMUTABLE_DYNAMIC_STREAM,
+    VALIDATE_BUFFERDESC_SEPARATE_BUFFER_TYPES,
     VALIDATE_BUFFERDESC_EXPECT_NONZERO_SIZE,
     VALIDATE_BUFFERDESC_EXPECT_MATCHING_DATA_SIZE,
     VALIDATE_BUFFERDESC_EXPECT_ZERO_DATA_SIZE,
     VALIDATE_BUFFERDESC_EXPECT_NO_DATA,
+    VALIDATE_BUFFERDESC_EXPECT_DATA,
     VALIDATE_BUFFERDESC_STORAGEBUFFER_SUPPORTED,
     VALIDATE_BUFFERDESC_STORAGEBUFFER_SIZE_MULTIPLE_4,
     VALIDATE_IMAGEDATA_NODATA,
     VALIDATE_IMAGEDATA_DATA_SIZE,
     VALIDATE_IMAGEDESC_CANARY,
+    VALIDATE_IMAGEDESC_IMMUTABLE_DYNAMIC_STREAM,
+    VALIDATE_IMAGEDESC_RENDER_VS_STORAGE_ATTACHMENT,
     VALIDATE_IMAGEDESC_WIDTH,
     VALIDATE_IMAGEDESC_HEIGHT,
-    VALIDATE_IMAGEDESC_RT_PIXELFORMAT,
     VALIDATE_IMAGEDESC_NONRT_PIXELFORMAT,
-    VALIDATE_IMAGEDESC_MSAA_BUT_NO_RT,
-    VALIDATE_IMAGEDESC_NO_MSAA_RT_SUPPORT,
-    VALIDATE_IMAGEDESC_MSAA_NUM_MIPMAPS,
-    VALIDATE_IMAGEDESC_MSAA_3D_IMAGE,
-    VALIDATE_IMAGEDESC_MSAA_CUBE_IMAGE,
+    VALIDATE_IMAGEDESC_MSAA_BUT_NO_ATTACHMENT,
     VALIDATE_IMAGEDESC_DEPTH_3D_IMAGE,
-    VALIDATE_IMAGEDESC_RT_IMMUTABLE,
-    VALIDATE_IMAGEDESC_RT_NO_DATA,
+    VALIDATE_IMAGEDESC_ATTACHMENT_EXPECT_IMMUTABLE,
+    VALIDATE_IMAGEDESC_ATTACHMENT_EXPECT_NO_DATA,
+    VALIDATE_IMAGEDESC_RENDERATTACHMENT_NO_MSAA_SUPPORT,
+    VALIDATE_IMAGEDESC_RENDERATTACHMENT_MSAA_NUM_MIPMAPS,
+    VALIDATE_IMAGEDESC_RENDERATTACHMENT_MSAA_3D_IMAGE,
+    VALIDATE_IMAGEDESC_RENDERATTACHMENT_MSAA_CUBE_IMAGE,
+    VALIDATE_IMAGEDESC_RENDERATTACHMENT_MSAA_ARRAY_IMAGE,
+    VALIDATE_IMAGEDESC_RENDERATTACHMENT_PIXELFORMAT,
+    VALIDATE_IMAGEDESC_STORAGEATTACHMENT_PIXELFORMAT,
+    VALIDATE_IMAGEDESC_STORAGEATTACHMENT_EXPECT_NO_MSAA,
     VALIDATE_IMAGEDESC_INJECTED_NO_DATA,
     VALIDATE_IMAGEDESC_DYNAMIC_NO_DATA,
     VALIDATE_IMAGEDESC_COMPRESSED_IMMUTABLE,
@@ -4195,6 +4364,15 @@ Log_Item :: enum i32 {
     VALIDATE_SHADERDESC_STORAGEBUFFER_GLSL_BINDING_COLLISION,
     VALIDATE_SHADERDESC_STORAGEBUFFER_WGSL_GROUP1_BINDING_OUT_OF_RANGE,
     VALIDATE_SHADERDESC_STORAGEBUFFER_WGSL_GROUP1_BINDING_COLLISION,
+    VALIDATE_SHADERDESC_STORAGEIMAGE_EXPECT_COMPUTE_STAGE,
+    VALIDATE_SHADERDESC_STORAGEIMAGE_METAL_TEXTURE_SLOT_OUT_OF_RANGE,
+    VALIDATE_SHADERDESC_STORAGEIMAGE_METAL_TEXTURE_SLOT_COLLISION,
+    VALIDATE_SHADERDESC_STORAGEIMAGE_HLSL_REGISTER_U_OUT_OF_RANGE,
+    VALIDATE_SHADERDESC_STORAGEIMAGE_HLSL_REGISTER_U_COLLISION,
+    VALIDATE_SHADERDESC_STORAGEIMAGE_GLSL_BINDING_OUT_OF_RANGE,
+    VALIDATE_SHADERDESC_STORAGEIMAGE_GLSL_BINDING_COLLISION,
+    VALIDATE_SHADERDESC_STORAGEIMAGE_WGSL_GROUP2_BINDING_OUT_OF_RANGE,
+    VALIDATE_SHADERDESC_STORAGEIMAGE_WGSL_GROUP2_BINDING_COLLISION,
     VALIDATE_SHADERDESC_IMAGE_METAL_TEXTURE_SLOT_OUT_OF_RANGE,
     VALIDATE_SHADERDESC_IMAGE_METAL_TEXTURE_SLOT_COLLISION,
     VALIDATE_SHADERDESC_IMAGE_HLSL_REGISTER_T_OUT_OF_RANGE,
@@ -4230,14 +4408,13 @@ Log_Item :: enum i32 {
     VALIDATE_ATTACHMENTSDESC_CANARY,
     VALIDATE_ATTACHMENTSDESC_NO_ATTACHMENTS,
     VALIDATE_ATTACHMENTSDESC_NO_CONT_COLOR_ATTS,
-    VALIDATE_ATTACHMENTSDESC_IMAGE,
-    VALIDATE_ATTACHMENTSDESC_MIPLEVEL,
-    VALIDATE_ATTACHMENTSDESC_FACE,
-    VALIDATE_ATTACHMENTSDESC_LAYER,
-    VALIDATE_ATTACHMENTSDESC_SLICE,
-    VALIDATE_ATTACHMENTSDESC_IMAGE_NO_RT,
+    VALIDATE_ATTACHMENTSDESC_COLOR_IMAGE,
+    VALIDATE_ATTACHMENTSDESC_COLOR_MIPLEVEL,
+    VALIDATE_ATTACHMENTSDESC_COLOR_FACE,
+    VALIDATE_ATTACHMENTSDESC_COLOR_LAYER,
+    VALIDATE_ATTACHMENTSDESC_COLOR_SLICE,
+    VALIDATE_ATTACHMENTSDESC_COLOR_IMAGE_NO_RENDERATTACHMENT,
     VALIDATE_ATTACHMENTSDESC_COLOR_INV_PIXELFORMAT,
-    VALIDATE_ATTACHMENTSDESC_DEPTH_INV_PIXELFORMAT,
     VALIDATE_ATTACHMENTSDESC_IMAGE_SIZES,
     VALIDATE_ATTACHMENTSDESC_IMAGE_SAMPLE_COUNTS,
     VALIDATE_ATTACHMENTSDESC_RESOLVE_COLOR_IMAGE_MSAA,
@@ -4250,21 +4427,32 @@ Log_Item :: enum i32 {
     VALIDATE_ATTACHMENTSDESC_RESOLVE_IMAGE_NO_RT,
     VALIDATE_ATTACHMENTSDESC_RESOLVE_IMAGE_SIZES,
     VALIDATE_ATTACHMENTSDESC_RESOLVE_IMAGE_FORMAT,
+    VALIDATE_ATTACHMENTSDESC_DEPTH_INV_PIXELFORMAT,
     VALIDATE_ATTACHMENTSDESC_DEPTH_IMAGE,
     VALIDATE_ATTACHMENTSDESC_DEPTH_MIPLEVEL,
     VALIDATE_ATTACHMENTSDESC_DEPTH_FACE,
     VALIDATE_ATTACHMENTSDESC_DEPTH_LAYER,
     VALIDATE_ATTACHMENTSDESC_DEPTH_SLICE,
-    VALIDATE_ATTACHMENTSDESC_DEPTH_IMAGE_NO_RT,
+    VALIDATE_ATTACHMENTSDESC_DEPTH_IMAGE_NO_RENDERATTACHMENT,
     VALIDATE_ATTACHMENTSDESC_DEPTH_IMAGE_SIZES,
     VALIDATE_ATTACHMENTSDESC_DEPTH_IMAGE_SAMPLE_COUNT,
+    VALIDATE_ATTACHMENTSDESC_STORAGE_IMAGE,
+    VALIDATE_ATTACHMENTSDESC_STORAGE_MIPLEVEL,
+    VALIDATE_ATTACHMENTSDESC_STORAGE_FACE,
+    VALIDATE_ATTACHMENTSDESC_STORAGE_LAYER,
+    VALIDATE_ATTACHMENTSDESC_STORAGE_SLICE,
+    VALIDATE_ATTACHMENTSDESC_STORAGE_IMAGE_NO_STORAGEATTACHMENT,
+    VALIDATE_ATTACHMENTSDESC_STORAGE_INV_PIXELFORMAT,
+    VALIDATE_ATTACHMENTSDESC_RENDER_VS_STORAGE_ATTACHMENTS,
     VALIDATE_BEGINPASS_CANARY,
-    VALIDATE_BEGINPASS_EXPECT_NO_ATTACHMENTS,
     VALIDATE_BEGINPASS_ATTACHMENTS_EXISTS,
     VALIDATE_BEGINPASS_ATTACHMENTS_VALID,
+    VALIDATE_BEGINPASS_COMPUTEPASS_STORAGE_ATTACHMENTS_ONLY,
+    VALIDATE_BEGINPASS_RENDERPASS_RENDER_ATTACHMENTS_ONLY,
     VALIDATE_BEGINPASS_COLOR_ATTACHMENT_IMAGE,
     VALIDATE_BEGINPASS_RESOLVE_ATTACHMENT_IMAGE,
     VALIDATE_BEGINPASS_DEPTHSTENCIL_ATTACHMENT_IMAGE,
+    VALIDATE_BEGINPASS_STORAGE_ATTACHMENT_IMAGE,
     VALIDATE_BEGINPASS_SWAPCHAIN_EXPECT_WIDTH,
     VALIDATE_BEGINPASS_SWAPCHAIN_EXPECT_WIDTH_NOTSET,
     VALIDATE_BEGINPASS_SWAPCHAIN_EXPECT_HEIGHT,
@@ -4309,6 +4497,11 @@ Log_Item :: enum i32 {
     VALIDATE_APIP_COLOR_FORMAT,
     VALIDATE_APIP_DEPTH_FORMAT,
     VALIDATE_APIP_SAMPLE_COUNT,
+    VALIDATE_APIP_EXPECTED_STORAGE_ATTACHMENT_IMAGE,
+    VALIDATE_APIP_STORAGE_ATTACHMENT_IMAGE_EXISTS,
+    VALIDATE_APIP_STORAGE_ATTACHMENT_IMAGE_VALID,
+    VALIDATE_APIP_STORAGE_ATTACHMENT_PIXELFORMAT,
+    VALIDATE_APIP_STORAGE_ATTACHMENT_IMAGE_TYPE,
     VALIDATE_ABND_PASS_EXPECTED,
     VALIDATE_ABND_EMPTY_BINDINGS,
     VALIDATE_ABND_PIPELINE,
@@ -4341,6 +4534,10 @@ Log_Item :: enum i32 {
     VALIDATE_ABND_STORAGEBUFFER_EXISTS,
     VALIDATE_ABND_STORAGEBUFFER_BINDING_BUFFERTYPE,
     VALIDATE_ABND_STORAGEBUFFER_READWRITE_IMMUTABLE,
+    VALIDATE_ABND_IMAGE_BINDING_VS_DEPTHSTENCIL_ATTACHMENT,
+    VALIDATE_ABND_IMAGE_BINDING_VS_COLOR_ATTACHMENT,
+    VALIDATE_ABND_IMAGE_BINDING_VS_RESOLVE_ATTACHMENT,
+    VALIDATE_ABND_IMAGE_BINDING_VS_STORAGE_ATTACHMENT,
     VALIDATE_AU_PASS_EXPECTED,
     VALIDATE_AU_NO_PIPELINE,
     VALIDATE_AU_NO_UNIFORMBLOCK_AT_SLOT,

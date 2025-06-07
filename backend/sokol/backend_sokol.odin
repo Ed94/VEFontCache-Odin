@@ -39,11 +39,11 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	Blend_State                :: gfx.Blend_State
 	Border_Color               :: gfx.Border_Color
 	Buffer_Desciption          :: gfx.Buffer_Desc
-	Buffer_Usage               :: gfx.Usage
-	Buffer_Type                :: gfx.Buffer_Type
+	Buffer_Usage               :: gfx.Buffer_Usage
 	Color_Target_State         :: gfx.Color_Target_State
 	Filter                     :: gfx.Filter
 	Image_Desc                 :: gfx.Image_Desc
+	Image_Usage                :: gfx.Image_Usage
 	Pass_Action                :: gfx.Pass_Action
 	Range                      :: gfx.Range
 	Resource_State             :: gfx.Resource_State
@@ -65,15 +65,13 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 
 	ctx.draw_list_vbuf = gfx.make_buffer( Buffer_Desciption {
 		size  = cast(uint)(size_of([4]f32) * vert_cap),
-		usage = Buffer_Usage.STREAM,
-		type  = Buffer_Type.VERTEXBUFFER,
+		usage = Buffer_Usage { vertex_buffer = true, dynamic_update = true, immutable = false },
 	})
 	assert( gfx.query_buffer_state( ctx.draw_list_vbuf) < Resource_State.FAILED, "Failed to make draw_list_vbuf" )
 
 	ctx.draw_list_ibuf = gfx.make_buffer( Buffer_Desciption {
 		size  = cast(uint)(size_of(u32) * index_cap),
-		usage = Buffer_Usage.STREAM,
-		type  = Buffer_Type.INDEXBUFFER,
+		usage = { index_buffer = true, dynamic_update = true, immutable = false },
 	})
 	assert( gfx.query_buffer_state( ctx.draw_list_ibuf) < Resource_State.FAILED, "Failed to make draw_list_iubuf" )
 
@@ -136,12 +134,11 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	{
 		ctx.glyph_rt_color = gfx.make_image( Image_Desc {
 			type          = ._2D,
-			render_target = true,
+			usage         = Image_Usage { render_attachment = true, immutable = true },
 			width         = i32(ve_ctx.glyph_buffer.size.x),
 			height        = i32(ve_ctx.glyph_buffer.size.y),
 			num_slices    = 1,
 			num_mipmaps   = 1,
-			usage         = .IMMUTABLE,
 			pixel_format  = .R8,
 			sample_count  = 1,
 		})
@@ -149,12 +146,11 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 
 		ctx.glyph_rt_depth = gfx.make_image( Image_Desc {
 			type          = ._2D,
-			render_target = true,
+			usage         = Image_Usage { render_attachment = true, immutable = true },
 			width         = i32(ve_ctx.glyph_buffer.size.x),
 			height        = i32(ve_ctx.glyph_buffer.size.y),
 			num_slices    = 1,
 			num_mipmaps   = 1,
-			usage         = .IMMUTABLE,
 			pixel_format  = .DEPTH,
 			sample_count  = 1,
 		})
@@ -270,12 +266,11 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	{
 		ctx.atlas_rt_color = gfx.make_image( Image_Desc {
 			type          = ._2D,
-			render_target = true,
+			usage         = { render_attachment = true, immutable = true },
 			width         = i32(ve_ctx.atlas.size.x),
 			height        = i32(ve_ctx.atlas.size.y),
 			num_slices    = 1,
 			num_mipmaps   = 1,
-			usage         = .IMMUTABLE,
 			pixel_format  = .R8,
 			sample_count  = 1,
 			// TODO(Ed): Setup labels for debug tracing/logging
@@ -285,12 +280,11 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 
 		ctx.atlas_rt_depth = gfx.make_image( Image_Desc {
 			type          = ._2D,
-			render_target = true,
+			usage         = { render_attachment = true, immutable = true },
 			width         = i32(ve_ctx.atlas.size.x),
 			height        = i32(ve_ctx.atlas.size.y),
 			num_slices    = 1,
 			num_mipmaps   = 1,
-			usage         = .IMMUTABLE,
 			pixel_format  = .DEPTH,
 			sample_count  = 1,
 		})
