@@ -4,3 +4,5 @@ build
 # thirdparty/harfbuzz
 # thirdparty/sokol
 # thirdparty/sokol-tools
+vefontcache.proj
+vefontcache.user
