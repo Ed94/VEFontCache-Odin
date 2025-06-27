@@ -65,13 +65,13 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 
 	ctx.draw_list_vbuf = gfx.make_buffer( Buffer_Desciption {
 		size  = cast(uint)(size_of([4]f32) * vert_cap),
-		usage = Buffer_Usage { vertex_buffer = true, dynamic_update = true, immutable = false },
+		usage = Buffer_Usage { vertex_buffer = true, stream_update = true, immutable = false },
 	})
 	assert( gfx.query_buffer_state( ctx.draw_list_vbuf) < Resource_State.FAILED, "Failed to make draw_list_vbuf" )
 
 	ctx.draw_list_ibuf = gfx.make_buffer( Buffer_Desciption {
 		size  = cast(uint)(size_of(u32) * index_cap),
-		usage = { index_buffer = true, dynamic_update = true, immutable = false },
+		usage = { index_buffer = true, stream_update = true, immutable = false },
 	})
 	assert( gfx.query_buffer_state( ctx.draw_list_ibuf) < Resource_State.FAILED, "Failed to make draw_list_iubuf" )
 
