@@ -103,7 +103,7 @@ Context :: struct {
 	default_curve_quality : i32,
 }
 
-//#region("Init Params")
+//region Init Params
 
 Init_Atlas_Params :: struct {
 	size_multiplier : u32, // How much to scale the the atlas size to. (Affects everything, the base is 4096 x 2048 and everything follows from there)
@@ -169,9 +169,9 @@ Init_Shape_Cache_Params_Default :: Init_Shape_Cache_Params {
 	reserve  = 128,
 }
 
-//#endregion("Init Params")
+//endregion Init Params
 
-//#region("lifetime")
+//region lifetime
 
 // ve_fontcache_init
 startup :: proc( ctx : ^Context, parser_kind : Parser_Kind = .STB_TrueType, // Note(Ed): Only sbt_truetype supported for now.
@@ -618,9 +618,9 @@ clear_shape_cache :: proc (ctx : ^Context)
 	ctx.shape_cache.next_cache_id = 0
 }
 
-//#endregion("lifetime")
+//endregion lifetime
 
-//#region("shaping")
+//region shaping
 
 // For high performance, the user should track the shapes and use the draw list interface on shapes. 
 // Doing so avoids cache lookups.
@@ -674,9 +674,9 @@ shape_text_uncached :: #force_inline proc( ctx : ^Context, font : Font_ID, px_si
 	return
 }
 
-//#endregion("shaping")
+//endregion shaping
 
-//#region("draw_list generation")
+//region draw_list generation
 
 /* The most basic interface-level draw shape procedure.
 	Context's stack is not used. Only modifications for alpha sharpen and px_scalar are applied.
@@ -1135,9 +1135,9 @@ flush_draw_list_layer :: #force_inline proc( ctx : ^Context ) {
 	ctx.draw_layer.calls_offset    = len(ctx.draw_list.calls)
 }
 
-//#endregion("draw_list generation")
+//endregion draw_list generation
 
-//#region("metrics")
+//region metrics
 
 // The metrics follow the convention for providing their values unscaled from ctx.px_scalar
 // Where its assumed when utilizing the draw_list generators or shaping procedures that the shape will be affected by it so it must be handled.
@@ -1192,9 +1192,9 @@ get_font_vertical_metrics :: #force_inline proc ( ctx : Context, font : Font_ID,
 	return
 }
 
-//#endregion("metrics")
+//endregion metrics
 
-//#region("miscellaneous")
+//region miscellaneous
 
 get_font_entry :: #force_inline proc "contextless" ( ctx : ^Context, font : Font_ID ) -> Entry {
 	return ctx.entries[font]
@@ -1279,9 +1279,9 @@ set_snap_glyph_render_height :: #force_inline proc( ctx : ^Context, should_snap 
 	ctx.glyph_buffer.snap_glyph_height = cast(f32) i32(should_snap)
 }
 
-//#endregion("miscellaneous")
+//endregion miscellaneous
 
-//#region("scope stack")
+//region scope stack
 
 /* Scope stacking ease of use interface.
 
@@ -1361,4 +1361,4 @@ auto_pop_vpz :: #force_inline proc( ctx : ^Context, camera : VPZ_Transform ) {
 	pop(& ctx.stack.zoom    )
 }
 
-//#endregion("scope stack")
+//endregion scope stack

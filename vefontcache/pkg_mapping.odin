@@ -45,7 +45,7 @@ import "core:mem"
 import "core:slice"
 import "core:unicode"
 
-//#region("Proc overload mappings")
+//region Proc overload mappings
 
 append :: proc {
 	append_elem,
@@ -146,4 +146,4 @@ vec2_64 :: proc {
 	vec2_64_from_vec2,
 }
 
-//#endregion("Proc overload mappings")
+//endregion Proc overload mappings
