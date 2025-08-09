@@ -1253,6 +1253,8 @@ resolve_px_scalar_size :: #force_inline proc "contextless" ( parser_info : Parse
 	return
 }
 
+// Helps with hinting, makes sure glyph quads are aligned to an integer pixel 
+// Best if used in combination with snap_glyph_position, maybe snap_glyph_height,and snap_glyph_width.
 snap_normalized_position_to_view :: #force_inline proc "contextless" ( position, view : Vec2 ) -> (position_snapped : Vec2)
 {
 	should_snap   := cast(f32) i32(view.x > 0 && view.y > 0)

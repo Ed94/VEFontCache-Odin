@@ -236,8 +236,8 @@ init :: proc "c" ()
 	ve.startup( & demo_ctx.ve_ctx, .STB_TrueType, allocator = context.allocator, 
 		glyph_draw_params = glyph_draw_opts,
 		shaper_params     = shaper_opts,
-		px_scalar         = 1.4,
-		alpha_sharpen     = 0.1,
+		px_scalar         = 1.21,
+		alpha_sharpen     = 0.09,
 	)
 	ve_sokol.setup_gfx_objects( & demo_ctx.render_ctx, & demo_ctx.ve_ctx, vert_cap = 256 * 1024, index_cap = 512 * 1024 )
 
