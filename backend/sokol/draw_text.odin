@@ -21,11 +21,11 @@ import sg "thirdparty:sokol/gfx"
         Uniform block 'draw_text_fs_params':
             Odin struct: Draw_Text_Fs_Params
             Bind slot: UB_draw_text_fs_params => 0
-        Image 'draw_text_src_texture':
+        Texture 'draw_text_src_texture':
             Image type: ._2D
             Sample type: .FLOAT
             Multisampled: false
-            Bind slot: IMG_draw_text_src_texture => 0
+            Bind slot: VIEW_draw_text_src_texture => 0
         Sampler 'draw_text_src_sampler':
             Type: .FILTERING
             Bind slot: SMP_draw_text_src_sampler => 0
@@ -33,7 +33,7 @@ import sg "thirdparty:sokol/gfx"
 ATTR_draw_text_v_position :: 0
 ATTR_draw_text_v_texture :: 1
 UB_draw_text_fs_params :: 0
-IMG_draw_text_src_texture :: 0
+VIEW_draw_text_src_texture :: 0
 SMP_draw_text_src_sampler :: 0
 Draw_Text_Fs_Params :: struct #align(16) {
     using _: struct #packed {
@@ -699,7 +699,7 @@ draw_text_vs_source_wgsl := [664]u8 {
 
     @binding(64) @group(1) var draw_text_src_texture : texture_2d<f32>;
 
-    @binding(80) @group(1) var draw_text_src_sampler : sampler;
+    @binding(65) @group(1) var draw_text_src_sampler : sampler;
 
     var<private> uv : vec2f;
 
@@ -768,7 +768,7 @@ draw_text_fs_source_wgsl := [1825]u8 {
     0x72,0x20,0x64,0x72,0x61,0x77,0x5f,0x74,0x65,0x78,0x74,0x5f,0x73,0x72,0x63,0x5f,
     0x74,0x65,0x78,0x74,0x75,0x72,0x65,0x20,0x3a,0x20,0x74,0x65,0x78,0x74,0x75,0x72,
     0x65,0x5f,0x32,0x64,0x3c,0x66,0x33,0x32,0x3e,0x3b,0x0a,0x0a,0x40,0x62,0x69,0x6e,
-    0x64,0x69,0x6e,0x67,0x28,0x38,0x30,0x29,0x20,0x40,0x67,0x72,0x6f,0x75,0x70,0x28,
+    0x64,0x69,0x6e,0x67,0x28,0x36,0x35,0x29,0x20,0x40,0x67,0x72,0x6f,0x75,0x70,0x28,
     0x31,0x29,0x20,0x76,0x61,0x72,0x20,0x64,0x72,0x61,0x77,0x5f,0x74,0x65,0x78,0x74,
     0x5f,0x73,0x72,0x63,0x5f,0x73,0x61,0x6d,0x70,0x6c,0x65,0x72,0x20,0x3a,0x20,0x73,
     0x61,0x6d,0x70,0x6c,0x65,0x72,0x3b,0x0a,0x0a,0x76,0x61,0x72,0x3c,0x70,0x72,0x69,
@@ -886,16 +886,16 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.uniform_blocks[0].glsl_uniforms[0].type = .FLOAT4
         desc.uniform_blocks[0].glsl_uniforms[0].array_count = 2
         desc.uniform_blocks[0].glsl_uniforms[0].glsl_name = "draw_text_fs_params"
-        desc.images[0].stage = .FRAGMENT
-        desc.images[0].multisampled = false
-        desc.images[0].image_type = ._2D
-        desc.images[0].sample_type = .FLOAT
+        desc.views[0].texture.stage = .FRAGMENT
+        desc.views[0].texture.image_type = ._2D
+        desc.views[0].texture.sample_type = .FLOAT
+        desc.views[0].texture.multisampled = false
         desc.samplers[0].stage = .FRAGMENT
         desc.samplers[0].sampler_type = .FILTERING
-        desc.image_sampler_pairs[0].stage = .FRAGMENT
-        desc.image_sampler_pairs[0].image_slot = 0
-        desc.image_sampler_pairs[0].sampler_slot = 0
-        desc.image_sampler_pairs[0].glsl_name = "draw_text_src_texture_draw_text_src_sampler"
+        desc.texture_sampler_pairs[0].stage = .FRAGMENT
+        desc.texture_sampler_pairs[0].view_slot = 0
+        desc.texture_sampler_pairs[0].sampler_slot = 0
+        desc.texture_sampler_pairs[0].glsl_name = "draw_text_src_texture_draw_text_src_sampler"
     case .GLES3:
         desc.vertex_func.source = transmute(cstring)&draw_text_vs_source_glsl300es
         desc.vertex_func.entry = "main"
@@ -911,16 +911,16 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.uniform_blocks[0].glsl_uniforms[0].type = .FLOAT4
         desc.uniform_blocks[0].glsl_uniforms[0].array_count = 2
         desc.uniform_blocks[0].glsl_uniforms[0].glsl_name = "draw_text_fs_params"
-        desc.images[0].stage = .FRAGMENT
-        desc.images[0].multisampled = false
-        desc.images[0].image_type = ._2D
-        desc.images[0].sample_type = .FLOAT
+        desc.views[0].texture.stage = .FRAGMENT
+        desc.views[0].texture.image_type = ._2D
+        desc.views[0].texture.sample_type = .FLOAT
+        desc.views[0].texture.multisampled = false
         desc.samplers[0].stage = .FRAGMENT
         desc.samplers[0].sampler_type = .FILTERING
-        desc.image_sampler_pairs[0].stage = .FRAGMENT
-        desc.image_sampler_pairs[0].image_slot = 0
-        desc.image_sampler_pairs[0].sampler_slot = 0
-        desc.image_sampler_pairs[0].glsl_name = "draw_text_src_texture_draw_text_src_sampler"
+        desc.texture_sampler_pairs[0].stage = .FRAGMENT
+        desc.texture_sampler_pairs[0].view_slot = 0
+        desc.texture_sampler_pairs[0].sampler_slot = 0
+        desc.texture_sampler_pairs[0].glsl_name = "draw_text_src_texture_draw_text_src_sampler"
     case .D3D11:
         desc.vertex_func.source = transmute(cstring)&draw_text_vs_source_hlsl4
         desc.vertex_func.d3d11_target = "vs_4_0"
@@ -938,17 +938,17 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.uniform_blocks[0].layout = .STD140
         desc.uniform_blocks[0].size = 32
         desc.uniform_blocks[0].hlsl_register_b_n = 0
-        desc.images[0].stage = .FRAGMENT
-        desc.images[0].multisampled = false
-        desc.images[0].image_type = ._2D
-        desc.images[0].sample_type = .FLOAT
-        desc.images[0].hlsl_register_t_n = 0
+        desc.views[0].texture.stage = .FRAGMENT
+        desc.views[0].texture.image_type = ._2D
+        desc.views[0].texture.sample_type = .FLOAT
+        desc.views[0].texture.multisampled = false
+        desc.views[0].texture.hlsl_register_t_n = 0
         desc.samplers[0].stage = .FRAGMENT
         desc.samplers[0].sampler_type = .FILTERING
         desc.samplers[0].hlsl_register_s_n = 0
-        desc.image_sampler_pairs[0].stage = .FRAGMENT
-        desc.image_sampler_pairs[0].image_slot = 0
-        desc.image_sampler_pairs[0].sampler_slot = 0
+        desc.texture_sampler_pairs[0].stage = .FRAGMENT
+        desc.texture_sampler_pairs[0].view_slot = 0
+        desc.texture_sampler_pairs[0].sampler_slot = 0
     case .METAL_MACOS:
         desc.vertex_func.source = transmute(cstring)&draw_text_vs_source_metal_macos
         desc.vertex_func.entry = "main0"
@@ -960,17 +960,17 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.uniform_blocks[0].layout = .STD140
         desc.uniform_blocks[0].size = 32
         desc.uniform_blocks[0].msl_buffer_n = 0
-        desc.images[0].stage = .FRAGMENT
-        desc.images[0].multisampled = false
-        desc.images[0].image_type = ._2D
-        desc.images[0].sample_type = .FLOAT
-        desc.images[0].msl_texture_n = 0
+        desc.views[0].texture.stage = .FRAGMENT
+        desc.views[0].texture.image_type = ._2D
+        desc.views[0].texture.sample_type = .FLOAT
+        desc.views[0].texture.multisampled = false
+        desc.views[0].texture.msl_texture_n = 0
         desc.samplers[0].stage = .FRAGMENT
         desc.samplers[0].sampler_type = .FILTERING
         desc.samplers[0].msl_sampler_n = 0
-        desc.image_sampler_pairs[0].stage = .FRAGMENT
-        desc.image_sampler_pairs[0].image_slot = 0
-        desc.image_sampler_pairs[0].sampler_slot = 0
+        desc.texture_sampler_pairs[0].stage = .FRAGMENT
+        desc.texture_sampler_pairs[0].view_slot = 0
+        desc.texture_sampler_pairs[0].sampler_slot = 0
     case .WGPU:
         desc.vertex_func.source = transmute(cstring)&draw_text_vs_source_wgsl
         desc.vertex_func.entry = "main"
@@ -982,17 +982,17 @@ draw_text_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {
         desc.uniform_blocks[0].layout = .STD140
         desc.uniform_blocks[0].size = 32
         desc.uniform_blocks[0].wgsl_group0_binding_n = 8
-        desc.images[0].stage = .FRAGMENT
-        desc.images[0].multisampled = false
-        desc.images[0].image_type = ._2D
-        desc.images[0].sample_type = .FLOAT
-        desc.images[0].wgsl_group1_binding_n = 64
+        desc.views[0].texture.stage = .FRAGMENT
+        desc.views[0].texture.image_type = ._2D
+        desc.views[0].texture.sample_type = .FLOAT
+        desc.views[0].texture.multisampled = false
+        desc.views[0].texture.wgsl_group1_binding_n = 64
         desc.samplers[0].stage = .FRAGMENT
         desc.samplers[0].sampler_type = .FILTERING
-        desc.samplers[0].wgsl_group1_binding_n = 80
-        desc.image_sampler_pairs[0].stage = .FRAGMENT
-        desc.image_sampler_pairs[0].image_slot = 0
-        desc.image_sampler_pairs[0].sampler_slot = 0
+        desc.samplers[0].wgsl_group1_binding_n = 65
+        desc.texture_sampler_pairs[0].stage = .FRAGMENT
+        desc.texture_sampler_pairs[0].view_slot = 0
+        desc.texture_sampler_pairs[0].sampler_slot = 0
     }
     return desc
 }

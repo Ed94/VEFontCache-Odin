@@ -13,14 +13,20 @@ Context :: struct {
 	screen_shader : gfx.Shader,
 
 	// ve.glyph_buffer.(width, height), R8
-	glyph_rt_color   : gfx.Image,
-	glyph_rt_depth   : gfx.Image,
-	glyph_rt_sampler : gfx.Sampler,
+	glyph_rt_color        : gfx.Image,
+	glyph_rt_depth        : gfx.Image,
+	glyph_rt_view_color   : gfx.View,
+	glyph_rt_view_depth   : gfx.View,
+	glyph_rt_view_texture : gfx.View,
+	glyph_rt_sampler      : gfx.Sampler,
 
 	// ve.atlas.(width, height), R8
-	atlas_rt_color   : gfx.Image,
-	atlas_rt_depth   : gfx.Image,
-	atlas_rt_sampler : gfx.Sampler,
+	atlas_rt_color        : gfx.Image,
+	atlas_rt_depth        : gfx.Image,
+	atlas_rt_view_color   : gfx.View,
+	atlas_rt_view_depth   : gfx.View,
+	atlas_rt_view_texture : gfx.View,
+	atlas_rt_sampler      : gfx.Sampler,
 
 	glyph_pipeline  : gfx.Pipeline,
 	atlas_pipeline  : gfx.Pipeline,
@@ -33,7 +39,6 @@ Context :: struct {
 
 setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index_cap : u64 )
 {
-	Attachment_Desc            :: gfx.Attachment_Desc
 	Blend_Factor               :: gfx.Blend_Factor
 	Blend_Op                   :: gfx.Blend_Op
 	Blend_State                :: gfx.Blend_State
@@ -43,18 +48,21 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	Color_Target_State         :: gfx.Color_Target_State
 	Filter                     :: gfx.Filter
 	Image_Desc                 :: gfx.Image_Desc
+	Image_View_Desc            :: gfx.Image_View_Desc
 	Image_Usage                :: gfx.Image_Usage
 	Pass_Action                :: gfx.Pass_Action
 	Range                      :: gfx.Range
 	Resource_State             :: gfx.Resource_State
 	Sampler_Description        :: gfx.Sampler_Desc
 	Wrap                       :: gfx.Wrap
+	Texture_View_Desc          :: gfx.Texture_View_Desc
 	Vertex_Attribute_State     :: gfx.Vertex_Attr_State
 	Vertex_Buffer_Layout_State :: gfx.Vertex_Buffer_Layout_State
 	Vertex_Index_Type          :: gfx.Index_Type
 	Vertex_Format              :: gfx.Vertex_Format
 	Vertex_Layout_State        :: gfx.Vertex_Layout_State
 	Vertex_Step                :: gfx.Vertex_Step
+	View_Desc                  :: gfx.View_Desc
 
 	backend := gfx.query_backend()
 	app_env := glue.environment()
@@ -134,7 +142,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	{
 		ctx.glyph_rt_color = gfx.make_image( Image_Desc {
 			type          = ._2D,
-			usage         = Image_Usage { render_attachment = true, immutable = true },
+			usage         = Image_Usage { color_attachment = true, immutable = true },
 			width         = i32(ve_ctx.glyph_buffer.size.x),
 			height        = i32(ve_ctx.glyph_buffer.size.y),
 			num_slices    = 1,
@@ -146,7 +154,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 
 		ctx.glyph_rt_depth = gfx.make_image( Image_Desc {
 			type          = ._2D,
-			usage         = Image_Usage { render_attachment = true, immutable = true },
+			usage         = Image_Usage { depth_stencil_attachment = true, immutable = true },
 			width         = i32(ve_ctx.glyph_buffer.size.x),
 			height        = i32(ve_ctx.glyph_buffer.size.y),
 			num_slices    = 1,
@@ -169,19 +177,27 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 		})
 		assert( gfx.query_sampler_state( ctx.glyph_rt_sampler) < Resource_State.FAILED, "Failed to make atlas_rt_sampler" )
 
-		color_attach := Attachment_Desc {
+		color_attach := Image_View_Desc {
 			image = ctx.glyph_rt_color,
 		}
-
-		glyph_attachments := gfx.make_attachments({
-			colors = {
-				0 = color_attach,
-			},
-			depth_stencil = {
-				image = ctx.glyph_rt_depth,
-			},
+		depth_attach := Image_View_Desc {
+			image = ctx.glyph_rt_depth,
+		}
+		texture_attach := Texture_View_Desc {
+			image = ctx.glyph_rt_color,
+		}
+		ctx.glyph_rt_view_color = gfx.make_view({
+			color_attachment = color_attach,
 		})
-		assert( gfx.query_attachments_state(glyph_attachments) < Resource_State.FAILED, "Failed to make glyph_attachments" )
+		assert( gfx.query_view_state(ctx.glyph_rt_view_color) < Resource_State.FAILED, "Failed to make glyph_rt_view_color" )
+		ctx.glyph_rt_view_depth = gfx.make_view({
+			depth_stencil_attachment = depth_attach,
+		})
+		assert( gfx.query_view_state(ctx.glyph_rt_view_depth) < Resource_State.FAILED, "Failed to make glyph_rt_view_depth" )
+		ctx.glyph_rt_view_texture = gfx.make_view({
+			texture = texture_attach,
+		})
+		assert( gfx.query_view_state(ctx.glyph_rt_view_texture) < Resource_State.FAILED, "Failed to make glyph_rt_view_texture" )
 
 		glyph_action := Pass_Action {
 			colors = {
@@ -205,8 +221,10 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 
 		ctx.glyph_pass = gfx.Pass {
 			action      = glyph_action,
-			attachments = glyph_attachments,
-			// label =
+			attachments = { 
+				colors        = { ctx.glyph_rt_view_color, {}, {}, {} },
+				depth_stencil = ctx.glyph_rt_view_depth,
+			},
 		}
 	}
 
@@ -266,7 +284,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 	{
 		ctx.atlas_rt_color = gfx.make_image( Image_Desc {
 			type          = ._2D,
-			usage         = { render_attachment = true, immutable = true },
+			usage         = { color_attachment = true, immutable = true },
 			width         = i32(ve_ctx.atlas.size.x),
 			height        = i32(ve_ctx.atlas.size.y),
 			num_slices    = 1,
@@ -280,7 +298,7 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 
 		ctx.atlas_rt_depth = gfx.make_image( Image_Desc {
 			type          = ._2D,
-			usage         = { render_attachment = true, immutable = true },
+			usage         = { depth_stencil_attachment = true, immutable = true },
 			width         = i32(ve_ctx.atlas.size.x),
 			height        = i32(ve_ctx.atlas.size.y),
 			num_slices    = 1,
@@ -304,19 +322,27 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 		})
 		assert( gfx.query_sampler_state( ctx.atlas_rt_sampler) < Resource_State.FAILED, "Failed to make atlas_rt_sampler" )
 
-		color_attach := Attachment_Desc {
+		color_attach := Image_View_Desc {
 			image     = ctx.atlas_rt_color,
 		}
-
-		atlas_attachments := gfx.make_attachments({
-			colors = {
-				0 = color_attach,
-			},
-			depth_stencil = {
-				image = ctx.atlas_rt_depth,
-			},
+		depth_attach := Image_View_Desc {
+			image     = ctx.atlas_rt_depth,
+		}
+		texture_attach := Texture_View_Desc {
+			image     = ctx.atlas_rt_color,
+		}
+		ctx.atlas_rt_view_color = gfx.make_view({
+			color_attachment = color_attach,
 		})
-		assert( gfx.query_attachments_state(atlas_attachments) < Resource_State.FAILED, "Failed to make atlas_attachments")
+		assert( gfx.query_view_state(ctx.atlas_rt_view_color) < Resource_State.FAILED, "Failed to make ctx.atlas_rt_view_color")
+		ctx.atlas_rt_view_depth = gfx.make_view({
+			depth_stencil_attachment = depth_attach,
+		})
+		assert( gfx.query_view_state(ctx.atlas_rt_view_depth) < Resource_State.FAILED, "Failed to make ctx.atlas_rt_view_depth")
+		ctx.atlas_rt_view_texture = gfx.make_view({
+			texture = texture_attach,
+		})
+		assert( gfx.query_view_state(ctx.atlas_rt_view_texture) < Resource_State.FAILED, "Failed to make atlas_rt_view_texture" )
 
 		atlas_action := Pass_Action {
 			colors = {
@@ -338,9 +364,12 @@ setup_gfx_objects :: proc( ctx : ^Context, ve_ctx : ^ve.Context, vert_cap, index
 			}
 		}
 
-		ctx.atlas_pass = gfx.Pass {
-			action      = atlas_action,
-			attachments = atlas_attachments,
+		ctx.atlas_pass = gfx.Pass { 
+			action = atlas_action,
+			attachments = {
+				colors        = { ctx.atlas_rt_view_color, {}, {}, {} },
+				depth_stencil = ctx.atlas_rt_view_depth,
+			},
 		}
 	}
 
@@ -538,8 +567,8 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					},
 					index_buffer        = ctx.draw_list_ibuf,
 					index_buffer_offset = 0,
-					images              = { IMG_blit_atlas_src_texture = ctx.glyph_rt_color,   },
-					samplers            = { SMP_blit_atlas_src_sampler = ctx.glyph_rt_sampler, },
+					views               = { VIEW_blit_atlas_src_texture = ctx.glyph_rt_view_texture, },
+					samplers            = { SMP_blit_atlas_src_sampler  = ctx.glyph_rt_sampler, },
 				})
 
 			// 3. Use the atlas (.Target) or the glyph buffer (.Target_Unchached) to then render the text.
@@ -559,7 +588,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 
 				gfx.apply_pipeline( ctx.screen_pipeline )
 
-				src_rt      := ctx.atlas_rt_color
+				src_rt      := ctx.atlas_rt_view_texture
 				src_sampler := ctx.atlas_rt_sampler
 
 				fs_target_uniform := Draw_Text_Fs_Params {
@@ -570,7 +599,7 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 
 				if draw_call.pass == .Target_Uncached {
 					// fs_target_uniform.over_sample = 1.0
-					src_rt      = ctx.glyph_rt_color
+					src_rt      = ctx.glyph_rt_view_texture
 					src_sampler = ctx.glyph_rt_sampler
 				}
 				gfx.apply_uniforms( UB_draw_text_fs_params, Range { & fs_target_uniform, size_of(Draw_Text_Fs_Params) })
@@ -584,8 +613,8 @@ render_text_layer :: proc( screen_extent : ve.Vec2, ve_ctx : ^ve.Context, ctx : 
 					},
 					index_buffer        = ctx.draw_list_ibuf,
 					index_buffer_offset = 0,
-					images              = { IMG_draw_text_src_texture = src_rt, },
-					samplers            = { SMP_draw_text_src_sampler = src_sampler, },
+					views               = { VIEW_draw_text_src_texture = src_rt, },
+					samplers            = { SMP_draw_text_src_sampler  = src_sampler, },
 				})
 		}
 

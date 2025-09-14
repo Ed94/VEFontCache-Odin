@@ -66,18 +66,30 @@ package sokol_app
 
     Link with the following system libraries:
 
-    - on macOS with Metal: Cocoa, QuartzCore, Metal, MetalKit
-    - on macOS with GL: Cocoa, QuartzCore, OpenGL
-    - on iOS with Metal: Foundation, UIKit, Metal, MetalKit
-    - on iOS with GL: Foundation, UIKit, OpenGLES, GLKit
-    - on Linux with EGL: X11, Xi, Xcursor, EGL, GL (or GLESv2), dl, pthread, m(?)
-    - on Linux with GLX: X11, Xi, Xcursor, GL, dl, pthread, m(?)
+    - on macOS:
+        - all backends: Foundation, Cocoa, QuartzCore
+        - with SOKOL_METAL: Metal, MetalKit
+        - with SOKOL_GLCORE: OpenGL
+        - with SOKOL_WGPU: a WebGPU implementation library (tested with webgpu_dawn)
+    - on iOS:
+        - all backends: Foundation, UIKit
+        - with SOKOL_METAL: Metal, MetalKit
+        - with SOKOL_GLES3: OpenGLES, GLKit
+    - on Linux:
+        - all backends: X11, Xi, Xcursor, dl, pthread, m
+        - with SOKOL_GLCORE: GL
+        - with SOKOL_GLES3: GLESv2
+        - with SOKOL_WGPU: a WebGPU implementation library (tested with webgpu_dawn)
+        - with EGL: EGL
     - on Android: GLESv3, EGL, log, android
-    - on Windows with the MSVC or Clang toolchains: no action needed, libs are defined in-source via pragma-comment-lib
-    - on Windows with MINGW/MSYS2 gcc: compile with '-mwin32' so that _WIN32 is defined
-        - link with the following libs: -lkernel32 -luser32 -lshell32
-        - additionally with the GL backend: -lgdi32
-        - additionally with the D3D11 backend: -ld3d11 -ldxgi
+    - on Windows:
+        - with MSVC or Clang: library dependencies are defined via `#pragma comment`
+        - with SOKOL_WGPU: a WebGPU implementation library (tested with webgpu_dawn)
+        - with MINGW/MSYS2 gcc:
+            - compile with '-mwin32' so that _WIN32 is defined
+            - link with the following libs: -lkernel32 -luser32 -lshell32
+            - additionally with the GL backend: -lgdi32
+            - additionally with the D3D11 backend: -ld3d11 -ldxgi
 
     On Linux, you also need to use the -pthread compiler and linker option, otherwise weird
     things will happen, see here for details: https://github.com/floooh/sokol/issues/376
@@ -87,7 +99,7 @@ package sokol_app
     On Emscripten:
         - for WebGL2: add the linker option `-s USE_WEBGL2=1`
         - for WebGPU: compile and link with `--use-port=emdawnwebgpu`
-          (for more exotic situations, read: https://dawn.googlesource.com/dawn/+/refs/heads/main/src/emdawnwebgpu/pkg/README.md)
+          (for more exotic situations read: https://dawn.googlesource.com/dawn/+/refs/heads/main/src/emdawnwebgpu/pkg/README.md)
 
     FEATURE OVERVIEW
     ================
@@ -95,11 +107,12 @@ package sokol_app
     implements the 'application-wrapper' parts of a 3D application:
 
     - a common application entry function
-    - creates a window and 3D-API context/device with a 'default framebuffer'
+    - creates a window and 3D-API context/device with a swapchain
+      surface, depth-stencil-buffer surface and optionally MSAA surface
     - makes the rendered frame visible
     - provides keyboard-, mouse- and low-level touch-events
     - platforms: MacOS, iOS, HTML5, Win32, Linux/RaspberryPi, Android
-    - 3D-APIs: Metal, D3D11, GL4.1, GL4.3, GLES3, WebGL, WebGL2, NOAPI
+    - 3D-APIs: Metal, D3D11, GL4.1, GL4.3, GLES3, WebGL2, WebGPU, NOAPI
 
     FEATURE/PLATFORM MATRIX
     =======================
@@ -109,6 +122,7 @@ package sokol_app
     gles3/webgl2        | ---     | ---   | YES(2)| YES   | YES     |  YES
     metal               | ---     | YES   | ---   | YES   | ---     |  ---
     d3d11               | YES     | ---   | ---   | ---   | ---     |  ---
+    webgpu              | YES(4)  | YES(4)| YES(4)| NO    | NO      |  YES
     noapi               | YES     | TODO  | TODO  | ---   | TODO    |  ---
     KEY_DOWN            | YES     | YES   | YES   | SOME  | TODO    |  YES
     KEY_UP              | YES     | YES   | YES   | SOME  | TODO    |  YES
@@ -134,7 +148,7 @@ package sokol_app
     IME                 | TODO    | TODO? | TODO  | ???   | TODO    |  ???
     key repeat flag     | YES     | YES   | YES   | ---   | ---     |  YES
     windowed            | YES     | YES   | YES   | ---   | ---     |  YES
-    fullscreen          | YES     | YES   | YES   | YES   | YES     |  ---
+    fullscreen          | YES     | YES   | YES   | YES   | YES     |  YES(3)
     mouse hide          | YES     | YES   | YES   | ---   | ---     |  YES
     mouse lock          | YES     | YES   | YES   | ---   | ---     |  YES
     set cursor type     | YES     | YES   | YES   | ---   | ---     |  YES
@@ -148,6 +162,9 @@ package sokol_app
 
     (1) macOS has no regular window icons, instead the dock icon is changed
     (2) supported with EGL only (not GLX)
+    (3) fullscreen in the browser not supported on iphones
+    (4) WebGPU on native desktop platforms should be considered experimental
+        and mainly useful for debugging and benchmarking
 
     STEP BY STEP
     ============
@@ -687,8 +704,7 @@ package sokol_app
                 const size_t num_bytes = response->data.size;
                 // and the pointer to the data (same as 'buf' in the fetch-call):
                 const void* ptr = response->data.ptr;
-            }
-            else {
+            } else {
                 // on error check the error code:
                 switch (response->error_code) {
                     case SAPP_HTML5_FETCH_ERROR_BUFFER_TOO_SMALL:
@@ -864,6 +880,15 @@ package sokol_app
 
     To check if the application window is currently in fullscreen mode,
     call sapp_is_fullscreen().
+
+    On the web, sapp_desc.fullscreen will have no effect, and the application
+    will always start in non-fullscreen mode. Call sapp_toggle_fullscreen()
+    from within or 'near' an input event to switch to fullscreen programatically.
+    Note that on the web, the fullscreen state may change back to windowed at
+    any time (either because the browser had rejected switching into fullscreen,
+    or the user leaves fullscreen via Esc), this means that the result
+    of sapp_is_fullscreen() may change also without calling sapp_toggle_fullscreen()!
+
 
     WINDOW ICON SUPPORT
     ===================
@@ -1408,6 +1433,10 @@ foreign sokol_app_clib {
     set_mouse_cursor :: proc(cursor: Mouse_Cursor)  ---
     // get current mouse cursor type
     get_mouse_cursor :: proc() -> Mouse_Cursor ---
+    // associate a custom mouse cursor image to a sapp_mouse_cursor enum entry
+    bind_mouse_cursor_image :: proc(cursor: Mouse_Cursor, #by_ptr desc: Image_Desc) -> Mouse_Cursor ---
+    // restore the sapp_mouse_cursor enum entry to it's default system appearance
+    unbind_mouse_cursor_image :: proc(cursor: Mouse_Cursor)  ---
     // return the userdata pointer optionally provided in sapp_desc
     userdata :: proc() -> rawptr ---
     // return a copy of the sapp_desc structure
@@ -1775,16 +1804,18 @@ Range :: struct {
 /*
     sapp_image_desc
 
-    This is used to describe image data to sokol_app.h (at first, window
-    icons, later maybe cursor images).
+    This is used to describe image data to sokol_app.h (window icons and cursor images).
 
-    Note that the actual image pixel format depends on the use case:
+    The pixel format is RGBA8.
 
-    - window icon pixels are RGBA8
+    cursor_hotspot_x and _y are used only for cursors, to define which pixel
+    of the image should be aligned with the mouse position.
 */
 Image_Desc :: struct {
     width : c.int,
     height : c.int,
+    cursor_hotspot_x : c.int,
+    cursor_hotspot_y : c.int,
     pixels : Range,
 }
 
@@ -1852,6 +1883,7 @@ Log_Item :: enum i32 {
     WIN32_REGISTER_RAW_INPUT_DEVICES_FAILED_MOUSE_LOCK,
     WIN32_REGISTER_RAW_INPUT_DEVICES_FAILED_MOUSE_UNLOCK,
     WIN32_GET_RAW_INPUT_DATA_FAILED,
+    WIN32_DESTROYICON_FOR_CURSOR_FAILED,
     LINUX_GLX_LOAD_LIBGL_FAILED,
     LINUX_GLX_LOAD_ENTRY_POINTS_FAILED,
     LINUX_GLX_EXTENSION_NOT_FOUND,
@@ -1910,6 +1942,9 @@ Log_Item :: enum i32 {
     ANDROID_NATIVE_ACTIVITY_ONCREATE,
     ANDROID_CREATE_THREAD_PIPE_FAILED,
     ANDROID_NATIVE_ACTIVITY_CREATE_SUCCESS,
+    WGPU_DEVICE_LOST,
+    WGPU_DEVICE_LOG,
+    WGPU_DEVICE_UNCAPTURED_ERROR,
     WGPU_SWAPCHAIN_CREATE_SURFACE_FAILED,
     WGPU_SWAPCHAIN_SURFACE_GET_CAPABILITIES_FAILED,
     WGPU_SWAPCHAIN_CREATE_DEPTH_STENCIL_TEXTURE_FAILED,
@@ -2036,5 +2071,21 @@ Mouse_Cursor :: enum i32 {
     RESIZE_NESW,
     RESIZE_ALL,
     NOT_ALLOWED,
+    CUSTOM_0,
+    CUSTOM_1,
+    CUSTOM_2,
+    CUSTOM_3,
+    CUSTOM_4,
+    CUSTOM_5,
+    CUSTOM_6,
+    CUSTOM_7,
+    CUSTOM_8,
+    CUSTOM_9,
+    CUSTOM_10,
+    CUSTOM_11,
+    CUSTOM_12,
+    CUSTOM_13,
+    CUSTOM_14,
+    CUSTOM_15,
 }
 

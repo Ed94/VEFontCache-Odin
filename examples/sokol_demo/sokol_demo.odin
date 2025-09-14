@@ -205,7 +205,7 @@ init :: proc "c" ()
 		sampler_pool_size     = 64,
 		shader_pool_size      = 32,
 		pipeline_pool_size    = 64,
-		attachments_pool_size = 16,
+		view_pool_size = 16,
 		uniform_buffer_size   = 4 * mem.Megabyte,
 		max_commit_listeners  = 1024,
 		allocator             = { sokol_gfx_alloc, sokol_gfx_free, nil },
